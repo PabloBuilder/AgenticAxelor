@@ -1,0 +1,225 @@
+Pour les m2m :
+<input/>
+
+<bind column="productTitle" to="productTitle" search="self.code in :productTitle" eval="productTitle?.split('\\|') as List"/>
+
+</input>
+
+Pour les dates :
+https://docs.axelor.com/adk/7.3/dev-guide/data-import/adapters.html
+
+<input/>
+
+<bind to="startDate" column="startDate" adapter="LocalDate"/>
+
+</input>
+
+Avec en adapter :
+
+<adapter name="LocalDate" type="com.axelor.data.adapter.JavaTimeAdapter">
+<option name="type" value="LocalDate"/>
+<option name="format" value="dd/MM/yyyy"/>
+</adapter>
+
+<adapter name="LocalTime" type="com.axelor.data.adapter.JavaTimeAdapter">
+<option name="type" value="LocalTime"/>
+<option name="format" value="HH:mm"/>
+</adapter>
+
+<adapter name="LocalDateTime" type="com.axelor.data.adapter.JavaTimeAdapter">
+<option name="type" value="LocalDateTime"/>
+<option name="format" value="dd/MM/yyyy HH:mm"/>
+</adapter>
+
+<adapter name="DateTime" type="com.axelor.data.adapter.JavaTimeAdapter">
+<option name="type" value="DateTime"/>
+<option name="format" value="dd/MM/yyyy HH:mm"/>
+</adapter>
+
+Pour remplacer les , en . :
+<input/>
+
+<bind column="price" eval="price ? price.replace(',', '.') : null" to="price"/>
+
+</input>
+
+Pour rechercher dans le repo :
+<input/>
+
+<bind to="companyBankDetails" eval="__repo__(Company).all().fetchOne()?.defaultBankDetails"/>
+
+<bind to="partner" search="self.partnerSeq = :partner" column="partner"/>
+
+<bind to="fiscalPosition" eval="__repo__(Partner).all().filter('self.partnerSeq = ?',partner).fetchOne()?.fiscalPosition"/>
+
+<bind to="paymentMode" eval="__repo__(Partner).all().filter('self.partnerSeq = ?',partner).fetchOne()?.inPaymentMode"/>
+
+<bind to="paymentCondition" eval="__repo__(Partner).all().filter('self.partnerSeq = ?',partner).fetchOne()?.paymentCondition"/>
+
+<bind to="address" eval="__repo__(Partner).all().filter('self.partnerSeq = ?',partner).fetchOne().mainAddress"/>
+
+<bind to="partnerTaxNbr" eval="__repo__(Partner).all().filter('self.partnerSeq = ?',partner).fetchOne()?.taxNbr"/>
+
+</input>
+
+Pour ne pas être impacté par la case : 
+<input file="qp_address.csv" separator=";" type="com.axelor.apps.base.db.Address"
+
+     search="self.importId = :importId" call="com.axelor.csv.script.ImportAddress:importAddress">
+     <bind column="cityName" to="city" search="UPPER(self.name) = UPPER(:cityName)" update="true"/>
+
+</input>  
+
+Pour utiliser une séquence en particulier :
+<bind to="saleOrderSeq" eval="call:com.axelor.apps.base.service.administration.SequenceService:getSequenceNumber('saleOrder', __repo__(Company).all().filter('self.code = ?1', 'SNE').fetchOne(),SaleOrder.class,'saleOrderSeq',__repo__(MetaModel).findByName('com.axelor.apps.sale.db.SaleOrder'))"/>
+
+Avec comme paramètres :
+
+'saleOrder' : Document concerné / codeSelect sur la séquence
+__repo__(Company).all().filter('self.code = ?1', 'SNE').fetchOne() : la société souhaitée
+SaleOrder.class : la classe du modèle
+'saleOrderSeq' : le nom du champ qui doit accueillir la séquence
+__repo__(MetaModel).findByName('com.axelor.apps.sale.db.SaleOrder') : le modèle contexte
+Attention : prend uniquement la version active
+
+https://github.com/axelor/axelor-open-suite/blob/master/axelor-mobile-settings/src/main/resources/apps/demo-data/mobile-settings-config.xml#L44
+
+<bind to="partnerSeq"
+
+eval="call:com.axelor.apps.base.service.administration.SequenceService:getSequenceNumber(com.axelor.apps.base.db.repo.SequenceRepository.PARTNER,com.axelor.apps.base.db.Partner,'partnerSeq')"/>
+
+Pour les champs attrs :
+Moche :
+
+Rien dans le XML
+
+Exemple dans le csv :
+
+attrs
+{"nbrLaser": 10,"nbrPlasma": 10,"parcLaser": [{"id":5698}, {"id":5699}]}
+Propre :
+
+<bind to="$attrs.vendeur" search="self.importId = :userVendeurImportId" update="true"/>
+<bind to="$attrs.covendeur" search="self.importId = :userCoVendeurImportId" update="true"/>
+
+Et dans le csv :
+
+userVendeurImportId	userCoVendeurImportId
+620586	540170
+(update="true" > sert si des cases sont vides dans le csv pour ne pas générer d'erreur ce qui empêche l'import de la ligne)
+
+Modèle studio :
+
+  <input file="wiziou_testAlterSi.csv" separator=";" type="com.axelor.meta.db.MetaJsonRecord" search="self.importId = :importId"/>
+
+importId	name	jsonModel	attrs
+1	Parent 1	TestAlterSiParent	{"name": "Parent 1"}
+2	Parent 2	TestAlterSiParent	{"name": "Parent 2"}
+3	Parent 3	TestAlterSiParent	{"name": "Parent 3"}
+4	Parent 4	TestAlterSiParent	{"name": "Parent 4"}
+5	Parent 5	TestAlterSiParent	{"name": "Parent 5"}
+1_1	Enfant 1-1	TestAlterSiEnfant	{"name": "Enfant 1-1", "parent": { "name": "Parent 1"}}
+1_2	Enfant 1-2	TestAlterSiEnfant	{"name": "Enfant 1-2", "parent": { "name": "Parent 1"}}
+1_3	Enfant 1-3	TestAlterSiEnfant	{"name": "Enfant 1-3", "parent": { "name": "Parent 1"}}
+1	Parent 1	TestAlterSiParent	{"name": "Parent 1","enfants": [{"id": 1909}, {"id": 1910},{"id": 1911}]}
+Pour les mettre un log "check-message" :
+Data integrity check :
+For a binding, you can define a boolean expression with check. You can set a message to display with check-message if the check fails. Here is an example :
+
+<input file="moveline.csv" separator=";" type="com.axelor.apps.account.db.MoveLine">
+<bind to="account" column="account_code" check="account != null" check-message="The account :account_code doesn't exist"/>
+<bind to="origin" column="PieceRef"/>
+<bind to="description" column="EcritureLib"/>
+</input>
+
+Exemples :
+
+  <bind to="companyBankDetails" eval="__repo__(Company).all().filter('self.code = ?1', 'SNE').fetchOne()?.defaultBankDetails"
+      check="__repo__(Company).all().filter('self.code = ?1', 'SNE').fetchOne()?.defaultBankDetails != null"
+      check-message="Il n'y a pas de RIB par défaut sur la société."/>
+
+<bind to="importId" column="Pièce" -->
+      <!-- check="Pièce != null &amp;&amp; !Pièce.trim().isEmpty() &amp;&amp; __repo__(Move).all().filter('self.importId = ?1', Pièce).count() == 0" -->
+      <!-- check-message="Cette écriture existe déjà dans Axelor. Supprimez l'écriture existante en suivant le processus avant de réimporter."/>
+
+Pour les mettre un log "check" :
+Au lieu d'utiliser les check-message, on met le message directement dans le check avec un throw groovy.
+comme ca :
+
+<bind to="account" column="account_code"
+  check="account != null || { throw new javax.validation.ValidationException('Le compte ' + account_code + ' nexiste pas') }()"/>
+
+ce que j'ai fait par exemple c'est de mettre la condition ici == null au lieu de != null :
+
+<bind to="saleProduct" eval="__repo__(Product).all().filter('self.callCode = ?1 AND self.brand.code = ?2', Ref_fournisseur.toString().trim(), Code_marque.toString().trim()).fetchOne()"
+      check="__repo__(Product).all().filter('self.callCode = ?1 AND self.brand.code = ?2', Ref_fournisseur.toString().trim(), Code_marque.toString().trim()).fetchOne()?.id != null || { throw new javax.validation.ValidationException('QTE MULTIPLES VENTE - Produit introuvable : ' + Ref_fournisseur + ' / marque ' + Code_marque) }()"/>
+
+et j'ai eu ca :
+
+javax.validation.ValidationException: OK Pas de consigne à créer
+javax.validation.ValidationException: OK Pas de consigne à créer
+javax.validation.ValidationException: OK Pas de consigne à créer
+javax.validation.ValidationException: OK Pas de consigne à créer
+javax.validation.ValidationException: QTE MULTIPLES VENTE - Produit introuvable : 9296233 / marque FTE
+javax.validation.ValidationException: QTE MULTIPLES VENTE - Produit introuvable : 579159 / marque VALEO
+javax.validation.ValidationException: QTE MULTIPLES VENTE - Produit introuvable : 88836 / marque VALEO
+javax.validation.ValidationException: QTE MULTIPLES VENTE - Produit introuvable : 599210 / marque VALEO
+javax.validation.ValidationException: QTE MULTIPLES VENTE - Produit introuvable : 44905 / marque VALEO
+Total : 25 - Réussi : 16 - Non vide : 16
+Anomalies générées :9
+
+Formules pour concatener des m2m :
+
+Exemple :
+Sur excel FR
+J'ai un jeu de donnée et je veux le transofmer pour avoir une ligne par nom et concatener les groups_code avec un séparateur | et pareil pour les roles_name
+Donne moi la formule sachant que voici un échantillon :
+ID nom Mis à jour le groups_code roles_name
+8 menu-dms 45854,60406 DIR
+8 menu-dms 45854,60406 CDP
+8 menu-dms 45854,60406 admins_sshr
+8 menu-dms 45854,60406 TECH
+10 menu-dms-all 45854,60202 DIR
+10 menu-dms-all 45854,60202 CDP
+10 menu-dms-all 45854,60202 admins_sshr
+10 menu-dms-all 45854,60202 TECH
+12 menu-team 45853,89713
+14 menu-dms-my 45853,71256 admins_sshr Admin sans RH
+18 menu-dms-config 45853,71316 admins_sshr Admin sans RH
+21 menu-dms-config-tags 45853,71301 admins_sshr Admin sans RH
+54 studio-app-root 45856,39488 admins_sshr BPM Read
+54 studio-app-root 45856,39488 admins_sshr BPM User
+54 studio-app-root 45856,39488 admins_sshr BPM Manager
+54 studio-app-root 45856,39488 admins_sshr Admin sans RH
+
+Solution :
+
+? Alternative avec formule (Excel 365 ou Excel 2021)
+Si tu as Excel 365 / Excel 2021 (avec la fonction TEXTJOIN + UNIQUE + FILTER + LET), voici une version formule à tester, si par exemple tu veux tout regrouper pour nom dans une ligne :
+
+Suppose que A1:E1000 contient tes données, avec en-tête sur ligne 1.
+
+Dans une nouvelle feuille :
+
+En A2, mets la liste unique des noms :
+
+excel
+CopierModifier
+=UNIQUE(FILTRE(Tableau1[nom],Tableau1[nom]<>""))
+En B2, pour concaténer les groups_code :
+
+excel
+CopierModifier
+=TEXTJOIN("|";VRAI;UNIQUE(FILTRE(Tableau1[groups_code];Tableau1[nom]=A2)))
+En C2, pour concaténer les roles_name :
+
+excel
+CopierModifier
+=TEXTJOIN("|";VRAI;UNIQUE(FILTRE(Tableau1[roles_name];Tableau1[nom]=A2)))
+Et tu tires vers le bas.
+
+Pour modifier des lignes avec plusieurs critères :
+Quand on a pas une clé mais plusieurs clés pour sélectionner l'entrée que l'on veut modifier, par exemple ici pour modifier une tâche sans connaitre un id ou un importId, mais avec comme clé le code projet ET le nom de la tâche, on peut avoir un search avec plusieurs critères :
+
+CopierModifier
+<input file="projectTask.csv" separator=";" search="self.project.code = :projectCode AND self.name = :name" type="com.axelor.apps.project.db.ProjectTask" update="true" />
