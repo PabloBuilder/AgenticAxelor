@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "agentic-axelor": {
+      "command": "node",
+      "args": [
+        "g:/doc/projets/AgenticAxelor/dist/index.js"
+      ],
+      "env": {
+        "AXELOR_URL": "https://demo01.alter-si.fr/axelor-erp",
+        "AXELOR_USERNAME": "admin",
+        "AXELOR_PASSWORD": "admin",
+        "AXELOR_COOKIE": ""
+      }
+    },
+    "agentic-axelor-dev": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "tsx",
+        "g:/doc/projets/AgenticAxelor/src/index.ts"
+      ],
+      "env": {
+        "AXELOR_URL": "https://demo01.alter-si.fr/axelor-erp",
+        "AXELOR_USERNAME": "admin",
+        "AXELOR_PASSWORD": "admin",
+        "AXELOR_COOKIE": ""
+      }
+    }
+  }
+}

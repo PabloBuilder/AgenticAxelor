@@ -1,0 +1,28 @@
+{
+  "name": "agentic-axelor-mcp",
+  "version": "0.1.0",
+  "description": "MCP server to query Axelor ERP metadata and menus",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test:menu": "tsx src/cli/testMenu.ts",
+    "test:view": "tsx src/cli/testView.ts",
+    "test:data": "tsx src/cli/testData.ts",
+    "test:mutation": "tsx src/cli/testMutation.ts",
+    "test:stdio": "tsx src/cli/testStdio.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}
