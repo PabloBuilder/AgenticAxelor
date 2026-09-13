@@ -22,11 +22,13 @@ cd AgenticAxelor
 npm install
 ```
 
-Create `.env` in the root:
+Create `.env` in the root (see [`.env.example`](file:///g:/doc/projets/AgenticAxelor/.env.example)):
 ```env
 AXELOR_URL=http://localhost:8080/axelor-erp
 AXELOR_USERNAME=admin
 AXELOR_PASSWORD=admin
+# Optional: Session cookie (auto-captured by extension or set manually)
+AXELOR_COOKIE=JSESSIONID=...
 PORT=3210
 ```
 
@@ -43,24 +45,29 @@ npm start
 
 ---
 
-## MCP Integration (Claude Desktop / Cursor)
+## Universal MCP Integration (Any Agentic IDE / CLI)
 
-Add to `claude_desktop_config.json`:
+AgenticAxelor works with **all MCP-compatible AI environments**: Claude Desktop, Claude Code, Google Antigravity, Cursor, Windsurf, Roo Code / Cline, Zed, and custom LLM agents.
+
+### Standard `mcpServers` JSON Configuration
+Add to your environment's MCP config file (e.g. `claude_desktop_config.json`, `.cursor/mcp.json`, `settings.json`):
 ```json
 {
   "mcpServers": {
     "agentic-axelor": {
       "command": "node",
-      "args": ["g:/doc/projets/AgenticAxelor/dist/index.js"],
+      "args": ["<ABSOLUTE_PATH_TO_PROJECT>/dist/index.js"],
       "env": {
         "AXELOR_URL": "http://localhost:8080/axelor-erp",
         "AXELOR_USERNAME": "admin",
-        "AXELOR_PASSWORD": "admin"
+        "AXELOR_PASSWORD": "admin",
+        "AXELOR_COOKIE": "JSESSIONID=..."
       }
     }
   }
 }
 ```
+
 
 ---
 
