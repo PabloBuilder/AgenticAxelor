@@ -34,80 +34,21 @@ graph TD
 
 ---
 
-## 2. Local Bridge Server Protocol (`localhost:3210`)
+---
 
-| Method | Endpoint | Payload | Response | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/status` | None | `{ status, port, hasActiveRoute, clientsConnected }` | Healthcheck & connection probe. |
-| `GET` | `/api/guide/current` | None | `{ currentRoute, activeStepIndex, isCompleted }` | State snapshot consumed by polling clients. |
-| `POST` | `/api/guide/push` | `GuidanceRoute` (JSON) | `{ success, route }` | Injects a new guidance roadmap (resets step to 0). |
-| `POST` | `/api/guide/advance` | None | `{ success, activeStepIndex }` | Increments current step index by 1. |
-| `POST` | `/api/guide/previous` | None | `{ success, activeStepIndex }` | Decrements current step index by 1 (down to 0). |
-| `POST` | `/api/guide/reset` | None | `{ success, activeStepIndex: 0 }` | Rolls back active route to initial step (0). |
-| `POST` | `/api/guide/clear` | None | `{ success, message }` | Purges active route from memory. |
-| `GET` | `/api/guide/stream` | None | `text/event-stream` (SSE) | Real-time broadcast for `INIT`, `ROUTE_SET`, `STEP_ADVANCED`, `STEP_PREVIOUS`, `ROUTE_CLEARED`. |
+## 2. Component Reference & Sub-Specs
+
+| Component | Target Spec | Key Directives |
+| :--- | :--- | :--- |
+| **Bridge Protocol (`:3210`)** | [`.agents/docs/bridge-protocol.md`](file:///g:/doc/projets/AgenticAxelor/.agents/docs/bridge-protocol.md) | SSE stream, HTTP REST sync endpoints (`/api/guide/*`). |
+| **Extension & HUD Engine** | [`.agents/docs/extension-hud.md`](file:///g:/doc/projets/AgenticAxelor/.agents/docs/extension-hud.md) | 3-tier detection, Dual-State HUD UI, DOM decoupling. |
+| **Axelor REST API** | [`.agents/docs/axelor-api-cheatsheet.md`](file:///g:/doc/projets/AgenticAxelor/.agents/docs/axelor-api-cheatsheet.md) | Direct Axelor CRUD & search query endpoints. |
+| **Data Contracts** | [`src/types/guidance.ts`](file:///g:/doc/projets/AgenticAxelor/src/types/guidance.ts) | Ground truth for `GuidanceRoute`, `GuidanceStep`, and `GuidanceFieldInput`. |
 
 ---
 
-## 3. Data Schema Contracts (`src/types/guidance.ts`)
+## 3. High-Level Engineering Directives
+- **Zero Java UI Scanning**: Restrict ERP introspection strictly to XML resources (`*-form.xml`, `*-menu.xml`, `*-grid.xml`).
+- **DOM Decoupling**: Keep browser Copilot HUD fully isolated from Axelor host React/Angular internals.
+- **Strict Typing**: Ground all payloads in typed interfaces defined in [`src/types/`](file:///g:/doc/projets/AgenticAxelor/src/types).
 
-```typescript
-export type GuidanceStepType = "menu" | "button" | "field" | "tab" | "row";
-
-export interface GuidanceFieldInput {
-  label: string; // e.g. "Nom complet", "Email pro"
-  value: string; // Exact value to copy
-  hint?: string; // Optional context
-}
-
-export interface GuidanceStep {
-  id: string;
-  type: GuidanceStepType;
-  selector: string;
-  fallbackSelectors?: string[];
-  label: string;
-  hint: string;
-  breadcrumb?: string[];
-  expectedView?: string;
-  valueHint?: string; // Single copyable value fallback
-  fields?: GuidanceFieldInput[]; // Table of multiple copyable fields
-  explanation?: string; // "💡 Bon à savoir" contextual advice
-  action?: string;
-  fieldName?: string;
-}
-
-export interface GuidanceRoute {
-  id: string;
-  title: string;
-  description?: string;
-  targetMenu?: string;
-  targetModel?: string;
-  targetField?: string;
-  currentStepIndex: number;
-  totalSteps: number;
-  steps: GuidanceStep[];
-  createdAt: string;
-}
-```
-
----
-
-## 4. Chrome Extension Engine Architecture
-
-### A. 3-Tier ERP Detection Pipeline ([`content.js`](file:///g:/doc/projets/AgenticAxelor/extension/content.js))
-1. **Tier 1 (Host/Storage Match)**: Checks `window.location.hostname` against `chrome.storage.local.customAxelorDomains` + default keywords (`axelor`, `open-suite`).
-2. **Tier 2 (DOM & Framework Markers)**: Evaluates root selectors (`[ng-app*='axelor']`, `#axelor-app`, `.navbar-axelor`, `meta[name='axelor:version']`, `link[href*='axelor']`).
-3. **Tier 3 (Passive Bailout)**: Non-Axelor pages skip bridge polling and suppress HUD rendering completely.
-
-### B. Dual-State Pure HUD Engine ([`spotlightEngine.js`](file:///g:/doc/projets/AgenticAxelor/extension/spotlightEngine.js), [`spotlight.css`](file:///g:/doc/projets/AgenticAxelor/extension/spotlight.css))
-- **Design Tokens**: Pure Glassmorphism card (`rgba(255, 255, 255, 0.95)` + `blur(24px)` + subtle border & glow).
-- **State 1 (Collapsed Pill)**: 48px round trigger with current step badge (`X/Y`), click-to-expand.
-- **State 2 (Expanded Glass Card)**: Unfolded 380px card containing:
-  - Header with step pill (`Step X/Y`) and minimize toggle.
-  - Action directive (`ax-hud-instruction-box`).
-  - Single copyable badge or multi-fields table (`ax-hud-fields-table`) with unit Copy triggers.
-  - Contextual advice block (Pro Tip) powered by `step.explanation`.
-  - Breadcrumb trail (`ax-hud-breadcrumb`).
-  - Bidirectional navigation: Previous, Reset, and Next / Finish.
-- **Render Cache (`lastRenderedStepKey`)**: Prevents DOM re-renders during active polling to avoid UI flickering and broken clipboard handlers.
-- **DOM Decoupling**: Complete separation from host ERP internals—no synthetic auto-clicks, no DOM hijacking, no fragile outline injections.
