@@ -22,7 +22,7 @@ cd AgenticAxelor
 npm install
 ```
 
-Create `.env` in the root (see [`.env.example`](file:///g:/doc/projets/AgenticAxelor/.env.example)):
+Create `.env` in the root (see [`.env.example`](.env.example)):
 ```env
 AXELOR_URL=http://localhost:8080/axelor-erp
 AXELOR_USERNAME=admin
@@ -40,7 +40,7 @@ npm start
 
 ### 3. Load Chrome Extension
 1. Open `chrome://extensions` and enable **Developer mode**.
-2. Click **Load unpacked** and select the [`extension/`](file:///g:/doc/projets/AgenticAxelor/extension) folder.
+2. Click **Load unpacked** and select the [`extension/`](extension/) folder.
 3. Open your Axelor tab: the Copilot trigger appears in the bottom right corner.
 
 ---
@@ -67,7 +67,6 @@ Add to your environment's MCP config file (e.g. `claude_desktop_config.json`, `.
   }
 }
 ```
-
 
 ---
 
@@ -138,7 +137,8 @@ npx tsx src/cli/pushComplexGuide.ts
 ---
 
 ## Documentation
-- [Architecture & Protocol Specs](file:///g:/doc/projets/AgenticAxelor/.agents/docs/ARCHITECTURE.md)
-- [Developer Guide & CLI Suite](file:///g:/doc/projets/AgenticAxelor/.agents/docs/DEV_GUIDE.md)
-- [Guidance Authoring Rules (`axelor-guidance-builder`)](file:///g:/doc/projets/AgenticAxelor/.agents/skills/axelor-guidance-builder/SKILL.md)
-- [Axelor REST API Cheatsheet](file:///g:/doc/projets/AgenticAxelor/.agents/docs/axelor-api-cheatsheet.md)
+- [Architecture & Protocol Specs](.agents/docs/ARCHITECTURE.md)
+- [Developer Guide & CLI Suite](.agents/docs/DEV_GUIDE.md)
+- [Guidance Authoring Rules (`axelor-guidance-builder`)](.agents/skills/axelor-guidance-builder/SKILL.md)
+- [Axelor REST API Cheatsheet](.agents/docs/axelor-api-cheatsheet.md)
+

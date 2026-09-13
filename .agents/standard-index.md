@@ -5,9 +5,9 @@ High-density routing map for operating AgenticAxelor tools, executing MCP querie
 ---
 
 ## 1. Primary References
-- **Quick Start & Tool Usage**: [`README.md`](file:///g:/doc/projets/AgenticAxelor/README.md)
-- **Guidance Route Authoring Skill**: [`.agents/skills/axelor-guidance-builder/SKILL.md`](file:///g:/doc/projets/AgenticAxelor/.agents/skills/axelor-guidance-builder/SKILL.md)
-- **Axelor REST API Cheatsheet**: [`.agents/docs/axelor-api-cheatsheet.md`](file:///g:/doc/projets/AgenticAxelor/.agents/docs/axelor-api-cheatsheet.md)
+- **Quick Start & Tool Usage**: [`README.md`](README.md)
+- **Guidance Route Authoring Skill**: [`.agents/skills/axelor-guidance-builder/SKILL.md`](.agents/skills/axelor-guidance-builder/SKILL.md)
+- **Axelor REST API Cheatsheet**: [`.agents/docs/axelor-api-cheatsheet.md`](.agents/docs/axelor-api-cheatsheet.md)
 
 ---
 
@@ -26,4 +26,5 @@ High-density routing map for operating AgenticAxelor tools, executing MCP querie
 ## 3. Operational Rules
 - Do NOT edit TypeScript or extension source files.
 - Ensure scenarios follow Axelor state transitions (Edit mode switch, sub-modal CRUD, parent commit, grouped fields).
-- **Schema Grounding**: Structure guidance payloads strictly against the `GuidanceRoute` contract defined in [axelor-guidance-builder](file:///g:/doc/projets/AgenticAxelor/.agents/skills/axelor-guidance-builder/SKILL.md).
+- **Schema Grounding**: Structure guidance payloads strictly against the `GuidanceRoute` contract defined in [axelor-guidance-builder](.agents/skills/axelor-guidance-builder/SKILL.md).
+

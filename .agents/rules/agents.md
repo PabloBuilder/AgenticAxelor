@@ -16,8 +16,9 @@ Before taking action, identify the operational intent and load ONLY the correspo
 
 ### Mode 1: Operator / Tool User (Standard Usage)
 > **Trigger**: User asks to query Axelor data, inspect menus, generate guidance routes, or interact with the ERP via MCP/Extension without modifying this project's code.  
->  **Load and follow**: [`.agents/standard-index.md`](file:///g:/doc/projets/AgenticAxelor/.agents/standard-index.md)
+>  **Load and follow**: [`.agents/standard-index.md`](.agents/standard-index.md)
 
 ### Mode 2: Engineer / Developer (Coding & Maintenance)
 > **Trigger**: User asks to add features, fix bugs, modify TypeScript/Extension files, adjust bridge protocols, or run test suites.  
->  **Load and follow**: [`.agents/dev-index.md`](file:///g:/doc/projets/AgenticAxelor/.agents/dev-index.md)
+>  **Load and follow**: [`.agents/dev-index.md`](.agents/dev-index.md)
+
