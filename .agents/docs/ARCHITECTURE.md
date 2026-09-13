@@ -4,7 +4,7 @@ High-density technical architecture map of the AgenticAxelor MCP server, local g
 
 ```mermaid
 graph TD
-  User((Operator)) -->|Clicks Target DOM| AxelorUI[Axelor ERP DOM]
+  User((Operator)) -->|Interacts & Copies Values| AxelorUI[Axelor ERP DOM]
   MCP[Agent / LLM] -->|guide_axelor_path| GuidanceSvc[GuidanceService]
   GuidanceSvc -->|Routes & Steps| Bridge[BridgeServer :3210]
   
@@ -13,8 +13,8 @@ graph TD
     BgWorker <-->|HTTP / CORS Proxy| Bridge
     BgWorker -->|Storage & Cookies| Storage[(chrome.storage.local)]
     ContentScript[Content Script] -->|Polls Bridge| BgWorker
-    ContentScript -->|Controls| HUD[HUD State Engine]
-    HUD -->|Highlights Target| AxelorUI
+    ContentScript -->|Renders| HUD[Copilot HUD Engine]
+    HUD -->|Displays Instructions & Copyable Fields| User
   end
 ```
 
@@ -42,26 +42,38 @@ graph TD
 | `GET` | `/api/guide/current` | None | `{ currentRoute, activeStepIndex, isCompleted }` | State snapshot consumed by polling clients. |
 | `POST` | `/api/guide/push` | `GuidanceRoute` (JSON) | `{ success, route }` | Injects a new guidance roadmap (resets step to 0). |
 | `POST` | `/api/guide/advance` | None | `{ success, activeStepIndex }` | Increments current step index by 1. |
+| `POST` | `/api/guide/previous` | None | `{ success, activeStepIndex }` | Decrements current step index by 1 (down to 0). |
 | `POST` | `/api/guide/reset` | None | `{ success, activeStepIndex: 0 }` | Rolls back active route to initial step (0). |
 | `POST` | `/api/guide/clear` | None | `{ success, message }` | Purges active route from memory. |
-| `GET` | `/api/guide/stream` | None | `text/event-stream` (SSE) | Real-time broadcast for `INIT`, `ROUTE_SET`, `STEP_ADVANCED`, `ROUTE_CLEARED`. |
+| `GET` | `/api/guide/stream` | None | `text/event-stream` (SSE) | Real-time broadcast for `INIT`, `ROUTE_SET`, `STEP_ADVANCED`, `STEP_PREVIOUS`, `ROUTE_CLEARED`. |
 
 ---
 
 ## 3. Data Schema Contracts (`src/types/guidance.ts`)
 
 ```typescript
+export type GuidanceStepType = "menu" | "button" | "field" | "tab" | "row";
+
+export interface GuidanceFieldInput {
+  label: string; // e.g. "Nom complet", "Email pro"
+  value: string; // Exact value to copy
+  hint?: string; // Optional context
+}
+
 export interface GuidanceStep {
   id: string;
-  order: number;
-  type: "menu" | "button" | "field" | "tab" | "view";
-  label: string;
-  hint: string;
+  type: GuidanceStepType;
   selector: string;
   fallbackSelectors?: string[];
-  actionExpected: "click" | "input" | "select" | "navigate";
-  targetUrl?: string;
+  label: string;
+  hint: string;
   breadcrumb?: string[];
+  expectedView?: string;
+  valueHint?: string; // Single copyable value fallback
+  fields?: GuidanceFieldInput[]; // Table of multiple copyable fields
+  explanation?: string; // "💡 Bon à savoir" contextual advice
+  action?: string;
+  fieldName?: string;
 }
 
 export interface GuidanceRoute {
@@ -71,8 +83,10 @@ export interface GuidanceRoute {
   targetMenu?: string;
   targetModel?: string;
   targetField?: string;
-  steps: GuidanceStep[];
   currentStepIndex: number;
+  totalSteps: number;
+  steps: GuidanceStep[];
+  createdAt: string;
 }
 ```
 
@@ -85,13 +99,15 @@ export interface GuidanceRoute {
 2. **Tier 2 (DOM & Framework Markers)**: Evaluates root selectors (`[ng-app*='axelor']`, `#axelor-app`, `.navbar-axelor`, `meta[name='axelor:version']`, `link[href*='axelor']`).
 3. **Tier 3 (Passive Bailout)**: Non-Axelor pages skip bridge polling and suppress HUD rendering completely.
 
-### B. Dual-State HUD Engine ([`spotlightEngine.js`](file:///g:/doc/projets/AgenticAxelor/extension/spotlightEngine.js), [`spotlight.css`](file:///g:/doc/projets/AgenticAxelor/extension/spotlight.css))
-- **Design Tokens**: White semi-transparent glassmorphism (`rgba(255, 255, 255, 0.90)` + `blur(16px)` + subtle border & shadow).
-- **State 1 (Collapsed Pill)**: 48px round trigger with current step badge (`X/Y`), non-pulsating halo, click-to-expand.
-- **State 2 (Expanded Glass Card)**: Unfolded 350px card with breadcrumbs, action hint, step indicator, Rollback button (`↺ Recommencer`), Skip button (`Passer l'étape ➜`), and Minimize button (`✖`).
-- **Render Cache (`lastRenderedStepKey`)**: Prevents DOM re-renders during active polling to avoid button flickering and missed click events.
-- **MutationObserver Filter**: Self-ignoring observer isolating Axelor grid changes from internal HUD modifications.
-
-### C. Element Discovery & Passive Progression
-- **Heuristic Selector Engine**: Resolves menu nodes, form inputs, and toolbar actions (Axelor `+` / `Nouveau` icons, SVG glyphs, button text).
-- **Passive Operator Principle**: Elements receive a static spotlight halo (`outline: 2.5px solid #2563eb`). The engine advances steps strictly via real operator clicks (`addEventListener('click', ..., { once: true })`).
+### B. Dual-State Pure HUD Engine ([`spotlightEngine.js`](file:///g:/doc/projets/AgenticAxelor/extension/spotlightEngine.js), [`spotlight.css`](file:///g:/doc/projets/AgenticAxelor/extension/spotlight.css))
+- **Design Tokens**: Pure Glassmorphism card (`rgba(255, 255, 255, 0.95)` + `blur(24px)` + subtle border & glow).
+- **State 1 (Collapsed Pill)**: 48px round trigger with current step badge (`X/Y`), click-to-expand.
+- **State 2 (Expanded Glass Card)**: Unfolded 380px card containing:
+  - Header with step pill (`Step X/Y`) and minimize toggle.
+  - Action directive (`ax-hud-instruction-box`).
+  - Single copyable badge or multi-fields table (`ax-hud-fields-table`) with unit Copy triggers.
+  - Contextual advice block (Pro Tip) powered by `step.explanation`.
+  - Breadcrumb trail (`ax-hud-breadcrumb`).
+  - Bidirectional navigation: Previous, Reset, and Next / Finish.
+- **Render Cache (`lastRenderedStepKey`)**: Prevents DOM re-renders during active polling to avoid UI flickering and broken clipboard handlers.
+- **DOM Decoupling**: Complete separation from host ERP internals—no synthetic auto-clicks, no DOM hijacking, no fragile outline injections.

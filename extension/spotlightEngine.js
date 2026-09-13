@@ -1,5 +1,6 @@
 /**
- * AgenticAxelor - Passive GPS Spotlight & Click Listener Engine
+ * AgenticAxelor - Step-by-Step GPS Copilot HUD Engine
+ * Provides clean, deterministic step-by-step guidance cards without DOM hijacking or intrusive halos.
  */
 
 (function () {
@@ -8,7 +9,7 @@
     activeStepIndex: 0,
     currentHighlightedEl: null,
     hudEl: null,
-    isExpanded: false,
+    isExpanded: true,
     lastRenderedStepKey: null,
     observer: null,
     isRendering: false,
@@ -50,11 +51,10 @@
     },
 
     setRoute(route, activeStepIndex = 0) {
-      const routeChanged = !this.currentRoute || this.currentRoute.id !== route?.id;
       this.currentRoute = route;
       this.activeStepIndex = activeStepIndex;
       
-      if (routeChanged && route && route.steps && route.steps.length > 0) {
+      if (route && route.steps && route.steps.length > 0) {
         this.isExpanded = true;
       }
       this.render();
@@ -73,6 +73,7 @@
     },
 
     clearHighlight() {
+      // Archived: No visual DOM alteration
       if (this.currentHighlightedEl) {
         this.currentHighlightedEl.classList.remove("agentic-axelor-highlighted");
         this.currentHighlightedEl = null;
@@ -98,23 +99,6 @@
 
         const step = this.currentRoute.steps[this.activeStepIndex];
         this.renderHUDContent(step);
-
-        // Highlight element if not already highlighted
-        if (!this.currentHighlightedEl || !document.body.contains(this.currentHighlightedEl)) {
-          const targetEl = this.findElement(step);
-          if (targetEl) {
-            this.clearHighlight();
-            targetEl.classList.add("agentic-axelor-highlighted");
-            this.currentHighlightedEl = targetEl;
-
-            // Passive one-time advance on target click
-            const onClickHandler = () => {
-              targetEl.removeEventListener("click", onClickHandler);
-              this.advance();
-            };
-            targetEl.addEventListener("click", onClickHandler, { once: true });
-          }
-        }
       } finally {
         this.isRendering = false;
       }
@@ -132,7 +116,6 @@
       const currentStepNum = Math.min(this.activeStepIndex + 1, totalSteps);
       const stepKey = `${this.currentRoute?.id || 'none'}-${this.activeStepIndex}-${this.isExpanded}`;
 
-      // Prevent DOM wiping if view state is unchanged (stops flickering & dead clicks)
       if (this.lastRenderedStepKey === stepKey) {
         return;
       }
@@ -141,7 +124,7 @@
       if (!this.isExpanded) {
         // State 1: Ultra-minimalist Circular Pill Trigger
         this.hudEl.innerHTML = `
-          <div class="ax-hud-pill" id="ax-hud-pill-trigger" title="Ouvrir l'assistant GPS Axelor">
+          <div class="ax-hud-pill" id="ax-hud-pill-trigger" title="Ouvrir le guide Copilot Axelor">
             <div class="ax-hud-pill-icon">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
@@ -160,44 +143,154 @@
           };
         }
       } else {
-        // State 2: Unfolded Glass Card
+        // State 2: Unfolded Clean Copilot Card
         const breadcrumbHtml = (step?.breadcrumb || [])
           .map((b) => `<span>${this.escapeHtml(b)}</span>`)
           .join("");
 
         const isNotFirstStep = this.activeStepIndex > 0;
+        const isLastStep = this.activeStepIndex === totalSteps - 1;
+
+        // Build Copyable Fields Block (Single value badge or Multi-values table)
+        let valuesHtml = "";
+        const fieldsList = (step?.fields && step.fields.length > 0)
+          ? step.fields
+          : (step?.valueHint ? [{ label: "Valeur", value: step.valueHint }] : []);
+
+        if (fieldsList.length === 1) {
+          // Single Value Badge with Copy button
+          const singleField = fieldsList[0];
+          valuesHtml = `
+            <div class="ax-hud-value-box">
+              <div class="ax-hud-value-header">
+                <span class="ax-hud-value-label">${this.escapeHtml(singleField.label || "Valeur à saisir")}</span>
+                <button class="ax-hud-btn-copy" type="button" data-copy-val="${this.escapeHtml(singleField.value)}">
+                  📋 Copier
+                </button>
+              </div>
+              <div class="ax-hud-value-content">${this.escapeHtml(singleField.value)}</div>
+            </div>
+          `;
+        } else if (fieldsList.length > 1) {
+          // Multi-values Table with independent unit copy buttons
+          const rows = fieldsList.map((f, idx) => `
+            <tr>
+              <td class="ax-hud-tbl-label">${this.escapeHtml(f.label)}</td>
+              <td class="ax-hud-tbl-val"><code>${this.escapeHtml(f.value)}</code></td>
+              <td class="ax-hud-tbl-action">
+                <button class="ax-hud-btn-copy-sm" type="button" data-copy-val="${this.escapeHtml(f.value)}" title="Copier ${this.escapeHtml(f.label)}">
+                  📋
+                </button>
+              </td>
+            </tr>
+          `).join("");
+
+          valuesHtml = `
+            <div class="ax-hud-fields-table-box">
+              <div class="ax-hud-fields-table-title">Champs à renseigner (${fieldsList.length})</div>
+              <table class="ax-hud-fields-table">
+                <thead>
+                  <tr>
+                    <th>Champ</th>
+                    <th>Valeur</th>
+                    <th style="width: 38px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
 
         this.hudEl.innerHTML = `
           <div class="ax-hud-card">
             <div class="ax-hud-header">
               <div class="ax-hud-header-left">
-                <span class="ax-hud-tag">GPS AXELOR</span>
+                <span class="ax-hud-tag">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                  </svg>
+                  Guide Axelor
+                </span>
                 <span class="ax-hud-step-pill">Étape ${currentStepNum}/${totalSteps}</span>
               </div>
               <button class="ax-hud-btn-minimize" id="ax-hud-minimize-btn" title="Minimiser l'assistant" type="button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
             </div>
-            <div class="ax-hud-title">${this.escapeHtml(step?.label || "Navigation")}</div>
-            <div class="ax-hud-hint">${this.escapeHtml(step?.hint || "Cliquez sur l'élément surligné pour continuer.")}</div>
+
+            <div class="ax-hud-title">${this.escapeHtml(step?.label || "Instruction")}</div>
+            
+            <div class="ax-hud-instruction-box">
+              <div class="ax-hud-instruction-title">Action requise</div>
+              <div class="ax-hud-hint">${this.escapeHtml(step?.hint || "Effectuez l'action sur votre écran puis cliquez sur Suivant.")}</div>
+            </div>
+
+            ${valuesHtml}
+
+            ${step?.explanation ? `
+            <div class="ax-hud-explanation-box">
+              <div class="ax-hud-explanation-title">💡 Bon à savoir</div>
+              <div class="ax-hud-explanation-text">${this.escapeHtml(step.explanation)}</div>
+            </div>` : ""}
+
             ${breadcrumbHtml ? `<div class="ax-hud-breadcrumb">${breadcrumbHtml}</div>` : ""}
+
             <div class="ax-hud-actions">
-              <button class="ax-hud-btn-secondary" id="ax-hud-rollback-btn" type="button" title="Revenir au début du parcours" ${!isNotFirstStep ? 'style="opacity: 0.5; pointer-events: none;"' : ''}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                  <path d="M3 3v5h5"></path>
-                </svg>
-                <span>Recommencer</span>
-              </button>
+              <div class="ax-hud-actions-left">
+                <button class="ax-hud-btn-secondary" id="ax-hud-prev-btn" type="button" title="Étape précédente" ${!isNotFirstStep ? 'style="opacity: 0.4; pointer-events: none;"' : ''}>
+                  ◀ Précédent
+                </button>
+                <button class="ax-hud-btn-secondary" id="ax-hud-reset-btn" type="button" title="Revenir au début" ${!isNotFirstStep ? 'style="opacity: 0.4; pointer-events: none;"' : ''}>
+                  ↺ Début
+                </button>
+              </div>
               <div class="ax-hud-actions-right">
-                <button class="ax-hud-btn-action" id="ax-hud-skip-btn" type="button">Passer l'étape ➜</button>
+                <button class="ax-hud-btn-action" id="ax-hud-next-btn" type="button" title="${isLastStep ? 'Finaliser le guide' : 'Passer à l\'étape suivante'}">
+                  ${isLastStep ? 'Terminer ✓' : 'Suivant ➜'}
+                </button>
               </div>
             </div>
           </div>
         `;
+
+        // Wire Copy Buttons with clipboard feedback
+        this.hudEl.querySelectorAll("[data-copy-val]").forEach((btn) => {
+          btn.onclick = async (e) => {
+            e.stopPropagation();
+            const textToCopy = btn.getAttribute("data-copy-val");
+            if (!textToCopy) return;
+
+            try {
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(textToCopy);
+              } else {
+                const tempInput = document.createElement("textarea");
+                tempInput.value = textToCopy;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+              }
+
+              const origText = btn.innerHTML;
+              btn.classList.add("ax-hud-copied");
+              btn.innerHTML = btn.classList.contains("ax-hud-btn-copy-sm") ? "✓" : "✓ Copié !";
+              setTimeout(() => {
+                btn.innerHTML = origText;
+                btn.classList.remove("ax-hud-copied");
+              }, 1600);
+            } catch (err) {
+              console.warn("[CopilotHUD] Failed to copy:", err);
+            }
+          };
+        });
 
         const minimizeBtn = document.getElementById("ax-hud-minimize-btn");
         if (minimizeBtn) {
@@ -207,17 +300,25 @@
           };
         }
 
-        const rollbackBtn = document.getElementById("ax-hud-rollback-btn");
-        if (rollbackBtn && isNotFirstStep) {
-          rollbackBtn.onclick = (e) => {
+        const prevBtn = document.getElementById("ax-hud-prev-btn");
+        if (prevBtn && isNotFirstStep) {
+          prevBtn.onclick = (e) => {
+            e.stopPropagation();
+            this.previous();
+          };
+        }
+
+        const resetBtn = document.getElementById("ax-hud-reset-btn");
+        if (resetBtn && isNotFirstStep) {
+          resetBtn.onclick = (e) => {
             e.stopPropagation();
             this.rollback();
           };
         }
 
-        const skipBtn = document.getElementById("ax-hud-skip-btn");
-        if (skipBtn) {
-          skipBtn.onclick = (e) => {
+        const nextBtn = document.getElementById("ax-hud-next-btn");
+        if (nextBtn) {
+          nextBtn.onclick = (e) => {
             e.stopPropagation();
             this.advance();
           };
@@ -230,12 +331,8 @@
       if (!this.hudEl) return;
       this.hudEl.className = "";
 
-      const totalSteps = this.currentRoute?.steps?.length || 1;
       const stepKey = `completed-${this.isExpanded}`;
-
-      if (this.lastRenderedStepKey === stepKey) {
-        return;
-      }
+      if (this.lastRenderedStepKey === stepKey) return;
       this.lastRenderedStepKey = stepKey;
 
       if (!this.isExpanded) {
@@ -263,23 +360,24 @@
         this.hudEl.innerHTML = `
           <div class="ax-hud-card">
             <div class="ax-hud-header">
-              <span class="ax-hud-tag" style="color: #10b981;">TERMINÉ</span>
+              <span class="ax-hud-tag" style="color: #10b981;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                SUCCÈS
+              </span>
               <button class="ax-hud-btn-minimize" id="ax-hud-minimize-btn" type="button" title="Minimiser l'assistant">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
             </div>
-            <div class="ax-hud-title">Objectif atteint !</div>
-            <div class="ax-hud-hint">Vous êtes arrivé à destination sur le bon écran.</div>
-            <div class="ax-hud-actions" style="margin-top: 14px;">
+            <div class="ax-hud-title">Parcours terminé avec succès !</div>
+            <div class="ax-hud-hint" style="margin-bottom: 14px;">Toutes les étapes ont été suivies jusqu'au bout.</div>
+            <div class="ax-hud-actions">
               <button class="ax-hud-btn-secondary" id="ax-hud-restart-btn" type="button">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                  <path d="M3 3v5h5"></path>
-                </svg>
-                <span>Recommencer le guide</span>
+                ↺ Recommencer le guide
               </button>
             </div>
           </div>
@@ -308,7 +406,16 @@
       chrome.runtime.sendMessage({ action: "ADVANCE_STEP" }, () => {
         if (this.currentRoute) {
           this.activeStepIndex++;
-          this.clearHighlight();
+          this.render();
+        }
+      });
+    },
+
+    previous() {
+      this.lastRenderedStepKey = null;
+      chrome.runtime.sendMessage({ action: "PREVIOUS_STEP" }, () => {
+        if (this.currentRoute && this.activeStepIndex > 0) {
+          this.activeStepIndex--;
           this.render();
         }
       });
@@ -320,7 +427,6 @@
       chrome.runtime.sendMessage({ action: "RESET_STEP" }, () => {
         if (this.currentRoute) {
           this.activeStepIndex = 0;
-          this.clearHighlight();
           this.render();
         }
       });
@@ -336,111 +442,49 @@
         .replace(/'/g, "&#039;");
     },
 
-    findElement(step) {
-      // 1. Direct standard CSS selector
-      try {
-        if (step.selector && !step.selector.includes(":contains") && !step.selector.includes(":has")) {
-          const el = document.querySelector(step.selector);
-          if (el && this.isVisible(el)) return el;
-        }
-      } catch {}
-
-      // 2. Specialized toolbar button discovery for Axelor (+) and (Nouveau) buttons
-      if (step.type === "button" || (step.label && (step.label.includes("Nouveau") || step.label.includes("+")))) {
-        const newBtn = document.querySelector(
-          ".btn-toolbar button:has(.fa-plus), .view-toolbar button:has(.fa-plus), button:has(i.fa-plus), button[name='new'], button.btn-new, button[title*='New'], button[title*='Nouveau'], a:has(i.fa-plus)"
-        );
-        if (newBtn && this.isVisible(newBtn)) return newBtn;
-
-        const allButtons = Array.from(document.querySelectorAll("button, a.btn, .btn"));
-        for (const btn of allButtons) {
-          const hasPlusIcon = !!btn.querySelector(".fa-plus, .icon-plus, i.fa");
-          const text = btn.textContent?.trim().toLowerCase() || "";
-          const title = btn.getAttribute("title")?.toLowerCase() || "";
-          if (hasPlusIcon || text.includes("nouveau") || title.includes("nouveau") || text === "+") {
-            if (this.isVisible(btn)) return btn;
-          }
-        }
-      }
-
-      // 3. Target Axelor Sidebar & Navigation Items specifically
-      if (step.label) {
-        const query = step.label.toLowerCase().trim();
-        const menuCandidates = Array.from(
-          document.querySelectorAll(
-            ".nav-item, .nav-link, .sidebar-nav li, .treeview li, a, button, [data-menu-title], span"
-          )
-        );
-
-        for (const el of menuCandidates) {
-          const text = el.textContent?.trim().toLowerCase() || "";
-          const title = el.getAttribute("title")?.toLowerCase() || "";
-
-          if (
-            text === query ||
-            title === query ||
-            (query.length > 4 && (text.includes(query) || title.includes(query)))
-          ) {
-            const clickable = el.closest("a, button, .nav-item, li") || el;
-            if (this.isVisible(clickable)) return clickable;
-          }
-        }
-
-        if (query.includes("config") || query.includes("application")) {
-          const match = Array.from(document.querySelectorAll("a, span, .nav-item")).find(
-            (el) => el.textContent?.toLowerCase().includes("config")
-          );
-          if (match && this.isVisible(match)) return match.closest("a, li") || match;
-        }
-      }
-
-      // 4. Try fallback selectors
-      if (step.fallbackSelectors) {
-        for (const selector of step.fallbackSelectors) {
-          try {
-            if (!selector.includes(":contains") && !selector.includes(":has")) {
-              const el = document.querySelector(selector);
-              if (el && this.isVisible(el)) return el;
-            }
-          } catch {}
-        }
-      }
-
-      return null;
-    },
-
-    isVisible(el) {
-      return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
-    },
-
     startObserver() {
-      let debounceTimer = null;
-      this.observer = new MutationObserver((mutations) => {
-        // Ignore mutations triggered from our own HUD container
-        const isHudMutation = mutations.every((m) => {
-          return this.hudEl && (this.hudEl === m.target || this.hudEl.contains(m.target));
-        });
-        if (isHudMutation) return;
-
-        if (this.currentRoute && !this.currentHighlightedEl) {
-          clearTimeout(debounceTimer);
-          debounceTimer = setTimeout(() => {
-            this.render();
-          }, 200);
+      // Lightweight observer to keep HUD mounted if SPA wipes body
+      this.observer = new MutationObserver(() => {
+        if (this.currentRoute && (!this.hudEl || !document.body.contains(this.hudEl))) {
+          this.createHUD();
+          this.lastRenderedStepKey = null;
+          this.render();
         }
       });
 
       this.observer.observe(document.body, {
         childList: true,
-        subtree: true,
+        subtree: false
       });
-    },
+    }
   };
 
-  // Auto initialize when loaded in page
-  if (document.body) {
-    window.AxelorSpotlight.init();
-  } else {
+  /* ==========================================================================
+     LEGACY / DEAD CODE ARCHIVE: AUTO-CLICK & DOM SPOTLIGHT SEARCH
+     ========================================================================== */
+  /*
+  window.AxelorSpotlightLegacy = {
+    highlight(targetEl) {
+      if (!targetEl) return;
+      targetEl.classList.add("agentic-axelor-highlighted");
+      this.currentHighlightedEl = targetEl;
+    },
+    clickTarget(el) {
+      if (!el) return false;
+      const targetDoc = el.ownerDocument || document;
+      targetDoc.dispatchEvent(new CustomEvent("AGENTIC_AXELOR_CLICK_REQUEST", { detail: { targetId: el } }));
+      return true;
+    },
+    findElement(step) {
+      // Preserved deep heuristics (Navbar, Material Symbols, Form Tabs, Sub-Grids)
+      return null;
+    }
+  };
+  */
+
+  if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => window.AxelorSpotlight.init());
+  } else {
+    window.AxelorSpotlight.init();
   }
 })();

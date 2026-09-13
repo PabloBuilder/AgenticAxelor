@@ -39,6 +39,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === "PREVIOUS_STEP") {
+    getBridgeUrl().then((bridgeUrl) => {
+      fetch(`${bridgeUrl}/api/guide/previous`, { method: "POST" })
+        .then((res) => res.json())
+        .then((data) => sendResponse(data))
+        .catch((err) => sendResponse({ error: err.message }));
+    });
+    return true;
+  }
+
   if (request.action === "RESET_STEP") {
     getBridgeUrl().then((bridgeUrl) => {
       fetch(`${bridgeUrl}/api/guide/reset`, { method: "POST" })

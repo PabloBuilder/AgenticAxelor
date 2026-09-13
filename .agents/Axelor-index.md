@@ -2,13 +2,13 @@
 
 ## Search Globs & Resource Structure
 Never search Java code for UI/fields. Direct all queries to XML resources:
-- **Menus & Navigation**: `axelor-open-suite/axelor-*/src/main/resources/views/*-menu.xml`
-- **Actions & Workflows**: `axelor-open-suite/axelor-*/src/main/resources/views/*-action.xml` (or inside views)
-- **Forms / Screens**: `axelor-open-suite/axelor-*/src/main/resources/views/*-form.xml`
-- **Grids / Lists**: `axelor-open-suite/axelor-*/src/main/resources/views/*-grid.xml`
-- **Domain Models & Fields**: `axelor-open-suite/axelor-*/src/main/resources/domains/*-domain.xml`
-- **Selection Enums**: `axelor-open-suite/axelor-*/src/main/resources/views/*-selection.xml`
-- **Custom Views (Kanban/Cards/Trees)**: `axelor-open-suite/axelor-*/src/main/resources/views/*-*.xml`
+- **Menus & Navigation**: `reference-sources/axelor-open-suite/axelor-*/src/main/resources/views/*-menu.xml`
+- **Actions & Workflows**: `reference-sources/axelor-open-suite/axelor-*/src/main/resources/views/*-action.xml` (or inside views)
+- **Forms / Screens**: `reference-sources/axelor-open-suite/axelor-*/src/main/resources/views/*-form.xml`
+- **Grids / Lists**: `reference-sources/axelor-open-suite/axelor-*/src/main/resources/views/*-grid.xml`
+- **Domain Models & Fields**: `reference-sources/axelor-open-suite/axelor-*/src/main/resources/domains/*-domain.xml`
+- **Selection Enums**: `reference-sources/axelor-open-suite/axelor-*/src/main/resources/views/*-selection.xml`
+- **Custom Views (Kanban/Cards/Trees)**: `reference-sources/axelor-open-suite/axelor-*/src/main/resources/views/*-*.xml`
 
 ## Core Module Matrix
 

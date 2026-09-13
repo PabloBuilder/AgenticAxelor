@@ -81,7 +81,7 @@ export class BridgeServer {
           return;
         }
 
-        // Advance to next step (called when user clicks the highlighted DOM element)
+        // Advance to next step
         if (url.pathname === "/api/guide/advance" && req.method === "POST") {
           let body = "";
           req.on("data", (chunk) => (body += chunk));
@@ -89,6 +89,18 @@ export class BridgeServer {
             const nextIndex = this.advanceStep();
             res.writeHead(200, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ success: true, activeStepIndex: nextIndex }));
+          });
+          return;
+        }
+
+        // Previous step
+        if (url.pathname === "/api/guide/previous" && req.method === "POST") {
+          let body = "";
+          req.on("data", (chunk) => (body += chunk));
+          req.on("end", () => {
+            const prevIndex = this.previousStep();
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: true, activeStepIndex: prevIndex }));
           });
           return;
         }
@@ -155,6 +167,15 @@ export class BridgeServer {
       this.state.activeStepIndex >= this.state.currentRoute.steps.length - 1
     ) {
       this.state.activeStepIndex = this.state.currentRoute.steps.length; // Completed
+    }
+    this.broadcast("STEP_ADVANCED", this.getState());
+    return this.state.activeStepIndex;
+  }
+
+  previousStep(): number {
+    if (this.state.currentRoute && this.state.activeStepIndex > 0) {
+      this.state.activeStepIndex -= 1;
+      this.state.currentRoute.currentStepIndex = this.state.activeStepIndex;
     }
     this.broadcast("STEP_ADVANCED", this.getState());
     return this.state.activeStepIndex;

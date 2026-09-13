@@ -1,5 +1,11 @@
 export type GuidanceStepType = "menu" | "button" | "field" | "tab" | "row";
 
+export interface GuidanceFieldInput {
+  label: string;
+  value: string;
+  hint?: string;
+}
+
 export interface GuidanceStep {
   id: string;
   type: GuidanceStepType;
@@ -28,9 +34,25 @@ export interface GuidanceStep {
    */
   expectedView?: string;
   /**
-   * Value context or suggested input note
+   * Value context or suggested input note (Single value)
    */
   valueHint?: string;
+  /**
+   * Multiple fields to fill in a single step (Multi-values table)
+   */
+  fields?: GuidanceFieldInput[];
+  /**
+   * Additional contextual explanation or best practice tip
+   */
+  explanation?: string;
+  /**
+   * Target action or interaction directive
+   */
+  action?: string;
+  /**
+   * Field identifier or technical name if applicable
+   */
+  fieldName?: string;
 }
 
 export interface GuidanceRoute {

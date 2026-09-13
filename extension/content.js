@@ -67,7 +67,12 @@
       return true;
     }
 
-    return false;
+    // Tier 4: Common local/dev ports or fallback
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.includes("alter-si") || hostname.includes("axelor")) {
+      return true;
+    }
+
+    return true; // Active across all permitted tabs
   }
 
   function fetchActiveGuide() {
