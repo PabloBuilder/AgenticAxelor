@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-import { AxelorClient } from "../services/axelorClient.js";
-import { MenuService } from "../services/menuService.js";
+import { AxelorClient } from "../../services/axelorClient.js";
+import { MenuService } from "../../services/menuService.js";
 
 dotenv.config();
 

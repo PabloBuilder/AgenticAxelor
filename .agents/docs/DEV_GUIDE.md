@@ -9,7 +9,12 @@ Internal repository organization, development workflow, CLI test suite, and agen
 ```text
 AgenticAxelor/
 ├── src/                      # MCP Server & HTTP/SSE Bridge (port 3210)
-│   ├── cli/                  # CLI test scripts & scenario injectors
+│   ├── guides/               # Pure GuidanceRoute scenario definitions & registry
+│   ├── cli/                  # CLI tools & test runners
+│   │   ├── guidePusher.ts    # Universal guide injection runner
+│   │   ├── inspect/          # Metadata, permissions & schema inspection
+│   │   ├── ops/              # Axelor DB mutations & user ops
+│   │   └── test/             # Integration & smoke tests (MCP, View, Menu)
 │   ├── services/             # BridgeServer, AxelorClient, GuidanceService
 │   └── types/                # GuidanceRoute & GuidanceStep contracts
 │
@@ -47,19 +52,23 @@ npm run build
 
 # Start Bridge & MCP Server (watch mode)
 npm start
+
+# Push pre-packaged or dynamic guide
+npm run guide:push -- <guide-id | menu-name>
 ```
 
 ---
 
 ## 3. CLI Testing Suite (`src/cli/`)
 
-Inject test scenarios directly into local bridge (`localhost:3210`):
+Inject test scenarios directly into local bridge (`localhost:3210`) or run diagnostics:
 
 | Command | Target | Scope |
 | :--- | :--- | :--- |
-| `npx tsx src/cli/pushGuide.ts "Sequences"` | **Menu Navigation** | Validates deep menu tree traversal. |
-| `npx tsx src/cli/pushSubWindowGuide.ts` | **Sub-Modal & Copy Table** | Tests sub-tabs, modal popups, and multi-field inputs (`fields: [...]`) with unit copy buttons. |
-| `npx tsx src/cli/pushComplexGuide.ts` | **Full Flow** | Multi-screen customer creation and validation sequence. |
+| `npx tsx src/cli/guidePusher.ts sales-rights` | **Pre-packaged Route** | Injects Level 2 sales permissions & perimeter restriction guide. |
+| `npx tsx src/cli/guidePusher.ts accounting-rights` | **Pre-packaged Route** | Injects canonical role > permissions > group accounting guide. |
+| `npx tsx src/cli/guidePusher.ts "Sequences"` | **Dynamic Menu Route** | Resolves menu path dynamically from Axelor metadata. |
+| `npm run test:menu` / `test:view` | **Smoke Tests** | Runs integration tests from `src/cli/test/`. |
 
 ---
 

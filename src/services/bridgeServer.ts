@@ -1,5 +1,6 @@
 import http from "http";
 import { GuidanceRoute } from "../types/guidance.js";
+import { SessionStore } from "./sessionStore.js";
 
 export interface BridgeState {
   currentRoute: GuidanceRoute | null;
@@ -136,6 +137,24 @@ export class BridgeServer {
               clientsConnected: this.sseClients.size,
             })
           );
+          return;
+        }
+
+        // Sync session cookie from browser extension
+        if (url.pathname === "/api/session/sync" && req.method === "POST") {
+          let body = "";
+          req.on("data", (chunk) => (body += chunk));
+          req.on("end", () => {
+            try {
+              const data = JSON.parse(body);
+              SessionStore.saveSession(data);
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: true }));
+            } catch (err: any) {
+              res.writeHead(400, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
           return;
         }
 

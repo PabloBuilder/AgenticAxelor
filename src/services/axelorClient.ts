@@ -16,8 +16,10 @@ export class AxelorClient {
   private dynamicCookie: string | null = null;
 
   constructor(config: AxelorConfig) {
-    this.config = config;
-    const normalizedUrl = config.baseUrl.replace(/\/+$/, "");
+    const diskSession = SessionStore.loadSession();
+    const effectiveBaseUrl = config.baseUrl || diskSession?.url || "http://localhost:8080/axelor-erp";
+    this.config = { ...config, baseUrl: effectiveBaseUrl };
+    const normalizedUrl = effectiveBaseUrl.replace(/\/+$/, "");
 
     this.http = axios.create({
       baseURL: normalizedUrl,

@@ -7,15 +7,43 @@ document.addEventListener("DOMContentLoaded", () => {
   const bridgeText = document.getElementById("bridge-text");
   const cookieDot = document.getElementById("cookie-dot");
   const cookieText = document.getElementById("cookie-text");
-
+  const bridgeUrlInput = document.getElementById("bridge-url-input");
+  const btnSaveUrl = document.getElementById("btn-save-url");
   const guideStepBadge = document.getElementById("guide-step-badge");
   const guideTitle = document.getElementById("guide-title");
   const guideHint = document.getElementById("guide-hint");
-
   const btnRestart = document.getElementById("btn-restart");
   const btnClear = document.getElementById("btn-clear");
-  const bridgeUrlInput = document.getElementById("bridge-url-input");
-  const btnSaveUrl = document.getElementById("btn-save-url");
+
+  // Instant sync: Query active tab cookies and sync to bridge immediately
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs && tabs[0] && tabs[0].url) {
+      const activeUrl = tabs[0].url;
+      try {
+        const parsedUrl = new URL(activeUrl);
+        chrome.cookies.getAll({ domain: parsedUrl.hostname }, (cookies) => {
+          const jsession = cookies.find((c) => c.name === "JSESSIONID");
+          if (jsession) {
+            chrome.storage.local.set({
+              lastJSessionId: jsession.value,
+              lastCookieDomain: jsession.domain,
+              lastUpdated: new Date().toISOString(),
+            });
+
+            const bridgeUrl = (bridgeUrlInput && bridgeUrlInput.value.trim()) || "http://localhost:3210";
+            fetch(`${bridgeUrl}/api/session/sync`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                cookie: `JSESSIONID=${jsession.value}`,
+                url: `${parsedUrl.protocol}//${parsedUrl.host}/axelor-erp`,
+              }),
+            }).catch(() => {});
+          }
+        });
+      } catch {}
+    }
+  });
 
   const domainInput = document.getElementById("domain-input");
   const btnAddDomain = document.getElementById("btn-add-domain");

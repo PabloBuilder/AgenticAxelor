@@ -17,6 +17,8 @@ High-density routing map for modifying codebase, maintaining MCP tools, updating
 | Path | Component / Target | Key Entry Points |
 | :--- | :--- | :--- |
 | `src/` | MCP Server & Local Bridge Server (`:3210`) | [`src/index.ts`](src/index.ts), [`src/services/guidanceService.ts`](src/services/guidanceService.ts), [`src/types/guidance.ts`](src/types/guidance.ts) |
+| `src/guides/` | Pure GuidanceRoute Scenario Definitions & Registry | [`src/guides/index.ts`](src/guides/index.ts), [`src/guides/salesRightsGuide.ts`](src/guides/salesRightsGuide.ts) |
+| `src/cli/` | CLI Runners, Diagnostics & Smoke Tests | [`src/cli/guidePusher.ts`](src/cli/guidePusher.ts), `src/cli/inspect/`, `src/cli/ops/`, `src/cli/test/` |
 | `extension/` | Chrome Extension Copilot HUD (Manifest V3) | [`extension/spotlightEngine.js`](extension/spotlightEngine.js), [`extension/spotlight.css`](extension/spotlight.css), [`extension/background.js`](extension/background.js) |
 | `.agents/skills/` | Dev Skills Registry | `read-only-consultant`, `stepwise-planner`, `handoff`, `axelor-guidance-builder` |
 | `reference-sources/` | Upstream Axelor ERP codebase | Query XML resources using globs from [`.agents/Axelor-index.md`](.agents/Axelor-index.md) |

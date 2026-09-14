@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
-import { AxelorClient } from "../services/axelorClient.js";
-import { ViewService } from "../services/viewService.js";
-import { ViewPanelInfo, ViewFieldInfo } from "../types/axelor.js";
+import { AxelorClient } from "../../services/axelorClient.js";
+import { ViewService } from "../../services/viewService.js";
+import { ViewPanelInfo, ViewFieldInfo } from "../../types/axelor.js";
 
 dotenv.config();
 

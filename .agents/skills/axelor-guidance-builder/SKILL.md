@@ -5,58 +5,75 @@ description: "Author precise, user-centric step-by-step guidance routes (Guidanc
 
 # Axelor Guidance Builder
 
-Expert guidelines and strict architectural rules for constructing deterministic `GuidanceRoute` scenarios executed by the Axelor Copilot Chrome Extension.
+## 1. Universal Axelor UX & Execution Protocols
+
+### A. Mandatory Pre-Flight MCP Introspection (CRITICAL HARD GATE)
+- **ZERO Speculation / Hallucination**: NEVER write or push a guidance route based on guesses or assumed model/permission names.
+- **Mandatory MCP Pre-Check**: Before authoring any step, ALWAYS query live Axelor database via MCP tools or programmatic check:
+  1. Inspect existing records (`query_axelor_data` / `com.axelor.auth.db.*`): Check if targeted Groups, Users, or Roles already exist.
+  2. Introspect exact technical permission names: Match exact strings in database (e.g. `perm.sale.SaleOrder.r`, `perm.account.Invoice.rwcde`).
+  3. Validate exact menu paths & breadcrumbs (`search_axelor_menu`).
+- If an entity already exists in database (e.g. Group `Comptabilité` ID 29), target its modification and selection rather than creating duplicates.
+
+### B. Strict Input Typing & Database-Grounded Menu Titles (Zero Noise)
+- **`fields[i].value` is ONLY for text/search inputs**: Must contain the exact literal string to type or search (e.g. `value: "perm.sale.SaleOrder.r"`).
+- **Exact DB Menu Titles Only (CRITICAL)**: When targeting or listing Menus (`MetaMenu`), NEVER invent or translate names into French (e.g. NEVER write `"Ventes"`, `"Achats"`, `"Facturation"`). You MUST query/use the exact English database `title` stored in Axelor:
+  - `CRM` (Title: `CRM`, Name: `crm-root`)
+  - `Sales` (Title: `Sales`, Name: `sc-root-sale`)
+  - `Purchases` (Title: `Purchases`, Name: `sc-root-purchase`)
+  - `Invoicing` (Title: `Invoicing`, Name: `invoice-root`)
+  - `Accounting` (Title: `Accounting`, Name: `account-root`)
+- **NEVER put interactive controls in `fields`**: Checkboxes, radio buttons, switches, dropdown states, and action verbs belong strictly in `hint` or `explanation`.
+- **Zero composite strings**: No prefixes (`"Modèle:"`), no labels, no multi-attribute notes in `value`.
+
+### C. Permissions vs Roles Distinction & Full Technical Spec (CRITICAL)
+- **Onglet 'Permissions' (Règles unitaires par modèle)**: Target this tab when assigning granular CRUD access on specific models (`perm.<module>.<Model>.<action>`).
+- **Onglet 'Rôles' (Profils métiers groupés)**: Target this tab ONLY when binding pre-packaged Axelor roles (`Sale Read`, `Invoice User`, `Account Manager`).
+- **Mandatory Complete Technical Spec on Permission Creation / Duplication**:
+  When a step requires creating or duplicating a permission, NEVER provide only a random code. You MUST explicitly provide separate copyable fields and clear instructions for:
+  1. **Source / Recherche**: Quel enregistrement ou modèle chercher pour dupliquer.
+  2. **Nom / Code** (ex: `perm.partner.commercial.rwc`).
+  3. **Objet / Modèle complet (Full Package Class)** (ex: `com.axelor.apps.base.db.Partner`).
+  4. **Condition / Filtre** (ex: `self.user = :__user__` ou `self.clientPartner.user = :__user__`).
+  5. **Cases à cocher CRUD explicites** :
+     - `r` $\rightarrow$ Lecture seule (*Read*)
+     - `rwc` $\rightarrow$ Lecture + Écriture + Création (*Read, Write, Create*)
+     - `rwcde` $\rightarrow$ Droit complet (*Read, Write, Create, Delete, Export*)
+
+### D. Relational Fields Strategy (Select vs Create)
+- **Many-to-One / Many-to-Many Relations**: Always default to **Search/Select (🔍 / Autocomplete)** (`button:has(i.fa-search)`, `input.ax-suggest`) to bind existing catalog/system records and prevent SQL unique constraint violations.
+- **One-to-Many Sub-items**: Target **Add `(+)`** ONLY for intrinsic sub-records created on the fly (e.g. Order Line inside a Sale Order, Invoice Line inside an Invoice).
+
+### E. Universal FSM & Nested View Lifecycle
+- **Consultation $\rightarrow$ Edit**: If modifying an existing record, always include the step to click **Modifier** (`.btn-edit`, `button:contains("Modifier")`) before attempting to edit fields or sub-tables.
+- **Hierarchical Modal Decomposition**: Never flatten a sub-window. Always model:
+  1. Modal Header/Inputs $\rightarrow$ 2. Sub-grid actions $\rightarrow$ 3. Modal Save/OK (`.modal button:contains("Ok")`) $\rightarrow$ 4. Parent Form Save (`.btn-save`).
+- **Parent Persistence**: Always conclude any creation/edit flow with the parent **Enregistrer/Sauvegarder** step.
+
+### F. Direct Delivery Protocol
+1. Perform MCP Pre-Flight audit to extract exact database entities.
+2. Write pure typed route in `src/guides/<name>Guide.ts` (exporting `GuidanceRoute`) and register it in `src/guides/index.ts`.
+3. Execute injection via runner (`npx tsx src/cli/guidePusher.ts <guide-id>`).
+4. Respond in chat with $\le 2$ sentences (file link + HUD injection confirmation). Zero theory/filler.
 
 ---
 
-## 1. Core Principles & User Experience
-
-1. **Clear & Non-Intrusive Guidance**
-   - The Copilot HUD assists the user without DOM hijacking or intrusive pulsing halos.
-   - Every step must tell the user **exactly what to do** in 1 direct, imperative sentence (`hint`).
-   - Technical explanations, context, or business rules must go into `explanation` ("💡 Bon à savoir").
-
-2. **Grouped Input Principle (No Single-Field Fatigue)**
-   - When multiple fields belong to the same screen, form, or modal dialog, **group them into a single step** using the `fields` array.
-   - Never create 5 consecutive steps just to type First Name, Last Name, Email, Phone, and Address. Group them with copyable values (`fields: [{ label, value }, ...]`).
-
-3. **Strict Axelor Lifecycle & State Transitions (FSM)**
-   Axelor views follow strict read-only vs edit-mode constraints. An agent **must never skip state-transition steps**:
-   - **Consultation $\rightarrow$ Modification**: If modifying an existing record, you **MUST** include the step to click the "Modifier" button (`.btn-edit`, `i.fa-pencil`, `button:contains("Modifier")`) before attempting to click tabs, edit fields, or add rows to sub-grids.
-   - **Sub-Grid / Modal Isolation**: When creating an item in a relation (e.g. adding a contact to a supplier):
-     1. Switch parent view to Edit mode if needed.
-     2. Navigate to the relevant tab.
-     3. Click the add button `(+)` in the sub-table.
-     4. Fill the modal dialog fields (`fields: [...]`).
-     5. Save and close the modal dialog (`Sauvegarder` / `OK`).
-     6. **Save the parent form** (`Enregistrer` / `Sauvegarder` on the main view) to persist changes.
-
----
-
-## 2. Schema Contract (`GuidanceRoute` & `GuidanceStep`)
-
+## 2. Schema Contract
 ```typescript
-export interface GuidanceFieldInput {
-  label: string; // e.g. "Nom complet", "Email pro"
-  value: string; // Exact text to copy/paste
-  hint?: string; // Optional context
-}
-
+export interface GuidanceFieldInput { label: string; value: string; hint?: string; }
 export interface GuidanceStep {
   id: string;
   type: "menu" | "button" | "field" | "tab" | "row";
-  selector: string; // Clean CSS selector or resilient fallback
+  selector: string;
   fallbackSelectors?: string[];
-  label: string; // Short UI title (e.g. "Sous-onglet Contacts", "Formulaire Contact")
-  hint: string; // Direct action directive: "Étape X/N : Cliquez sur..."
-  breadcrumb?: string[]; // e.g. ["Fournisseurs", "Fiche Fournisseur", "Contacts"]
-  explanation?: string; // "💡 Bon à savoir" advice, business context, or lifecycle note
-  fields?: GuidanceFieldInput[]; // Table of copyable fields (≥ 1 fields)
-  valueHint?: string; // Single copyable fallback if fields array omitted
-  fieldName?: string; // Technical field identifier (e.g. "contactPartnerSet")
-  action?: string; // Action directive
+  label: string;
+  hint: string;
+  breadcrumb?: string[];
+  explanation?: string;
+  fields?: GuidanceFieldInput[];
+  valueHint?: string;
+  fieldName?: string;
 }
-
 export interface GuidanceRoute {
   id: string;
   title: string;
@@ -68,97 +85,34 @@ export interface GuidanceRoute {
 }
 ```
 
----
-
-## 3. Mandatory Step Checklist
-
-When generating a scenario, verify every item on this checklist:
-
-- [ ] **Step 1: Navigation** $\rightarrow$ Starts from main lateral menu or search bar.
-- [ ] **Step 2: Grid/Record** $\rightarrow$ Selects row or clicks "Nouveau".
-- [ ] **Step 3: State Switch** $\rightarrow$ If modifying an existing record, clicks **Modifier**.
-- [ ] **Step 4: Grouped Inputs** $\rightarrow$ All inputs for the active form/modal are grouped in `fields: [...]`.
-- [ ] **Step 5: Modal Dismissal** $\rightarrow$ If inside a pop-up / modal, clicks **Sauvegarder** in the modal.
-- [ ] **Step 6: Parent Persist** $\rightarrow$ Clicks **Sauvegarder / Enregistrer** in the main toolbar.
-- [ ] **Step 7: Verification** $\rightarrow$ Final step confirms creation/update.
-
----
-
-## 4. Reference Template (Complex Scenario with Sub-Modal)
-
+## 3. Reference Guide Module (`src/guides/<name>Guide.ts`)
 ```typescript
-const supplierContactScenario: GuidanceRoute = {
-  id: `route_supplier_contact_${Date.now()}`,
-  title: "Ajouter un Contact Commercial à un Fournisseur",
-  description: "Cycle complet avec bascule en mode édition, ouverture de modale et double sauvegarde.",
+import { GuidanceRoute } from "../types/guidance.js";
+
+export const exampleGuide: GuidanceRoute = {
+  id: "route_example",
+  title: "Titre du guide",
+  description: "Description concise du flux",
   currentStepIndex: 0,
-  totalSteps: 7,
+  totalSteps: 2,
   createdAt: new Date().toISOString(),
   steps: [
     {
       id: "step_1",
       type: "menu",
-      selector: `a:has(span:contains("Achats")), .nav-item:has(span:contains("Achats"))`,
-      label: "Menu Achats",
-      hint: "Étape 1/7 : Cliquez sur le menu 'Achats' dans le menu latéral.",
-      breadcrumb: ["Achats"],
-      explanation: "Regroupe la gestion des fournisseurs, commandes et factures d'achat."
+      selector: `a:has(span:contains("Ventes")), .nav-item:has(span:contains("Ventes"))`,
+      label: "1. Menu Ventes",
+      hint: "Étape 1/2 : Cliquez sur Ventes.",
+      breadcrumb: ["Ventes"]
     },
     {
       id: "step_2",
-      type: "menu",
-      selector: `a:has(span:contains("Fournisseurs")), .nav-item:has(span:contains("Fournisseurs"))`,
-      label: "Sous-menu Fournisseurs",
-      hint: "Étape 2/7 : Cliquez sur 'Fournisseurs' pour afficher la liste de vos partenaires.",
-      breadcrumb: ["Achats", "Fournisseurs"]
-    },
-    {
-      id: "step_3",
-      type: "row",
-      selector: `.tab-pane.active .ax-grid-view tbody tr:first-child`,
-      label: "Sélectionner le Fournisseur",
-      hint: "Étape 3/7 : Cliquez sur la ligne du fournisseur à modifier.",
-      breadcrumb: ["Fournisseurs", "Fiche Fournisseur"]
-    },
-    {
-      id: "step_4",
-      type: "tab",
-      selector: `[role="tab"]:contains("Contacts"), .nav-tabs a:contains("Contacts")`,
-      label: "Onglet Contacts",
-      hint: "Étape 4/7 : Cliquez sur l'onglet 'Contacts' dans la fiche du fournisseur.",
-      breadcrumb: ["Fiche Fournisseur", "Contacts"]
-    },
-    {
-      id: "step_5",
-      type: "button",
-      selector: `[data-field="contactPartnerSet"] button:has(i.fa-plus), .tab-pane.active [data-field*="contact"] button:has(i.fa-plus)`,
-      label: "Ajouter un Contact (+)",
-      hint: "Étape 5/7 : Cliquez sur le bouton (+) du tableau pour ouvrir la sous-fenêtre de création.",
-      breadcrumb: ["Contacts", "Nouveau Contact"],
-      explanation: "Ouvre une boîte modale dédiée à la saisie du contact."
-    },
-    {
-      id: "step_6",
       type: "field",
-      selector: `.modal.show input[name="fullName"], [role="dialog"] input[name="fullName"]`,
-      label: "Formulaire Contact",
-      hint: "Étape 6/7 : Dans la sous-fenêtre, renseignez les coordonnées et cliquez sur Sauvegarder.",
-      breadcrumb: ["Sous-fenêtre Contact", "Formulaire"],
-      fields: [
-        { label: "Nom complet", value: "Jean Dupont" },
-        { label: "Email pro", value: "jean.dupont@fournisseur.com" },
-        { label: "Téléphone", value: "+33 6 12 34 56 78" }
-      ],
-      explanation: "Utilisez les boutons 📋 pour copier instantanément chaque valeur sans faute."
-    },
-    {
-      id: "step_7",
-      type: "button",
-      selector: `.tab-pane.active button.btn-save, .main-view.active button:contains("Enregistrer")`,
-      label: "Sauvegarde Finale",
-      hint: "Étape 7/7 : Cliquez sur 'Sauvegarder' dans la barre d'outils principale pour valider la fiche.",
-      breadcrumb: ["Fiche Fournisseur", "Enregistrement"],
-      explanation: "La sauvegarde finale est indispensable pour persister l'association dans la base de données."
+      selector: `.tab-pane.active input[name="name"]`,
+      label: "2. Nom du Partenaire",
+      hint: "Étape 2/2 : Saisissez le nom.",
+      breadcrumb: ["Partenaires", "Nouveau"],
+      fields: [{ label: "Nom", value: "Acme Corp" }]
     }
   ]
 };

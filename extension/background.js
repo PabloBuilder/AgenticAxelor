@@ -128,5 +128,22 @@ chrome.cookies.onChanged.addListener(async (changeInfo) => {
       lastCookieDomain: cookie.domain,
       lastUpdated: new Date().toISOString(),
     });
+
+    // Automatically push cookie to local MCP Bridge
+    try {
+      const bridgeUrl = await getBridgeUrl();
+      const domain = cookie.domain.replace(/^\./, "");
+      const protocol = cookie.secure ? "https" : "http";
+      const fullUrl = `${protocol}://${domain}/axelor-erp`;
+
+      await fetch(`${bridgeUrl}/api/session/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cookie: `JSESSIONID=${cookie.value}`,
+          url: fullUrl,
+        }),
+      });
+    } catch {}
   }
 });

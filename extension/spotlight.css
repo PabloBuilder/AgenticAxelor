@@ -109,8 +109,10 @@
 
 /* 2. Enhanced Copilot Instructions Card (Expanded state) */
 .ax-hud-card {
-  width: 380px;
+  width: 440px;
   max-width: calc(100vw - 48px);
+  max-height: 85vh;
+  overflow-y: auto;
   background: var(--ax-glass-bg);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -285,14 +287,15 @@
 
 .ax-hud-value-content {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ax-text-main);
   background: rgba(255, 255, 255, 0.85);
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid rgba(226, 232, 240, 0.8);
   word-break: break-all;
+  user-select: all;
 }
 
 /* 2c. Multi-Fields Copy Table */
@@ -329,7 +332,7 @@
 }
 
 .ax-hud-fields-table td {
-  padding: 5px 6px;
+  padding: 6px 6px;
   vertical-align: middle;
   border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 }
@@ -340,23 +343,28 @@
 
 .ax-hud-tbl-label {
   font-weight: 600;
+  font-size: 11.5px;
   color: var(--ax-text-main);
-  white-space: nowrap;
+  padding-right: 8px;
+  width: 42%;
+}
+
+.ax-hud-tbl-val {
+  width: 48%;
 }
 
 .ax-hud-tbl-val code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   background: rgba(255, 255, 255, 0.9);
-  padding: 2px 5px;
+  padding: 3px 6px;
   border-radius: 4px;
   border: 1px solid rgba(226, 232, 240, 0.8);
   color: #1e293b;
-  display: inline-block;
-  max-width: 130px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: block;
+  word-break: break-all;
+  user-select: all;
+  white-space: normal;
 }
 
 .ax-hud-tbl-action {

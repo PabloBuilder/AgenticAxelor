@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-import { AxelorClient } from "../services/axelorClient.js";
-import { DataService } from "../services/dataService.js";
+import { AxelorClient } from "../../services/axelorClient.js";
+import { DataService } from "../../services/dataService.js";
 
 dotenv.config();
 
