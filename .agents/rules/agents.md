@@ -22,3 +22,4 @@ Before taking action, identify the operational intent and load ONLY the correspo
 > **Trigger**: User asks to add features, fix bugs, modify TypeScript/Extension files, adjust bridge protocols, or run test suites.  
 >  **Load and follow**: [`.agents/dev-index.md`](.agents/dev-index.md)
 
+

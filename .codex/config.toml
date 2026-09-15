@@ -1,0 +1,7 @@
+[mcp_servers.agentic-axelor]
+command = "C:\\Program Files\\nodejs\\node.exe"
+args = ["dist/index.js"]
+cwd = "C:\\Users\\Pablo\\Documents\\Alter-si\\AgenticAxelor"
+startup_timeout_sec = 20
+tool_timeout_sec = 90
+default_tools_approval_mode = "writes"

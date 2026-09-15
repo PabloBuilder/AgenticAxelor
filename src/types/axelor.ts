@@ -102,3 +102,22 @@ export interface AxelorDeleteRecordItem {
   version?: number;
 }
 
+export interface AxelorErrorDetails {
+  title?: string;
+  message: string;
+  causeString?: string;
+  targetTable?: string;
+}
+
+export class AxelorApiError extends Error {
+  public readonly status: number;
+  public readonly details?: AxelorErrorDetails;
+
+  constructor(status: number, message: string, details?: AxelorErrorDetails) {
+    super(message);
+    this.name = "AxelorApiError";
+    this.status = status;
+    this.details = details;
+  }
+}
+

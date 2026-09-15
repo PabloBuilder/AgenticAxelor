@@ -1,7 +1,9 @@
 import axios, { AxiosInstance } from "axios";
 import {
   AxelorActionResponse,
+  AxelorApiError,
   AxelorConfig,
+  AxelorErrorDetails,
   AxelorResponse,
   AxelorSearchCriteria,
 } from "../types/axelor.js";
@@ -38,9 +40,8 @@ export class AxelorClient {
     });
 
     this.http.interceptors.request.use((reqConfig) => {
-      // 1. Check in-memory dynamic cookie or disk store (.session.json)
       const diskSession = SessionStore.loadSession();
-      const activeCookie = this.dynamicCookie || diskSession?.cookie || this.config.cookie;
+      const activeCookie = this.dynamicCookie || this.config.cookie || diskSession?.cookie;
 
       if (activeCookie) {
         reqConfig.headers.Cookie = activeCookie;
@@ -58,9 +59,6 @@ export class AxelorClient {
     });
   }
 
-  /**
-   * Dynamically assign an active session cookie (e.g. from browser extension sync).
-   */
   setSessionCookie(cookie: string): void {
     this.dynamicCookie = cookie;
     this.authenticated = true;
@@ -95,13 +93,11 @@ export class AxelorClient {
     }
 
     try {
-      // 1. First get session cookie
       await this.http.get("/login.jsp", {
         maxRedirects: 0,
         validateStatus: () => true,
       });
 
-      // 2. Post login form with session cookie
       const params = new URLSearchParams();
       params.append("username", this.config.username);
       params.append("password", this.config.password);
@@ -114,7 +110,6 @@ export class AxelorClient {
         validateStatus: (status) => status >= 200 && status < 400,
       });
 
-      // Axelor redirects to /index.html (302/303) on successful login
       if (response.status === 302 || response.status === 303 || response.status === 200) {
         this.authenticated = true;
         return;
@@ -182,7 +177,7 @@ export class AxelorClient {
         return response.data.data[0];
       }
     } catch {
-      // Fallback to domain search by ID if direct fetch is restricted
+      // Fallback
     }
 
     const searchFallback = await this.search<T>(model, {
@@ -199,10 +194,6 @@ export class AxelorClient {
     return null;
   }
 
-  /**
-   * Create or update a business record in Axelor (/ws/rest/{model}).
-   * If record.id and record.version exist, Axelor updates the record; otherwise it creates a new one.
-   */
   async save<T = Record<string, any>>(
     model: string,
     record: Record<string, unknown>
@@ -224,7 +215,8 @@ export class AxelorClient {
   }
 
   /**
-   * Delete a record by ID and optional version (/ws/rest/{model}/{id} DELETE or fallback).
+   * Delete a record by ID and optional version (/ws/rest/{model}/removeAll).
+   * Automatically resolves latest live $version if not provided.
    */
   async remove(
     model: string,
@@ -233,41 +225,57 @@ export class AxelorClient {
   ): Promise<AxelorResponse<unknown>> {
     await this.ensureAuthenticated();
 
-    try {
-      const endpoint = `/ws/rest/${model}/${id}`;
-      const payload = version !== undefined ? { data: { id, version } } : {};
-      const response = await this.http.delete<AxelorResponse<unknown>>(endpoint, {
-        data: payload,
-        headers: {
-          "Content-Type": "application/json",
+    let targetVersion = version;
+    if (targetVersion === undefined) {
+      const liveRecord = await this.fetchById<Record<string, any>>(model, id);
+      if (!liveRecord) {
+        return { status: 0, data: [] };
+      }
+      targetVersion = liveRecord.version ?? liveRecord.$version ?? 0;
+    }
+
+    const endpoint = `/ws/rest/${model}/removeAll`;
+    const payload = {
+      records: [
+        {
+          id,
+          version: targetVersion,
         },
-      });
-      return response.data;
-    } catch {
-      // Fallback: POST /ws/rest/{model}/deleteAll or /ws/rest/{model}/delete
-      const endpoint = `/ws/rest/${model}/deleteAll`;
-      const payload = {
-        records: [
-          {
-            id,
-            version: version ?? 0,
-          },
-        ],
+      ],
+    };
+
+    const response = await this.http.post<AxelorResponse<unknown>>(endpoint, payload, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.data && response.data.status !== 0) {
+      const rawData: any = response.data.data || response.data;
+      const errorMsg = rawData?.message || response.data.message || response.data.error || `Failed to delete record ${id} in ${model}`;
+      const causeStr = rawData?.causeString || "";
+      const title = rawData?.title || response.data.error;
+
+      // Extract referenced table if PostgreSQL foreign key violation
+      let targetTable: string | undefined;
+      const tableMatch = causeStr.match(/table\s+"([^"]+)"/i) || causeStr.match(/table\s+\\"([^\\"]+)\\"/i);
+      if (tableMatch && tableMatch[1]) {
+        targetTable = tableMatch[1];
+      }
+
+      const details: AxelorErrorDetails = {
+        title,
+        message: errorMsg,
+        causeString: causeStr,
+        targetTable,
       };
 
-      const response = await this.http.post<AxelorResponse<unknown>>(endpoint, payload, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      return response.data;
+      throw new AxelorApiError(response.data.status, errorMsg, details);
     }
+
+    return response.data;
   }
 
-  /**
-   * Execute an Axelor Action (action-view, action-method, action-record, action-attrs, action-group) via /ws/action.
-   */
   async executeAction(
     action: string,
     model?: string,
@@ -293,4 +301,3 @@ export class AxelorClient {
     return response.data;
   }
 }
-

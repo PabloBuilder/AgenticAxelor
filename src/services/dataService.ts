@@ -1,4 +1,5 @@
 import { AxelorClient } from "./axelorClient.js";
+import { AxelorApiError } from "../types/axelor.js";
 
 export interface DataQueryOptions {
   model: string;
@@ -86,24 +87,38 @@ export class DataService {
 
   /**
    * Delete a record by ID and optional optimistic lock version.
+   * Auto-fetches live version if omitted and translates relational constraint errors.
    */
   async deleteRecord(
     model: string,
     id: number,
     version?: number
   ): Promise<{ success: boolean; message?: string }> {
-    const response = await this.client.remove(model, id, version);
+    try {
+      const response = await this.client.remove(model, id, version);
 
-    if (response.status !== 0) {
-      throw new Error(
-        response.error || response.message || `Failed to delete record ${id} in ${model}`
-      );
+      if (response.status !== 0) {
+        throw new Error(
+          response.error || response.message || `Failed to delete record ${id} in ${model}`
+        );
+      }
+
+      return {
+        success: true,
+        message: `Record ${id} in model ${model} successfully deleted.`,
+      };
+    } catch (error: any) {
+      if (error instanceof AxelorApiError && error.details) {
+        let msg = error.details.message;
+        if (error.details.targetTable) {
+          msg = `Cannot delete ${model} #${id}: still referenced by table '${error.details.targetTable}'. Clean referencing records first.`;
+        } else if (error.details.title) {
+          msg = `${error.details.title}: ${error.details.message}`;
+        }
+        throw new Error(msg);
+      }
+      throw error;
     }
-
-    return {
-      success: true,
-      message: `Record ${id} in model ${model} successfully deleted.`,
-    };
   }
 
   /**

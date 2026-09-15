@@ -29,4 +29,7 @@ High-density routing map for modifying codebase, maintaining MCP tools, updating
 - **Zero Java UI Scanning**: Restrict UI, field, and view discovery to XML files (`*-form.xml`, `*-menu.xml`, `*-grid.xml`).
 - **Strict Typing**: Ground all changes in typed interfaces ([`src/types/`](src/types/)).
 - **DOM Decoupling**: Keep browser Copilot HUD fully isolated from Axelor host React internals.
+- **Session Namespacing**: Use `formatSessionName` (`[S1]`, `[T2]`) or `formatSessionCode` from `src/services/namespacing.ts` for demo/test entities.
+- **ERP Deletion Order (LIFO)**: `StockLocationLineHistory` ➔ `StockLocationLine` ➔ `InvoiceLine` ➔ `Invoice` ➔ `StockMoveLine` ➔ `StockMove` ➔ `OrderLine` ➔ `Order` ➔ `Parent Entity`. Validate FSM downgrade (`statusSelect: 1` or `4`) before parent deletion.
+
 

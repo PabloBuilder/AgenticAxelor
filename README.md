@@ -29,7 +29,7 @@ AXELOR_USERNAME=admin
 AXELOR_PASSWORD=admin
 # Optional: Session cookie (auto-captured by extension or set manually)
 AXELOR_COOKIE=JSESSIONID=...
-PORT=3210
+BRIDGE_PORT=3210
 ```
 
 ### 2. Start MCP & Bridge Server
@@ -70,27 +70,6 @@ Add to your environment's MCP config file (e.g. `claude_desktop_config.json`, `.
 
 ---
 
-## Reference Use Cases (CLI Walkthroughs)
-
-### 1. Obscure Menu Discovery
-```bash
-npx tsx src/cli/pushGuide.ts "Sequences"
-```
-*HUD expands and highlights exact hierarchical menu path.*
-
-### 2. Sub-Modal Contact Creation (Multi-Fields Copy Table)
-```bash
-npx tsx src/cli/pushSubWindowGuide.ts
-```
-*Walks through edit mode switch, contact tab, add modal, copyable values, and double commit.*
-
-### 3. Full Customer Onboarding Flow
-```bash
-npx tsx src/cli/pushComplexGuide.ts
-```
-
----
-
 ## Copilot HUD Layout
 
 ```text
@@ -123,16 +102,28 @@ npx tsx src/cli/pushComplexGuide.ts
 
 ---
 
-## MCP Tool Registry
+## MCP Tool Registry (10 Tools)
 
 | Tool | Purpose |
 | :--- | :--- |
 | `guide_axelor_path` | Pushes deterministic guidance route to browser HUD |
 | `clear_axelor_guide` | Resets and hides Copilot HUD |
-| `search_axelor_menu` | Searches menu tree and views |
-| `inspect_axelor_view` | Introspects form fields, tabs, and sub-grids |
-| `query_axelor_data` | Runs domain filters and entity queries |
-| `save_axelor_record` | Creates/updates records via Axelor REST API |
+| `search_axelor_menu` | Searches menu tree and hierarchical breadcrumbs |
+| `inspect_axelor_view` | Introspects form fields, tabs, widgets, and sub-grids |
+| `query_axelor_data` | Runs domain filters, pagination, and entity queries |
+| `fetch_axelor_record` | Fetches a single business entity by ID with fields selection |
+| `save_axelor_record` | Creates or updates records via Axelor REST API |
+| `delete_axelor_record` | Deletes records with live auto-versioning and relational error parsing |
+| `execute_axelor_action` | Triggers Axelor Actions (`action-method`, `action-attrs`, `action-group`) |
+| `sync_axelor_session` | Synchronizes runtime session cookie or target URL on the fly |
+
+---
+
+## SDK Features
+
+- **Auto-Versioning**: `AxelorClient.remove` automatically resolves the latest database `$version` before executing `removeAll`.
+- **Relational Error Translation**: Converts PostgreSQL/Hibernate foreign key violations into readable messages indicating the exact referencing table.
+- **Session Namespacing**: Helper utilities in `src/services/namespacing.ts` (`formatSessionName`, `formatSessionCode`) to isolate test runs (`[S1]`, `[S2]`) and avoid constraint collisions.
 
 ---
 
@@ -141,4 +132,3 @@ npx tsx src/cli/pushComplexGuide.ts
 - [Developer Guide & CLI Suite](.agents/docs/DEV_GUIDE.md)
 - [Guidance Authoring Rules (`axelor-guidance-builder`)](.agents/skills/axelor-guidance-builder/SKILL.md)
 - [Axelor REST API Cheatsheet](.agents/docs/axelor-api-cheatsheet.md)
-
