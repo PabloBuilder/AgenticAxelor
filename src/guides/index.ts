@@ -4,6 +4,7 @@ import { accountingRightsGuide } from "./accountingRightsGuide.js";
 import { subWindowGuide } from "./subWindowGuide.js";
 import { complexGuide } from "./complexGuide.js";
 import { setPasswordGuide } from "./setPasswordGuide.js";
+import { tradingCardsExerciseGuide } from "./tradingCardsExerciseGuide.js";
 
 export {
   salesRightsGuide,
@@ -11,6 +12,7 @@ export {
   subWindowGuide,
   complexGuide,
   setPasswordGuide,
+  tradingCardsExerciseGuide,
 };
 
 export const GUIDE_REGISTRY: Record<string, GuidanceRoute> = {
@@ -19,4 +21,7 @@ export const GUIDE_REGISTRY: Record<string, GuidanceRoute> = {
   "sub-window": subWindowGuide,
   "complex-customer": complexGuide,
   "set-password": setPasswordGuide,
+  "panini-cards": tradingCardsExerciseGuide,
+  "trading-cards": tradingCardsExerciseGuide,
 };
+

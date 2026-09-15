@@ -7,38 +7,33 @@ description: "Author precise, user-centric step-by-step guidance routes (Guidanc
 
 ## 1. Universal Axelor UX & Execution Protocols
 
-### A. Mandatory Pre-Flight MCP Introspection (CRITICAL HARD GATE)
-- **ZERO Speculation / Hallucination**: NEVER write or push a guidance route based on guesses or assumed model/permission names.
-- **Mandatory MCP Pre-Check**: Before authoring any step, ALWAYS query live Axelor database via MCP tools or programmatic check:
-  1. Inspect existing records (`query_axelor_data` / `com.axelor.auth.db.*`): Check if targeted Groups, Users, or Roles already exist.
-  2. Introspect exact technical permission names: Match exact strings in database (e.g. `perm.sale.SaleOrder.r`, `perm.account.Invoice.rwcde`).
-  3. Validate exact menu paths & breadcrumbs (`search_axelor_menu`).
-- If an entity already exists in database (e.g. Group `Comptabilité` ID 29), target its modification and selection rather than creating duplicates.
+### A. Mandatory Pre-Flight MCP & View Introspection (CRITICAL HARD GATE)
+- **ZERO Speculation / Hallucination**: NEVER write or push a guidance route based on guesses, assumed model names, or unverified UI fields.
+- **Mandatory MCP Pre-Check**: Before authoring any step, ALWAYS query live Axelor database via MCP tools:
+  1. **View & Panels Layout** (`inspect_axelor_view`): Audit the exact form hierarchy (which fields belong to `panel`, `panel-tabs`, accordion panels).
+  2. **Live Records** (`query_axelor_data` / `com.axelor.*`): Check existing records to target modification instead of duplicate creation.
+  3. **Exact Menu Paths** (`search_axelor_menu`): Match exact breadcrumbs and database menu titles.
 
-### B. Strict Input Typing & Database-Grounded Menu Titles (Zero Noise)
-- **`fields[i].value` is ONLY for text/search inputs**: Must contain the exact literal string to type or search (e.g. `value: "perm.sale.SaleOrder.r"`).
-- **Exact DB Menu Titles Only (CRITICAL)**: When targeting or listing Menus (`MetaMenu`), NEVER invent or translate names into French (e.g. NEVER write `"Ventes"`, `"Achats"`, `"Facturation"`). You MUST query/use the exact English database `title` stored in Axelor:
-  - `CRM` (Title: `CRM`, Name: `crm-root`)
-  - `Sales` (Title: `Sales`, Name: `sc-root-sale`)
-  - `Purchases` (Title: `Purchases`, Name: `sc-root-purchase`)
-  - `Invoicing` (Title: `Invoicing`, Name: `invoice-root`)
-  - `Accounting` (Title: `Accounting`, Name: `account-root`)
-- **NEVER put interactive controls in `fields`**: Checkboxes, radio buttons, switches, dropdown states, and action verbs belong strictly in `hint` or `explanation`.
-- **Zero composite strings**: No prefixes (`"Modèle:"`), no labels, no multi-attribute notes in `value`.
+### B. Visual Form Grounding (VFG) & Zero Floating Field Law
+- **Complete Visual Pathing Required**: Every field action MUST follow the invariant syntax:
+  `[Onglet / Panneau hôte] ➔ [Nom du Champ visible] ➔ [Valeur / Action]`
+- **Zero Floating Fields**: NEVER provide a field value without specifying its host container when it is outside the main top-level form (e.g. NEVER write `{ label: "Opportunité", value: "Djelel" }` on an Event form; ALWAYS write *"Panneau 'Références' > Champ 'Lié à' = 'Opportunité' > Chercher 'Djelel'"*).
+- **Context-First Parent Creation**: Whenever creating child/relational records (Events, Tasks, Order lines, Sub-contacts), ALWAYS instruct creation from the **Parent Record's dedicated Tab** (`Opportunité > Onglet 'Événements' > (+) Nouveau`) rather than navigating through global menus. This auto-binds relations with zero user search friction.
+- **Strict Input Typing (Zero Noise)**:
+  - `fields[i].value` is strictly for copyable literal text/search inputs.
+  - Interactive toggles (checkboxes, radio buttons, dropdown state choices) belong strictly in `hint` or `explanation`.
+  - Zero composite strings (no `"Modèle:"` prefixes in `value`).
 
 ### C. Permissions vs Roles Distinction & Full Technical Spec (CRITICAL)
 - **Onglet 'Permissions' (Règles unitaires par modèle)**: Target this tab when assigning granular CRUD access on specific models (`perm.<module>.<Model>.<action>`).
 - **Onglet 'Rôles' (Profils métiers groupés)**: Target this tab ONLY when binding pre-packaged Axelor roles (`Sale Read`, `Invoice User`, `Account Manager`).
 - **Mandatory Complete Technical Spec on Permission Creation / Duplication**:
-  When a step requires creating or duplicating a permission, NEVER provide only a random code. You MUST explicitly provide separate copyable fields and clear instructions for:
+  When a step requires creating or duplicating a permission, explicitly provide separate copyable fields and clear instructions for:
   1. **Source / Recherche**: Quel enregistrement ou modèle chercher pour dupliquer.
   2. **Nom / Code** (ex: `perm.partner.commercial.rwc`).
   3. **Objet / Modèle complet (Full Package Class)** (ex: `com.axelor.apps.base.db.Partner`).
   4. **Condition / Filtre** (ex: `self.user = :__user__` ou `self.clientPartner.user = :__user__`).
-  5. **Cases à cocher CRUD explicites** :
-     - `r` $\rightarrow$ Lecture seule (*Read*)
-     - `rwc` $\rightarrow$ Lecture + Écriture + Création (*Read, Write, Create*)
-     - `rwcde` $\rightarrow$ Droit complet (*Read, Write, Create, Delete, Export*)
+  5. **Cases à cocher CRUD explicites** : `r` (Read), `rwc` (Read/Write/Create), `rwcde` (Full CRUD + Export).
 
 ### D. Relational Fields Strategy (Select vs Create)
 - **Many-to-One / Many-to-Many Relations**: Always default to **Search/Select (🔍 / Autocomplete)** (`button:has(i.fa-search)`, `input.ax-suggest`) to bind existing catalog/system records and prevent SQL unique constraint violations.
