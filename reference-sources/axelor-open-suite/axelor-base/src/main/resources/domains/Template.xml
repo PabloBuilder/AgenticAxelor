@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="message" package="com.axelor.message.db"/>
+
+  <entity name="Template">
+
+    <many-to-many name="printTemplateSet"
+      ref="com.axelor.apps.base.db.PrintingTemplate" title="Print template"/>
+    <many-to-many name="localizationSet" ref="com.axelor.apps.base.db.Localization"
+      title="Localization"/>
+
+  </entity>
+
+</domain-models>

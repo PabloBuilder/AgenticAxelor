@@ -1,0 +1,23 @@
+plugins {
+	id 'com.axelor.app'
+}
+
+apply from: "../libs.gradle"
+apply from: "../version.gradle"
+
+apply {
+	version = openSuiteVersion
+}
+
+axelor {
+	title "Axelor Stock"
+	description "Axelor Stock Module"
+}
+
+dependencies {
+	api project(":modules:axelor-base")
+
+	implementation libs.commons_lang3
+	implementation libs.commons_collections4
+	implementation libs.swagger_jaxrs
+}

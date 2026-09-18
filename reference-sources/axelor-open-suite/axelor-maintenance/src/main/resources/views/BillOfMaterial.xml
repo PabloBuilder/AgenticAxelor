@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="maintenance-bill-of-material-grid" title="Bills of material"
+    model="com.axelor.apps.production.db.BillOfMaterial">
+    <toolbar>
+      <button name="printBtn" hideIf="true" onClick=""/>
+    </toolbar>
+    <field name="fullName"/>
+    <field name="company"/>
+    <field name="workshopStockLocation"/>
+    <field name="machineType"/>
+    <field name="qty" aggregate="sum" x-scale="2"/>
+    <field name="unit" form-view="unit-form" grid-view="unit-grid"/>
+    <field name="prodProcess" title="Maintenance process" grid-view="prod-process-grid"
+      form-view="maintenance-prod-process-form"/>
+    <field name="statusSelect" widget="single-select"/>
+  </grid>
+
+  <form name="maintenance-bill-of-material-form" title="Bill of materials"
+    model="com.axelor.apps.production.db.BillOfMaterial" width="large"
+    onLoad="action-bill-of-material-group-on-load"
+    onSave="save,action-bill-of-material-method-validate-prod-process"
+    onNew="action-maintenance-bill-of-material-group-onnew" canNew="!_isPersonalized">
+    <toolbar>
+      <button name="printBtn" title="Print" onClick="action-bill-of-material-method-print"/>
+    </toolbar>
+    <menubar>
+      <menu name="bomOptionsMenu" title="Options">
+        <item if="__config__.app.getApp('production')?.manageBillOfMaterialVersion"
+          name="generateNewVersionItem" title="Generate new version"
+          action="action-bill-of-material-check-other-version,action-bill-of-material-generate-new-version"/>
+      </menu>
+    </menubar>
+    <panel name="mainPanel">
+      <field name="statusSelect" showTitle="false" readonly="false" colSpan="8"
+        widget="NavSelect"/>
+      <field name="$defaultBOMOnProduct" showTitle="false" readonly="true" colSpan="4">
+        <viewer depends="$defaultBillOfMaterial"><![CDATA[
+                    <>
+                    	<Box d="flex" justifyContent="flex-end">
+                    		{$defaultBillOfMaterial.id == id && <Badge style={{ backgroundColor: "#009900" }}>{_t('Default Bill of materials')}</Badge>}
+                    		{$defaultBillOfMaterial.id != id && <Badge style={{ backgroundColor: "#B6473F" }}>{_t('Alternative Bill of materials')}</Badge>}
+                    	</Box>
+                    </>
+            ]]></viewer>
+      </field>
+      <field name="fullName" showTitle="false" colSpan="12">
+        <viewer depends="name"><![CDATA[
+			<>
+				<h3><span>{fullName}</span></h3>
+			</>
+    ]]></viewer>
+        <editor>
+          <field name="name" showTitle="true" css="label-bold bold large"/>
+        </editor>
+      </field>
+      <field name="company" widget="SuggestBox" canEdit="false" form-view="company-form"
+        grid-view="company-grid"/>
+      <field if="__config__.app.getApp('production')?.getManageWorkshop()"
+        name="workshopStockLocation" canEdit="false"
+        domain="self.company = :company and self.typeSelect = 1 and self.isWorkshop = true"/>
+      <field name="machineType" form-view="machine-type-form" grid-view="machine-type-grid"
+        readonlyIf="machine != null" requiredIf="machine == null"/>
+      <field name="machine" colSpan="6" form-view="maintenance-machine-form"
+        grid-view="machine-grid" domain="self.machineType = :machineType OR :machineType IS NULL"
+        onChange="action-maintenance-bom-record-machine-onchange"/>
+      <field name="prodProcess" title="Maintenance process" canNew="true"
+        onChange="action-bill-of-material-method-validate-prod-process"
+        domain="self.machineType = :machineType AND self.company = :company AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation) AND self.typeSelect = 3"
+        form-view="maintenance-prod-process-form" grid-view="prod-process-grid"/>
+      <field name="qty" colSpan="3" hidden="true"/>
+      <field name="unit" colSpan="3" canEdit="false" required="true" form-view="unit-form"
+        grid-view="unit-grid" hidden="true"/>
+      <field name="product.defaultBillOfMaterial" hidden="true" colSpan="1"/>
+      <field name="typeSelect" hidden="true"/>
+    </panel>
+    <panel-tabs name="mainPanelTab">
+      <panel name="componentsPanel" title="Components">
+        <panel-related name="billOfMaterialLineListPanel"
+          field="billOfMaterialLineList" colSpan="12"
+          form-view="maintenance-bill-of-material-line-form" grid-view="bill-of-material-line-grid"
+          orderBy="priority"/>
+      </panel>
+      <panel name="costPanel" title="Cost">
+        <button name="computeCostPriceBtn" title="Compute cost price"
+          onClick="save,action-bill-of-material-method-compute-cost-price"/>
+        <field name="costPrice" readonly="true"/>
+        <button name="updateProductCostPriceBtn" title="Update product cost price"
+          onClick="save,action-bill-of-material-method-update-product-cost-price"/>
+        <panel-related name="costSheetListsPanel" readonly="false" colSpan="12"
+          field="costSheetList" form-view="cost-sheet-bill-of-material-form"
+          grid-view="cost-sheet-bill-of-material-grid"/>
+      </panel>
+      <panel name="versionManagementPanel" title="Version management" hidden="true"
+        showIf="versionNumber > 1">
+        <field name="versionNumber" colSpan="3"/>
+        <field name="originalBillOfMaterial" readonly="true" colSpan="3"
+          form-view="bill-of-material-form" grid-view="bill-of-material-grid"/>
+      </panel>
+      <panel name="notePanel" title="Note">
+        <field name="note" showTitle="false" colSpan="12"/>
+      </panel>
+    </panel-tabs>
+    <panel name="actionPanel" sidebar="true">
+      <button onClick="save,action-bill-of-material-method-set-validate-status"
+        name="validateBtn" title="Validate" showIf="statusSelect == 1"/>
+      <button onClick="save,action-bill-of-material-method-set-applicable-status"
+        name="makeItApplicableBtn" title="Make it applicable" showIf="statusSelect == 2"/>
+      <button onClick="save,action-bill-of-material-method-set-obsolete-status"
+        name="makeItObsoleteBtn" title="Make it obsolete" showIf="statusSelect == 3"/>
+      <button onClick="save,action-bill-of-material-method-set-draft-status"
+        name="backToDraftBtn" title="Back to draft" showIf="statusSelect > 1"/>
+    </panel>
+    <panel-mail name="mailPanel">
+      <mail-messages limit="4"/>
+      <mail-followers/>
+    </panel-mail>
+  </form>
+
+  <action-group name="action-maintenance-bill-of-material-group-onnew">
+    <action name="action-bill-of-material-default-record"/>
+    <action name="action-bill-of-material-group-on-load"/>
+    <action name="action-maintenance-bill-of-material-attrs-set-default"/>
+    <action name="action-maintenance-bom-record-set-defaults"/>
+  </action-group>
+
+  <!-- Skip prod process validation for maintenance BOMs -->
+  <action-group name="action-bill-of-material-method-validate-prod-process"
+    id="maintenance-action-bill-of-material-method-validate-prod-process">
+    <action name="action-maintenance-bom-method-validate-prod-process" if="typeSelect != 3"/>
+  </action-group>
+
+  <action-method name="action-maintenance-bom-method-validate-prod-process">
+    <call class="com.axelor.apps.production.web.BillOfMaterialController"
+      method="validateProdProcess"/>
+  </action-method>
+
+  <action-attrs name="action-maintenance-bill-of-material-attrs-set-default">
+    <attribute name="value" for="typeSelect"
+      expr="eval: __repo__(ManufOrder).TYPE_MAINTENANCE"/>
+  </action-attrs>
+
+  <action-record name="action-maintenance-bom-record-set-defaults"
+    model="com.axelor.apps.production.db.BillOfMaterial">
+    <field name="qty" expr="eval: 1"/>
+  </action-record>
+
+  <action-record name="action-maintenance-bom-record-machine-onchange"
+    model="com.axelor.apps.production.db.BillOfMaterial">
+    <field name="machineType" expr="eval: machine?.machineType" if="machine != null"/>
+  </action-record>
+
+  <action-method name="action-bill-of-material-method-print">
+    <call class="com.axelor.apps.maintenance.web.BillOfMaterialController" method="print"/>
+  </action-method>
+
+</object-views>

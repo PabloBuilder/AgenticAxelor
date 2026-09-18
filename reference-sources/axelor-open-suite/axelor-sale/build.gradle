@@ -1,0 +1,21 @@
+plugins {
+	id 'com.axelor.app'
+	id "com.github.node-gradle.node"
+}
+apply from: "../libs.gradle"
+apply from: "../version.gradle"
+
+apply {
+	version = openSuiteVersion
+}
+
+axelor {
+	title "Axelor Sale"
+	description "Axelor Sale Module"
+}
+
+dependencies {
+	api project(":modules:axelor-crm")
+	implementation libs.swagger_jaxrs
+	testImplementation libs.mockito
+}

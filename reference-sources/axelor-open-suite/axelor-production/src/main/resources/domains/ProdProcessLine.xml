@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="production" package="com.axelor.apps.production.db"/>
+
+  <entity name="ProdProcessLine">
+
+    <many-to-one name="prodProcess" ref="com.axelor.apps.production.db.ProdProcess"
+      title="Production process"/>
+    <many-to-one name="workCenter" ref="com.axelor.apps.production.db.WorkCenter"
+      title="Work center"/>
+    <string name="name" title="Label"/>
+    <integer name="priority" title="Priority"/>
+    <string name="description" title="Description" large="true"/>
+    <decimal name="minCapacityPerCycle" title="Min. capacity / cycle"/>
+    <decimal name="maxCapacityPerCycle" title="Max. capacity / cycle"/>
+    <long name="durationPerCycle" title="Duration / cycle (hhh:mm:ss)"/>
+    <long name="setupDuration" title="Duration between two cycles (hhh:mm:ss)"/>
+    <long name="startingDuration" title="Starting duration (hhh:mm:ss)"/>
+    <long name="endingDuration" title="Ending duration (hhh:mm:ss)"/>
+    <long name="humanDuration" title="Human Duration (hh:mm:ss)"/>
+    <decimal name="durationPerCycleDecimal" title="Duration / cycle (in hours)"/>
+    <decimal name="humanDurationDecimal" title="Human Duration (in hours)"/>
+    <long name="timeBeforeNextOperation" title="Time before next operation"
+      help="Time before the next operation of the same manufacturing order."/>
+    <boolean name="outsourcing" title="Outsourced"/>
+    <boolean name="outsourcable" title="Outsourcable"/>
+    <many-to-one name="outsourcingPartner" ref="com.axelor.apps.base.db.Partner"
+      title="Subcontractor"/>
+    <boolean name="generatePurchaseOrderOnMoPlanning"
+      title="Generate a purchase order on MO planning"/>
+    <boolean name="optional" title="Optional"/>
+    <many-to-one name="stockLocation" ref="com.axelor.apps.stock.db.StockLocation"
+      title="Stock location"/>
+
+    <one-to-many name="toConsumeProdProductList"
+      ref="com.axelor.apps.production.db.ProdProduct" mappedBy="toConsumeProdProcessLine"
+      title="Products to consume"/>
+    <one-to-many name="objectDescriptionList"
+      ref="com.axelor.apps.production.db.ObjectDescription" mappedBy="prodProcessLine"
+      title="Descriptions"/>
+    <many-to-one name="machineTool" ref="com.axelor.apps.production.db.MachineTool"
+      title="Tools"/>
+    <integer name="workCenterTypeSelect" title="Work center type"
+      selection="iproduction.work.center.type.select"/>
+    <many-to-one name="workCenterGroup"
+      ref="com.axelor.apps.production.db.WorkCenterGroup" title="Work center group"/>
+    <integer name="sequence" title="Sequence"/>
+    <many-to-many name="generatedPurchaseOrderProductSet"
+      ref="com.axelor.apps.base.db.Product" title="Products for generated purchase order"/>
+    <many-to-one name="product" ref="com.axelor.apps.base.db.Product" title="Product"/>
+    <integer name="costTypeSelect" title="Cost type"
+      selection="iproduction.work.center.cost.type.select"/>
+    <decimal name="costAmount" title="Cost (W.T.)"/>
+    <many-to-one name="hrProduct" ref="com.axelor.apps.base.db.Product" title="Product"/>
+    <integer name="hrCostTypeSelect" title="Cost type"
+      selection="iproduction.work.center.cost.type.select"/>
+    <decimal name="hrCostAmount" title="Cost (W.T.)"/>
+    <long name="outsourcingDuration" title="Outsourcing duration" nullable="true"/>
+    <many-to-many name="hazardPhraseSet" ref="com.axelor.apps.base.db.HazardPhrase"
+      title="Hazard phrases"/>
+
+    <track>
+      <field name="prodProcess"/>
+      <field name="name"/>
+      <field name="priority"/>
+      <field name="description"/>
+      <field name="minCapacityPerCycle"/>
+      <field name="maxCapacityPerCycle"/>
+      <field name="durationPerCycle"/>
+      <field name="outsourcing"/>
+      <field name="optional"/>
+      <field name="stockLocation"/>
+    </track>
+
+    <entity-listener
+      class="com.axelor.apps.production.db.repo.ProdProcessLineListener"/>
+
+  </entity>
+</domain-models>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <selection name="maintenance.maintenance.create.mtn.select">
+    <option value="0">First reached</option>
+    <option value="1">All reached</option>
+  </selection>
+
+  <selection name="maintenance.maintenance.request.status.select">
+    <option value="0" color="blue">maintenance.request.planned</option>
+    <option value="1" color="orange">In progress</option>
+    <option value="2" color="green">Completed</option>
+    <option value="3" color="red">Canceled</option>
+  </selection>
+
+  <selection name="maintenance.maintenance.request.action.select">
+    <option value="0">Corrective</option>
+    <option value="1">Preventive</option>
+  </selection>
+
+  <selection id="maintenance.sequence.generic.code.select"
+    name="sequence.generic.code.select">
+    <option value="maintenance">Maintenance</option>
+  </selection>
+
+  <selection id="maintenance.manuf.order.type.select" name="manuf.order.type.select">
+    <option value="3">Maintenance</option>
+  </selection>
+
+  <selection name="supplychain.mrp.line.element.select"
+    id="maintenance.supplychain.mrp.line.element.select">
+    <option value="13">Need / Maintenance order</option>
+  </selection>
+
+</object-views>

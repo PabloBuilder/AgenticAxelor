@@ -1,0 +1,20 @@
+plugins {
+	id 'com.axelor.app'
+}
+
+apply from: "../libs.gradle"
+apply from: "../version.gradle"
+
+apply {
+	version = openSuiteVersion
+}
+
+axelor {
+	title "Axelor Production"
+	description "Axelor Production Module"
+}
+
+dependencies {
+	api project(":modules:axelor-quality")
+	implementation libs.swagger_jaxrs
+}

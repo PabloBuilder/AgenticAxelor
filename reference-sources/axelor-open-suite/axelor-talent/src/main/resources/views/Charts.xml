@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <chart name="chart.employee.training.per.category" title="Training per category">
+    <dataset type="jpql"><![CDATA[
+		SELECT
+			COUNT(*) AS _total,
+			self.training.category.name AS _category,
+			YEAR(self.fromDate) as _year
+		FROM
+			TrainingRegister self
+		WHERE
+			YEAR(self.fromDate) >= (YEAR(CURRENT_DATE)-3)
+			AND self.employee.id = :id
+		GROUP BY
+			self.training.category.name,
+			YEAR(self.fromDate)
+		ORDER BY
+			YEAR(self.fromDate)
+		]]></dataset>
+    <category key="_category" type="text" title="Training"/>
+    <series key="_total" type="bar" title="Total" groupBy="_year"/>
+  </chart>
+
+  <chart name="chart.nb.hours.per.category" title="Nb. hours per category"
+    onInit="action-training-chart-set-default-from-to-dates">
+    <search-fields>
+      <field name="fromDate" title="From" type="date" required="true"/>
+      <field name="toDate" title="To" type="date" required="true"/>
+    </search-fields>
+    <dataset type="jpql"><![CDATA[
+		SELECT
+			SUM(self.duration) AS _nbHours,
+			self.training.category.name AS _category
+		FROM
+			TrainingSession self
+		WHERE
+			self.fromDate >= :fromDate AND self.toDate <= :toDate
+			AND self.statusSelect = 2
+		GROUP BY
+			self.training.category.name
+		]]></dataset>
+    <category key="_category" type="text" title="Category"/>
+    <series key="_nbHours" type="bar" title="Nb Hours"/>
+  </chart>
+
+  <chart name="chart.nb.hours.per.training" title="Nb. hours per training"
+    onInit="action-training-chart-set-default-from-to-dates">
+    <search-fields>
+      <field name="fromDate" title="From" type="date" required="true"/>
+      <field name="toDate" title="To" type="date" required="true"/>
+    </search-fields>
+    <dataset type="jpql"><![CDATA[
+		SELECT
+			SUM(self.duration) AS _nbHours,
+			self.training.name AS _training
+		FROM
+			TrainingSession self
+		WHERE
+			self.fromDate >= :fromDate AND self.toDate <= :toDate
+			AND self.statusSelect = 2
+		GROUP BY
+			self.training.name
+		]]></dataset>
+    <category key="_training" type="text" title="Training"/>
+    <series key="_nbHours" type="bar" title="Nb Hours"/>
+  </chart>
+
+  <chart name="chart.nb.trained.employee.per.category"
+    title="Nb. of trained employee per category"
+    onInit="action-training-chart-set-default-from-to-dates">
+    <search-fields>
+      <field name="fromDate" title="From" type="date" required="true"/>
+      <field name="toDate" title="To" type="date" required="true"/>
+    </search-fields>
+    <dataset type="jpql"><![CDATA[
+		SELECT
+			COUNT(*) AS _nbEmployee,
+			self.training.category.name AS _category
+		FROM
+			TrainingRegister self
+		WHERE
+			self.fromDate >= :fromDate AND self.toDate <= :toDate
+			AND self.statusSelect = 2
+		GROUP BY
+			self.training.category.name,
+			self.employee
+		]]></dataset>
+    <category key="_category" type="text" title="Category"/>
+    <series key="_nbEmployee" type="bar" title="Nb Employee"/>
+  </chart>
+
+  <chart name="chart.nb.training.hours.per.month" title="Nb of training hours per month"
+    onInit="action-training-chart-set-3-month-from-to-dates">
+    <search-fields>
+      <field name="fromDate" title="From" type="date" required="true"/>
+      <field name="toDate" title="To" type="date" required="true"/>
+    </search-fields>
+    <dataset type="jpql"><![CDATA[
+		SELECT
+			SUM(self.duration) AS _nbHours,
+			CONCAT(MONTH(self.fromDate),'-',YEAR(self.fromDate)) AS _month
+		FROM
+			TrainingSession self
+		WHERE
+			self.fromDate >= :fromDate AND self.toDate <= :toDate
+			AND self.statusSelect = 2
+		GROUP BY
+			CONCAT(MONTH(self.fromDate),'-',YEAR(self.fromDate))
+		ORDER BY
+			CONCAT(MONTH(self.fromDate),'-',YEAR(self.fromDate))
+		]]></dataset>
+    <category key="_month" type="text" title="Month"/>
+    <series key="_nbHours" type="bar" title="Nb Hours"/>
+  </chart>
+
+  <custom name="my-trainings-custom-view" title="Training" css="dashlet-no-dropdown">
+    <dataset type="rpc">com.axelor.apps.talent.web.TalentDashboardController:getConnectedEmployeeTrainingData</dataset>
+    <template><![CDATA[
+		<>
+			<Box w={100}>
+				{data.map((item,index) => {
+					return (
+						<Link key={item.id} href={`#/ds/training.register.all/edit/${item.id}`} d="flex" justifyContent="space-between" alignItems="center" border borderWidth={1} borderColor="dark-subtle" rounded={1} color="black" m={2} style={{width: "95%", backgroundColor: "#E8E8E8", minHeight: 60, textDecoration: "none" }}>
+							<Box flex="1" textAlign="center"><b>{$moment(item.fromDate).format('YYYY MMM ddd')}</b></Box>
+							<Box flex="0.5" borderTop borderColor="dark-subtle" borderWidth={1}/>
+							<Box flex="1" textAlign="center">{$moment(item.fromDate).format('h:mm A')}</Box>
+							<Box flex="1" textAlign="center">{item.training}</Box>
+						</Link>
+					);
+				})}
+			</Box>
+		</>
+	  ]]></template>
+  </custom>
+
+  <custom name="hr-manager-training-custom-view" title="Training" css="dashlet-no-dropdown">
+    <dataset type="rpc">com.axelor.apps.talent.web.TalentDashboardController:getEmployeeTrainingData</dataset>
+    <template><![CDATA[
+		<>
+			<Box w={100}>
+				{data.map((item,index) => {
+					return (
+						<Link key={item.id} href={`#/ds/training.register.all/edit/${item.id}`} d="flex" flexDirection="row" justifyContent="center" alignItems="center" border borderWidth={1} borderColor="dark-subtle" rounded={1} color="black" m={2} style={{width: "95%", backgroundColor: "#E8E8E8", minHeight: 80, textDecoration: "none" }}>
+							<Box flex="1.5" textAlign="center" fontSize="14px">
+								<Box as="span" fontWeight="bold">{item.fullName}</Box> <Box/>
+								<Box as="span" color="secondary">{$moment(item.fromDate).format('L')} - {$moment(item.toDate).format('L')}</Box>
+							</Box>
+							<Box flex="0.5" borderTop borderColor="dark-subtle" borderWidth={1}/>
+							<Box flex="1" textAlign="center"><b>{item.duration} h</b></Box>
+							<Box flex="1" textAlign="center">{item.training}</Box>
+						</Link>
+					);
+				})}
+			</Box>
+		</>
+	  ]]></template>
+  </custom>
+
+  <custom name="hr-manager-recruitment-custom-view" title="Recruitment"
+    css="dashlet-no-dropdown">
+    <dataset type="rpc">com.axelor.apps.talent.web.TalentDashboardController:getRecruitmentData</dataset>
+    <template><![CDATA[
+		<>
+			<Box w={100}>
+				{data.map((item,index) => {
+					return (
+						<Link key={item.id} href={`#/ds/recruitment.job.application.all/edit/${item.id}`} d="flex" flexDirection="row" justifyContent="center" alignItems="center" border borderWidth={1} borderColor="dark-subtle" rounded={1} color="black" m={2} style={{width: "95%", backgroundColor: "#E8E8E8", minHeight: 80, textDecoration: "none" }}>
+							{item.picture && <Image src={item.picture} rounded="circle" style={{ width: 64, height: 64 }} ms={5}></Image>}
+							<Box flex="1" textAlign="center" fontSize="14px">
+								<Box as="span" fontWeight="bold">{item.fullName}</Box> <Box/>
+								<Box as="span" color="secondary">{item.jobPosition}</Box> <Box/>
+								<Box as="span" color="secondary">{item.contractType}</Box>
+							</Box>
+							<Box flex="1" textAlign="center">
+				            	{item.emailAddress &&
+				            		<Box d="flex" alignItems="center">
+				            			<Icon icon="envelope-fill" fontSize="15px"/>
+				            			<Box as="span" color="secondary" ms={1}>{item.emailAddress}</Box>
+				            		</Box>
+				            	}
+								{item.mobilePhone &&
+				            		<Box d="flex" alignItems="center">
+				            			<Icon icon="telephone" fontSize="15px"/>
+				            			<Box as="span" color="secondary" ms={1}>{item.mobilePhone}</Box>
+				            		</Box>
+				            	}
+							</Box>
+							{item.hiringStage &&
+								<Box flex="1" textAlign="center">
+									<Badge style={{ backgroundColor: "#2584fe" }}>{item.hiringStage}</Badge>
+								</Box>
+							}
+						</Link>
+					);
+				})}
+			</Box>
+		</>
+    ]]></template>
+  </custom>
+
+  <action-attrs name="action-training-chart-set-default-from-to-dates">
+    <attribute name="value" for="fromDate" expr="eval:__config__.date.withDayOfMonth(1)"/>
+    <attribute name="value" for="toDate" expr="eval:__config__.date"/>
+  </action-attrs>
+
+  <action-attrs name="action-training-chart-set-3-month-from-to-dates">
+    <attribute name="value" for="fromDate" expr="eval:__config__.date.minusMonths(3)"/>
+    <attribute name="value" for="toDate" expr="eval:__config__.date"/>
+  </action-attrs>
+
+</object-views>

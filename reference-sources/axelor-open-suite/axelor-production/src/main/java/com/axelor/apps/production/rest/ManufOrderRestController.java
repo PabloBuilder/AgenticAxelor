@@ -1,0 +1,239 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.production.rest;
+
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.production.db.ManufOrder;
+import com.axelor.apps.production.db.ProdProduct;
+import com.axelor.apps.production.rest.dto.ManufOrderProductGetRequest;
+import com.axelor.apps.production.rest.dto.ManufOrderProductListResponse;
+import com.axelor.apps.production.rest.dto.ManufOrderProductPostRequest;
+import com.axelor.apps.production.rest.dto.ManufOrderProductPutRequest;
+import com.axelor.apps.production.rest.dto.ManufOrderProductResponse;
+import com.axelor.apps.production.rest.dto.ManufOrderPutRequest;
+import com.axelor.apps.production.rest.dto.ManufOrderResponse;
+import com.axelor.apps.production.rest.dto.ManufOrderStockMoveLineResponse;
+import com.axelor.apps.production.rest.dto.WastedProductPostRequest;
+import com.axelor.apps.production.rest.dto.WastedProductPutRequest;
+import com.axelor.apps.production.rest.dto.WastedProductResponse;
+import com.axelor.apps.production.translation.ITranslation;
+import com.axelor.apps.stock.db.StockMove;
+import com.axelor.apps.stock.db.StockMoveLine;
+import com.axelor.i18n.I18n;
+import com.axelor.inject.Beans;
+import com.axelor.utils.api.HttpExceptionHandler;
+import com.axelor.utils.api.ObjectFinder;
+import com.axelor.utils.api.RequestValidator;
+import com.axelor.utils.api.ResponseConstructor;
+import com.axelor.utils.api.SecurityCheck;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import java.util.Arrays;
+import java.util.List;
+
+@Path("/aos/manuf-order")
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+public class ManufOrderRestController {
+
+  @Operation(
+      summary = "Fetch consumed product",
+      tags = {"Manuf Order"})
+  @Path("/consumed-products/fetch")
+  @POST
+  @HttpExceptionHandler
+  public Response fetchConsumedProducts(ManufOrderProductGetRequest requestBody)
+      throws AxelorException {
+    RequestValidator.validateBody(requestBody);
+    new SecurityCheck()
+        .readAccess(ManufOrder.class, requestBody.getManufOrderId())
+        .readAccess(ProdProduct.class)
+        .check();
+
+    List<ManufOrderProductResponse> consumedProductList =
+        Beans.get(ManufOrderProductRestService.class)
+            .getConsumedProductList(requestBody.fetchManufOrder());
+
+    return ResponseConstructor.build(
+        Response.Status.OK,
+        I18n.get(ITranslation.REQUEST_COMPLETED),
+        new ManufOrderProductListResponse(
+            consumedProductList, requestBody.fetchManufOrder().getVersion()));
+  }
+
+  @Operation(
+      summary = "Fetch produced product",
+      tags = {"Manuf Order"})
+  @Path("/produced-products/fetch")
+  @POST
+  @HttpExceptionHandler
+  public Response fetchProducedProducts(ManufOrderProductGetRequest requestBody)
+      throws AxelorException {
+    RequestValidator.validateBody(requestBody);
+    new SecurityCheck()
+        .readAccess(ManufOrder.class, requestBody.getManufOrderId())
+        .readAccess(Arrays.asList(StockMove.class, ProdProduct.class))
+        .check();
+
+    List<ManufOrderProductResponse> producedProductList =
+        Beans.get(ManufOrderProductRestService.class)
+            .getProducedProductList(requestBody.fetchManufOrder());
+
+    return ResponseConstructor.build(
+        Response.Status.OK,
+        I18n.get(ITranslation.REQUEST_COMPLETED),
+        new ManufOrderProductListResponse(
+            producedProductList, requestBody.fetchManufOrder().getVersion()));
+  }
+
+  @Operation(
+      summary = "Update product quantity",
+      tags = {"Manuf Order"})
+  @Path("/update-product-qty")
+  @PUT
+  @HttpExceptionHandler
+  public Response updateProductQuantity(ManufOrderProductPutRequest requestBody)
+      throws AxelorException {
+    RequestValidator.validateBody(requestBody);
+    new SecurityCheck().writeAccess(StockMoveLine.class, requestBody.getStockMoveLineId()).check();
+
+    StockMoveLine stockMoveLine =
+        Beans.get(ManufOrderProductRestService.class)
+            .updateStockMoveLineQty(
+                requestBody.fetchStockMoveLine(), requestBody.getProdProductQty());
+
+    return ResponseConstructor.build(
+        Response.Status.OK,
+        I18n.get(ITranslation.QUANTITY_UPDATED),
+        new ManufOrderStockMoveLineResponse(stockMoveLine));
+  }
+
+  @Operation(
+      summary = "Update manufacturing order status",
+      tags = {"Manuf Order"})
+  @Path("/{manufOrderId}")
+  @PUT
+  @HttpExceptionHandler
+  public Response updateManufOrderStatus(
+      @PathParam("manufOrderId") long manufOrderId, ManufOrderPutRequest requestBody)
+      throws AxelorException {
+    RequestValidator.validateBody(requestBody);
+    new SecurityCheck().writeAccess(ManufOrder.class, manufOrderId).check();
+
+    ManufOrder manufOrder =
+        ObjectFinder.find(ManufOrder.class, manufOrderId, requestBody.getVersion());
+
+    Beans.get(ManufOrderRestService.class)
+        .updateStatusOfManufOrder(manufOrder, requestBody.getStatus());
+
+    return ResponseConstructor.build(
+        Response.Status.OK,
+        I18n.get(ITranslation.MANUFACTURING_ORDER_UPDATED),
+        new ManufOrderResponse(manufOrder));
+  }
+
+  @Operation(
+      summary = "Add wasted product",
+      tags = {"Manuf Order"})
+  @Path("/{manufOrderId}/waste-product/")
+  @POST
+  @HttpExceptionHandler
+  public Response addWastedProduct(
+      @PathParam("manufOrderId") long manufOrderId, WastedProductPostRequest requestBody)
+      throws AxelorException {
+    RequestValidator.validateBody(requestBody);
+
+    new SecurityCheck()
+        .writeAccess(ManufOrder.class, manufOrderId)
+        .createAccess(ProdProduct.class)
+        .check();
+    ManufOrder manufOrder =
+        ObjectFinder.find(ManufOrder.class, manufOrderId, requestBody.getVersion());
+
+    ProdProduct prodProduct =
+        new ProdProduct(
+            requestBody.fetchProduct(), requestBody.getQty(), requestBody.fetchProduct().getUnit());
+
+    Beans.get(ManufOrderProductRestService.class).addWasteProduct(manufOrder, prodProduct);
+
+    return ResponseConstructor.buildCreateResponse(
+        prodProduct, new WastedProductResponse(prodProduct));
+  }
+
+  @Operation(
+      summary = "Update wasted product quantity",
+      tags = {"Manuf Order"})
+  @Path("/waste-product/{prodProductId}")
+  @PUT
+  @HttpExceptionHandler
+  public Response updateWastedProductQuantity(
+      @PathParam("prodProductId") long prodProductId, WastedProductPutRequest requestBody) {
+    RequestValidator.validateBody(requestBody);
+    new SecurityCheck().writeAccess(ProdProduct.class, prodProductId).check();
+
+    ProdProduct prodProduct =
+        ObjectFinder.find(ProdProduct.class, prodProductId, requestBody.getVersion());
+
+    Beans.get(ManufOrderProductRestService.class)
+        .updateProdProductQty(prodProduct, requestBody.getQty());
+
+    return ResponseConstructor.build(
+        Response.Status.OK,
+        I18n.get(ITranslation.WASTED_PRODUCT_QUANTITY_UPDATED),
+        new WastedProductResponse(prodProduct));
+  }
+
+  @Operation(
+      summary = "Add product",
+      tags = {"Manuf Order"})
+  @Path("/{manufOrderId}/add-product/")
+  @POST
+  @HttpExceptionHandler
+  public Response addProduct(
+      @PathParam("manufOrderId") long manufOrderId, ManufOrderProductPostRequest requestBody)
+      throws AxelorException {
+    RequestValidator.validateBody(requestBody);
+    new SecurityCheck()
+        .writeAccess(ManufOrder.class, manufOrderId)
+        .createAccess(StockMoveLine.class)
+        .check();
+
+    ManufOrder manufOrder =
+        ObjectFinder.find(ManufOrder.class, manufOrderId, requestBody.getVersion());
+
+    StockMoveLine stockMoveLine =
+        Beans.get(ManufOrderProductRestService.class)
+            .addManufOrderProduct(
+                requestBody.fetchProduct(),
+                requestBody.getQty(),
+                requestBody.fetchTrackingNumber(),
+                manufOrder,
+                requestBody.getProductType());
+
+    return ResponseConstructor.buildCreateResponse(
+        stockMoveLine, new ManufOrderStockMoveLineResponse(stockMoveLine));
+  }
+}

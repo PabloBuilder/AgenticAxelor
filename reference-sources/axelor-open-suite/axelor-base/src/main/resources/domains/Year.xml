@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="base" package="com.axelor.apps.base.db"/>
+
+  <entity name="Year" cacheable="true">
+
+    <string name="name" title="Name" required="true"/>
+    <string name="code" title="Code" required="true"/>
+    <date name="fromDate" title="From" required="true"/>
+    <date name="toDate" title="To" required="true"/>
+    <one-to-many name="periodList" ref="com.axelor.apps.base.db.Period" mappedBy="year"
+      title="Periods list"/>
+    <many-to-one name="company" ref="com.axelor.apps.base.db.Company" title="Company"/>
+    <integer name="statusSelect" title="Status" readonly="true"
+      selection="base.year.status.select" default="1"/>
+    <string name="periodDurationSelect" title="Period duration"
+      selection="base.year.period.duration.select"/>
+    <integer name="typeSelect" title="Type" selection="account.year.type.select"
+      required="true"/>
+    <one-to-many name="adjustHistoryList" ref="com.axelor.apps.base.db.AdjustHistory"
+      title="Adjust History" mappedBy="fiscalYear"/>
+
+    <unique-constraint columns="code,company,typeSelect"/>
+    <extra-code><![CDATA[
+
+	   	// STATUS SELECT
+		public static final int STATUS_OPENED = 1;
+		public static final int STATUS_CLOSED = 2;
+		public static final int STATUS_ADJUSTING = 3;
+
+		// TYPE SELECT
+		public static final int TYPE_CIVIL = 0;
+		public static final int TYPE_FISCAL = 1;
+		public static final int TYPE_PAYROLL = 2;
+		public static final int TYPE_MANUFACTURING = 3;
+		public static final int TYPE_ALLOCATION = 4;
+
+		//PERIOD DURATION SELECT
+		public static final String DURATION_WEEK = "week";
+		public static final String DURATION_2WEEK = "2week";
+		public static final String DURATION_MONTH = "month";
+		public static final String DURATION_2MONTH = "2month";
+		public static final String DURATION_3MONTH = "3month";
+		public static final String DURATION_6MONTH = "6month";
+		public static final String DURATION_12MONTH = "12month";
+
+	]]></extra-code>
+
+  </entity>
+
+</domain-models>

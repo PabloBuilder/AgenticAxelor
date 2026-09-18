@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="helpdesk" package="com.axelor.apps.helpdesk.db"/>
+
+  <entity name="Sla">
+
+    <string name="name" required="true" title="SLA policy name"/>
+    <many-to-one name="team" ref="com.axelor.team.db.Team" title="Team"/>
+    <integer name="prioritySelect" title="Minimum priority"
+      selection="helpdesk.priority.select" default="2"/>
+    <many-to-one name="ticketType" ref="com.axelor.apps.helpdesk.db.TicketType"
+      title="Ticket type"/>
+    <many-to-one name="reachStageTicketStatus"
+      ref="com.axelor.apps.helpdesk.db.TicketStatus" title="Reach stage"/>
+    <integer name="days" title="days" min="0"/>
+    <integer name="hours" title="hours" min="0"/>
+    <boolean name="isWorkingDays" title="Working Days"/>
+    <string name="description" title="Description" large="true"/>
+
+  </entity>
+
+</domain-models>

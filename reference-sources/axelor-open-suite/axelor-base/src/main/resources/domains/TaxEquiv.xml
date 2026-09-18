@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://axelor.com/xml/ns/domain-models"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="account" package="com.axelor.apps.account.db"/>
+
+  <entity name="TaxEquiv">
+
+    <many-to-one name="fiscalPosition" ref="com.axelor.apps.account.db.FiscalPosition"
+      title="Fiscal position"/>
+    <many-to-many name="fromTaxSet" ref="com.axelor.apps.account.db.Tax"
+      title="Tax to replace"/>
+    <many-to-many name="toTaxSet" ref="com.axelor.apps.account.db.Tax"
+      title="Replacement Tax"/>
+    <string name="specificNote" title="Specific note" large="true"/>
+    <boolean name="reverseCharge" title="Reverse Charge"/>
+    <many-to-many name="reverseChargeTaxSet" ref="com.axelor.apps.account.db.Tax"
+      title="Reverse Charge Tax"/>
+    <many-to-one name="vatExemptionReason"
+      ref="com.axelor.apps.account.db.VatExemptionReason" title="VAT exemption reason"/>
+
+  </entity>
+
+</domain-models>

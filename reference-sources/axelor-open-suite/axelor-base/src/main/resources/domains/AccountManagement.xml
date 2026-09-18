@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="account" package="com.axelor.apps.account.db"/>
+
+  <entity name="AccountManagement">
+
+    <integer name="typeSelect" title="Type" required="true"
+      selection="account.management.type.select"/>
+    <many-to-one name="company" ref="com.axelor.apps.base.db.Company" title="Company"
+      required="true"/>
+    <many-to-many name="purchaseTaxSet" ref="com.axelor.apps.account.db.Tax"
+      title="Purchase Taxes"/>
+    <many-to-many name="saleTaxSet" ref="com.axelor.apps.account.db.Tax"
+      title="Sale Taxes"/>
+    <many-to-one name="tax" ref="com.axelor.apps.account.db.Tax" title="Tax"/>
+
+    <many-to-one name="product" ref="com.axelor.apps.base.db.Product" title="Product"/>
+    <many-to-one name="productFamily" ref="com.axelor.apps.base.db.ProductFamily"
+      title="Accounting family"/>
+
+    <unique-constraint columns="tax,company"/>
+
+    <extra-code><![CDATA[
+
+		   	// TYPE SELECT
+			public static final int TYPE_PRODUCT = 1;
+			public static final int TYPE_TAX = 2;
+			public static final int TYPE_PAYMENT = 3;
+
+		]]></extra-code>
+
+  </entity>
+
+</domain-models>

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="job-application-grid" title="Job applicants"
+    model="com.axelor.apps.talent.db.JobApplication">
+    <field name="lastName"/>
+    <field name="firstName"/>
+    <field name="emailAddress"/>
+    <field name="fixedPhone" widget="phone" x-placeholder-number-type="FIXED_LINE"/>
+    <field name="mobilePhone" widget="phone"/>
+    <field name="jobPosition"/>
+    <button name="resume" onClick="action-job-application-method-show-resume"
+      icon="file-text"/>
+  </grid>
+
+  <form title="Job applicant" name="job-application-form"
+    model="com.axelor.apps.talent.db.JobApplication" width="*"
+    onNew="action-job-application-defaults" onLoad="action-job-application-group-onload">
+    <menubar>
+      <menu name="jobApplicationToolsMenu" title="Tools" icon="wrench" showTitle="true">
+        <item name="scheduleEventItem" title="Schedule Event"
+          action="save,action-job-application-schedule-event" readonlyIf="id == null"/>
+      </menu>
+    </menubar>
+    <panel name="generalInfoPanel" title="General information">
+      <field name="picture" widget="Image" showTitle="false" colSpan="2" rowSpan="3">
+        <viewer>
+          <![CDATA[
+              <>
+                  {id && <Image src={$image('id', 'content')} style={{ width: "10rem", height: "10rem"}}></Image>}
+                  {!id && <Image src="img/partner-default.png" style={{ width: "10rem", height: "10rem"}}></Image>}
+              </>
+          ]]>
+        </viewer>
+      </field>
+      <panel name="infoPanel" colSpan="10" itemSpan="12">
+        <field name="hiringStage" widget="NavSelect" showTitle="false"/>
+        <field name="fullName" showTitle="false">
+          <viewer depends="fullName">
+          <![CDATA[
+              <>
+                  <Box d="flex" fontWeight="bold">{fullName}</Box>
+              </>
+          ]]>
+          </viewer>
+          <editor>
+            <field name="titleSelect" colSpan="3" selection-in="[1,2]" title="Civility"/>
+            <field name="firstName" colSpan="5" required="true"/>
+            <field name="lastName" colSpan="4"/>
+          </editor>
+        </field>
+        <field name="title"/>
+      </panel>
+      <field name="function"/>
+      <field name="dateOfBirth"/>
+      <field name="citizenship"/>
+      <field name="familyStatusSelect"/>
+      <field name="emailAddress" canSelect="false" colSpan="6"
+        form-view="email-address-simple-form" x-show-icons="false">
+        <editor x-show-titles="false" x-viewer="true">
+          <field name="address" colSpan="12" widget="email"
+            pattern="^[a-z0-9A-ZáàâäãåçéèêëíìîïñóòôöõúùûüýÿæœÁÀÂÄÃÅÇÉÈÊËÍÌÎÏÑÓÒÔÖÕÚÙÛÜÝŸÆŒ!#$%&amp;'*+/=?^_`{|}~-]+(?:\.[a-z0-9A-ZáàâäãåçéèêëíìîïñóòôöõúùûüýÿæœÁÀÂÄÃÅÇÉÈÊËÍÌÎÏÑÓÒÔÖÕÚÙÛÜÝŸÆŒ!#$%&amp;'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:[a-z]{2,})$"/>
+        </editor>
+      </field>
+      <field name="mobilePhone" widget="phone"/>
+      <field name="employeeAddress" canNew="true" form-view="address-form"
+        grid-view="address-grid" colSpan="12"/>
+      <field name="linkedInProfile" widget="url"/>
+    </panel>
+    <panel-tabs name="tabsPanel" height="550">
+      <panel name="applicationInfoPanel" title="Application information">
+        <field name="jobPosition" onChange="action-job-application-record-fill-responsible"/>
+        <field name="talentSource" title="Source" colSpan="6"/>
+        <field name="creationDate" title="Application date"/>
+        <field name="availabilityFrom"/>
+        <field name="evaluation" colSpan="12" widget="htmls"/>
+      </panel>
+      <panel title="Career" name="carerrPanel" itemSpan="12">
+        <field name="skillSet" widget="Tags"/>
+        <field name="languageSet" widget="Tags"/>
+        <field name="educationList"/>
+        <field name="experienceList"/>
+        <field name="certificationList"/>
+      </panel>
+      <panel name="resumePanel" title="CV" height="500"
+        showIf="($readonly() &amp;&amp; resume) || !$readonly()">
+        <field name="resume" widget="binary-link"
+          onChange="save,action-job-application-method-set-dms-file, action-job-application-method-set-inline-url"
+          showTitle="false"/>
+        <field name="$inlineUrl" hidden="true"/>
+        <field name="$pdf" showTitle="false" readonly="true" colSpan="12">
+          <viewer depends="$inlineUrl">
+            <![CDATA[
+              <>
+                  <Box as="iframe" height="900" border="0" src={$inlineUrl}></Box>
+              </>
+            ]]>
+          </viewer>
+        </field>
+      </panel>
+      <panel name="hrPanel" title="HR information">
+        <field name="responsible" canEdit="false" title="Manager"/>
+        <field name="hrManager" canEdit="false" domain="self.hrManager IS TRUE"/>
+        <field name="company"/>
+        <field name="service"/>
+      </panel>
+      <panel name="contractualInfoPanel" title="Contractual information">
+        <field name="jobPosition.contractType"/>
+        <field name="currentSalary"/>
+        <field name="expectedSalary" title="Desired Salary (range)"/>
+        <field name="currency"/>
+        <field name="proposedContractList" colSpan="12" form-view="employment-contract-form"
+          grid-view="employment-contract-employee-grid"/>
+        <field name="commentary" widget="html" colSpan="12"/>
+      </panel>
+      <panel name="actionPanel" title="Actions">
+        <button name="meetingBtn" title="Create a meeting" colSpan="3" icon="pencil-square"
+          link="" onClick="save,action-job-application-view-meeting-event"/>
+        <button name="callBtn" title="Create a call" colSpan="3" icon="telephone" link=""
+          onClick="save,action-job-application-view-call-event"/>
+        <button name="taskBtn" title="Create a task" colSpan="3" icon="list-task" link=""
+          onClick="save,action-job-application-view-task-event"/>
+        <button name="noteBtn" title="Create a note" colSpan="3" icon="sticky" link=""
+          onClick="save,action-job-application-view-note-event"/>
+        <button name="showAllEventsBtn" title="Show all events" readonlyIf="id == null"
+          css="btn-custom text-left" icon="list-task"
+          onClick="action-job-application-view-all-events"/>
+        <panel-dashlet name="eventPanelDashlet" title="Events" colSpan="12"
+          canDelete="true" height="550" action="action-job-application-events"/>
+      </panel>
+    </panel-tabs>
+    <panel name="hirePanel" sidebar="true" hidden="true">
+      <button name="hireButton" onClick="save,action-job-application-method-hire"
+        title="Hire candidate" hidden="true"/>
+    </panel>
+    <panel-mail name="mailPanel">
+      <mail-messages limit="4"/>
+      <mail-followers/>
+    </panel-mail>
+  </form>
+
+  <kanban title="Job applicants" name="job-application-kanban"
+    model="com.axelor.apps.talent.db.JobApplication" columnBy="hiringStage"
+    sequenceBy="appreciation">
+    <field name="fullName"/>
+    <field name="emailAddress.address"/>
+    <field name="fixedPhone"/>
+    <field name="mobilePhone"/>
+    <field name="jobPosition"/>
+    <field name="dmsFile"/>
+    <field name="picture"/>
+    <template><![CDATA[
+            <>
+			<Box d="flex" flexDirection="column" alignItems="left" justifyContent="center">
+	            {picture && <Image src={$image('picture')} style={{ width: 128, height: 64 }}></Image>}
+	            <Box as="strong" mt={2} >{fullName}</Box>
+	        </Box>
+         	<Box as="dl" mt={4}>
+         		{emailAddress.address &&
+         			<Box>
+         				<dt>{_t('Email')}</dt>
+         				<Box as="dd" ms={2}>{emailAddress.address}</Box>
+         			</Box>
+         		}
+         		{fixedPhone &&
+         			<Box>
+         				<dt>{_t('Fixed phone')}</dt>
+         				<Box as="dd" ms={2}>{fixedPhone}</Box>
+         			</Box>
+         		}
+         		{mobilePhone &&
+         			<Box>
+         				<dt>{_t('Mobile phone')}</dt>
+         				<Box as="dd" ms={2}>{mobilePhone}</Box>
+         			</Box>
+         		}
+         	</Box>
+         	<Box mt={2}>
+				{dmsFile && <Link href={`#/ds/dms.file/edit/${dmsFile.id}`} target="_self">{_t('JobApplication.resume')}</Link>}
+			</Box>
+			</>
+		]]></template>
+  </kanban>
+
+  <action-group name="action-job-application-group-onload">
+    <action name="action-talent-method-set-social-network-url"/>
+    <action name="action-job-application-method-set-inline-url"/>
+    <action name="action-job-application-attrs-hide-hire-button"/>
+  </action-group>
+
+  <action-view name="action-job-application-view-meeting-event"
+    title="Meeting Event(${ fullName})" model="com.axelor.apps.crm.db.Event">
+    <view type="form" name="event-form"/>
+    <view-param name="popup" value="reload"/>
+    <view-param name="show-toolbar" value="false"/>
+    <context name="_eventJobApplication" expr="eval: __this__"/>
+    <context name="_meeting" expr="eval: true"/>
+  </action-view>
+
+  <action-view name="action-job-application-view-call-event"
+    title="Call Event(${ fullName})" model="com.axelor.apps.crm.db.Event">
+    <view type="form" name="event-form"/>
+    <view-param name="popup" value="reload"/>
+    <view-param name="show-toolbar" value="false"/>
+    <context name="_eventJobApplication" expr="eval: __this__"/>
+    <context name="_call" expr="eval: true"/>
+  </action-view>
+
+  <action-view name="action-job-application-view-task-event"
+    title="Task Event(${ fullName})" model="com.axelor.apps.crm.db.Event">
+    <view type="form" name="event-form"/>
+    <view-param name="popup" value="reload"/>
+    <view-param name="show-toolbar" value="false"/>
+    <context name="_eventJobApplication" expr="eval: __this__"/>
+    <context name="_task" expr="eval: true"/>
+  </action-view>
+
+  <action-view name="action-job-application-view-note-event"
+    title="Note Event(${ fullName})" model="com.axelor.apps.crm.db.Event">
+    <view type="form" name="event-form"/>
+    <view-param name="popup" value="reload"/>
+    <view-param name="show-toolbar" value="false"/>
+    <context name="_eventJobApplication" expr="eval: __this__"/>
+    <context name="_note" expr="eval: true"/>
+  </action-view>
+
+  <action-view name="action-job-application-view-all-events" title="Events"
+    model="com.axelor.apps.crm.db.Event">
+    <view type="grid" name="list-event-grid"/>
+    <view type="form" name="event-form"/>
+    <domain>self.relatedToSelect = 'com.axelor.apps.talent.db.JobApplication' and
+      self.relatedToSelectId = :_jobApplicationId</domain>
+    <context name="_jobApplicationId" expr="eval:id"/>
+  </action-view>
+
+  <action-view name="action-job-application-schedule-event" title="Schedule Event"
+    model="com.axelor.apps.crm.db.Event">
+    <view type="form" name="event-form"/>
+    <context name="_relatedToSelect" expr="eval:'com.axelor.apps.talent.db.JobApplication'"/>
+    <context name="_relatedToSelectId" expr="eval:id"/>
+  </action-view>
+
+  <action-view name="action-job-application-events" model="com.axelor.apps.crm.db.Event"
+    title="Events">
+    <view type="cards" name="event-cards"/>
+    <view type="grid" name="event-grid"/>
+    <view type="form" name="event-form"/>
+    <domain>self.relatedToSelect = 'com.axelor.apps.talent.db.JobApplication' and
+      self.relatedToSelectId = :id</domain>
+  </action-view>
+
+  <action-record name="action-job-application-defaults"
+    model="com.axelor.apps.talent.db.JobApplication">
+    <field name="jobPosition" expr="eval:__repo__(JobPosition).find(_jobPositionId)"
+      if="eval: _jobPositionId"/>
+    <field name="responsible" expr="eval:__repo__(Employee).find(_responsibleId)"
+      if="eval: _responsibleId"/>
+    <field name="hiringStage"
+      expr="eval:__config__.app.getApp('recruitment')?.getDefaultHiringStatus()"/>
+  </action-record>
+
+  <action-method name="action-job-application-method-hire">
+    <call class="com.axelor.apps.talent.web.JobApplicationController" method="hire"/>
+  </action-method>
+
+  <action-validate name="action-job-application-confirmation">
+    <alert message="A new employee form will be created. Do you confirm the creation ?"/>
+  </action-validate>
+
+  <action-method name="action-talent-method-set-social-network-url">
+    <call class="com.axelor.apps.talent.web.JobApplicationController"
+      method="setSocialNetworkUrl"/>
+  </action-method>
+
+  <action-method name="action-job-application-method-show-resume">
+    <call class="com.axelor.apps.talent.web.JobApplicationController" method="showResume"/>
+  </action-method>
+
+  <action-method name="action-job-application-method-set-dms-file">
+    <call class="com.axelor.apps.talent.web.JobApplicationController" method="setDMSFile"/>
+  </action-method>
+
+  <action-method name="action-job-application-method-set-inline-url">
+    <call class="com.axelor.apps.talent.web.JobApplicationController" method="setInlineUrl"/>
+  </action-method>
+
+  <action-attrs name="action-job-application-attrs-hide-hire-button">
+    <attribute for="hireButton,hirePanel" name="hidden"
+      expr="eval: employee || __self__.hiringStage != __config__.app.getApp('recruitment')?.getHiringStatus() || !firstName || !fullName"
+      if="hiringStage"/>
+  </action-attrs>
+
+  <action-attrs name="action-job-application-record-fill-responsible">
+    <attribute for="responsible" name="value" expr="eval: jobPosition?.employee"/>
+  </action-attrs>
+</object-views>

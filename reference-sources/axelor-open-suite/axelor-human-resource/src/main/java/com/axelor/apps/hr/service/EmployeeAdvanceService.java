@@ -1,0 +1,148 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.hr.service;
+
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Currency;
+import com.axelor.apps.base.service.CurrencyService;
+import com.axelor.apps.hr.db.Employee;
+import com.axelor.apps.hr.db.EmployeeAdvance;
+import com.axelor.apps.hr.db.EmployeeAdvanceUsage;
+import com.axelor.apps.hr.db.Expense;
+import com.axelor.apps.hr.db.repo.EmployeeAdvanceRepository;
+import com.axelor.apps.hr.db.repo.EmployeeAdvanceUsageRepository;
+import com.axelor.apps.hr.db.repo.EmployeeHRRepository;
+import com.axelor.apps.hr.db.repo.EmployeeRepository;
+import com.axelor.inject.Beans;
+import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
+public class EmployeeAdvanceService {
+
+  protected EmployeeAdvanceRepository employeeAdvanceRepository;
+  protected EmployeeAdvanceUsageRepository employeeAdvanceUsageRepository;
+  protected CurrencyService currencyService;
+
+  @Inject
+  public EmployeeAdvanceService(
+      EmployeeAdvanceRepository employeeAdvanceRepository,
+      EmployeeAdvanceUsageRepository employeeAdvanceUsageRepository,
+      CurrencyService currencyService) {
+    this.employeeAdvanceRepository = employeeAdvanceRepository;
+    this.employeeAdvanceUsageRepository = employeeAdvanceUsageRepository;
+    this.currencyService = currencyService;
+  }
+
+  @Transactional
+  public void fillExpenseWithAdvances(Expense expense) throws AxelorException {
+
+    Employee employee = Beans.get(EmployeeRepository.class).find(expense.getEmployee().getId());
+
+    if (EmployeeHRRepository.isEmployeeFormerNewOrArchived(employee)) {
+      return;
+    }
+
+    List<EmployeeAdvance> advanceList =
+        employeeAdvanceRepository
+            .all()
+            .filter(
+                "self.employee.id = ?1 AND self.remainingAmount > 0 AND self.date < ?2 AND self.statusSelect = ?3 AND self.typeSelect = ?4",
+                employee.getId(),
+                expense.getPeriod().getToDate(),
+                EmployeeAdvanceRepository.STATUS_VALIDATED,
+                EmployeeAdvanceRepository.TYPE_OCCASIONAL)
+            .fetch();
+
+    if (advanceList != null && !advanceList.isEmpty()) {
+
+      BigDecimal currentAmountToRefund =
+          expense
+              .getInTaxTotal()
+              .subtract(expense.getPersonalExpenseAmount())
+              .subtract(expense.getWithdrawnCash());
+
+      Currency companyCurrency =
+          Optional.of(expense).map(Expense::getCompany).map(Company::getCurrency).orElse(null);
+
+      currentAmountToRefund =
+          currencyService.getAmountCurrencyConvertedAtDate(
+              expense.getCurrency(),
+              companyCurrency,
+              currentAmountToRefund,
+              expense.getPaymentDate());
+
+      for (EmployeeAdvance advance : advanceList) {
+
+        if (currentAmountToRefund.signum() == 0) {
+          break;
+        }
+
+        currentAmountToRefund = withdrawFromAdvance(advance, expense, currentAmountToRefund);
+        employeeAdvanceRepository.save(advance);
+      }
+
+      currentAmountToRefund =
+          currencyService.getAmountCurrencyConvertedAtDate(
+              companyCurrency,
+              expense.getCurrency(),
+              currentAmountToRefund,
+              expense.getPaymentDate());
+
+      expense.setAdvanceAmount(
+          expense
+              .getInTaxTotal()
+              .subtract(currentAmountToRefund)
+              .subtract(expense.getPersonalExpenseAmount())
+              .subtract(expense.getWithdrawnCash()));
+    }
+  }
+
+  public BigDecimal withdrawFromAdvance(
+      EmployeeAdvance employeeAdvance, Expense expense, BigDecimal maxAmount) {
+
+    if (maxAmount.compareTo(employeeAdvance.getRemainingAmount()) > 0) {
+      maxAmount = maxAmount.subtract(employeeAdvance.getRemainingAmount());
+      createEmployeeAdvanceUsage(employeeAdvance, expense, employeeAdvance.getRemainingAmount());
+      employeeAdvance.setRemainingAmount(BigDecimal.ZERO);
+
+    } else {
+      createEmployeeAdvanceUsage(employeeAdvance, expense, maxAmount);
+      employeeAdvance.setRemainingAmount(employeeAdvance.getRemainingAmount().subtract(maxAmount));
+      maxAmount = BigDecimal.ZERO;
+    }
+
+    return maxAmount;
+  }
+
+  @Transactional
+  public void createEmployeeAdvanceUsage(
+      EmployeeAdvance employeeAdvance, Expense expense, BigDecimal amount) {
+
+    EmployeeAdvanceUsage usage = new EmployeeAdvanceUsage();
+
+    usage.setEmployeeAdvance(employeeAdvance);
+    usage.setExpense(expense);
+    usage.setUsedAmount(amount);
+    employeeAdvanceUsageRepository.save(usage);
+  }
+}

@@ -1,0 +1,148 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.base.service;
+
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Tag;
+import com.axelor.apps.base.db.TradingName;
+import com.axelor.apps.base.db.repo.TagRepository;
+import com.axelor.common.ObjectUtils;
+import com.axelor.common.StringUtils;
+import com.axelor.db.JPA;
+import com.axelor.meta.MetaStore;
+import com.axelor.meta.db.MetaModel;
+import com.axelor.meta.db.repo.MetaModelRepository;
+import jakarta.inject.Inject;
+import jakarta.persistence.Query;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class TagServiceImpl implements TagService {
+
+  protected MetaModelRepository metaModelRepository;
+  protected TagRepository tagRepository;
+
+  @Inject
+  public TagServiceImpl(MetaModelRepository metaModelRepository, TagRepository tagRepository) {
+    this.metaModelRepository = metaModelRepository;
+    this.tagRepository = tagRepository;
+  }
+
+  @Override
+  public void addMetaModelToTag(Tag tag, String fullName) {
+    if (!StringUtils.isEmpty(fullName)) {
+      MetaModel metaModel =
+          metaModelRepository.all().filter("self.fullName = ?", fullName).fetchOne();
+
+      if (metaModel != null) {
+        tag.addConcernedModelSetItem(metaModel);
+      }
+    }
+  }
+
+  protected void setDefaultColor(Tag tag) {
+    String primaryColor = MetaStore.getSelectionItem("color.name.selection", "blue").getColor();
+    tag.setColor(primaryColor);
+  }
+
+  @Override
+  public Map<String, Object> getOnNewValuesMap(Tag tag, String fullNameModel, String fieldModel) {
+    Map<String, Object> valuesMap = new HashMap<>();
+
+    this.addMetaModelToTag(tag, fullNameModel);
+    this.addMetaModelToTag(tag, fieldModel);
+    this.setDefaultColor(tag);
+
+    valuesMap.put("concernedModelSet", tag.getConcernedModelSet());
+    valuesMap.put("color", tag.getColor());
+    return valuesMap;
+  }
+
+  @Override
+  public String getTagDomain(String metaModelName, Company company, TradingName tradingName) {
+    if (StringUtils.isEmpty(metaModelName)) {
+      return "self.id = 0";
+    }
+
+    MetaModel metaModel = metaModelRepository.findByName(metaModelName);
+    Query resultQuery =
+        JPA.em()
+            .createQuery(
+                "SELECT self.id FROM Tag self WHERE (self.concernedModelSet IS EMPTY OR :metaModel MEMBER OF self.concernedModelSet) AND (self.companySet IS EMPTY OR :company MEMBER OF self.companySet) AND (self.tradingNameSet IS EMPTY OR :tradingName MEMBER OF self.tradingNameSet)");
+    resultQuery.setParameter("metaModel", metaModel);
+    resultQuery.setParameter("company", company);
+    resultQuery.setParameter("tradingName", tradingName);
+
+    if (ObjectUtils.isEmpty(resultQuery.getResultList())) {
+      return "self.id = 0";
+    }
+
+    return String.format(
+        "self.id IN (%s)",
+        resultQuery.getResultList().stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(",")));
+  }
+
+  @Override
+  public Set<Tag> getInvalidTagsFromTagSet(Set<Tag> tagSet, Company company) {
+    return getInvalidTagsFromTagSet(
+        tagSet,
+        company != null ? Collections.singleton(company) : Collections.emptySet(),
+        Collections.emptySet());
+  }
+
+  @Override
+  public Set<Tag> getInvalidTagsFromTagSet(
+      Set<Tag> tagSet, Set<Company> companySet, Set<TradingName> tradingNameSet) {
+    if (ObjectUtils.isEmpty(tagSet)) {
+      return Collections.emptySet();
+    }
+    List<Long> tagIds =
+        tagSet.stream().map(Tag::getId).filter(Objects::nonNull).collect(Collectors.toList());
+    if (tagIds.isEmpty()) {
+      return Collections.emptySet();
+    }
+    List<Tag> persistedTags = tagRepository.all().filter("self.id IN ?1", tagIds).fetch();
+    Set<Long> invalidIds = new HashSet<>();
+    for (Tag tag : persistedTags) {
+      boolean isValidForCompany =
+          ObjectUtils.isEmpty(tag.getCompanySet())
+              || (!ObjectUtils.isEmpty(companySet)
+                  && !Collections.disjoint(tag.getCompanySet(), companySet));
+      boolean isValidForTradingName =
+          ObjectUtils.isEmpty(tag.getTradingNameSet())
+              || (!ObjectUtils.isEmpty(tradingNameSet)
+                  && !Collections.disjoint(tag.getTradingNameSet(), tradingNameSet));
+      if (!isValidForCompany || !isValidForTradingName) {
+        invalidIds.add(tag.getId());
+      }
+    }
+    if (invalidIds.isEmpty()) {
+      return Collections.emptySet();
+    }
+    return tagSet.stream().filter(t -> invalidIds.contains(t.getId())).collect(Collectors.toSet());
+  }
+}

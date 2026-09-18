@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="base" package="com.axelor.apps.base.db"/>
+
+  <entity name="Country">
+
+    <string name="alpha3Code" title="Alpha-3 code (ISO)" min="3" max="3"/>
+    <string name="alpha2Code" title="Alpha-2 code (ISO)" min="2" max="2"/>
+    <string name="numericCode" title="Numeric code (ISO)" min="3" max="3"/>
+    <string name="name" required="true" title="Country name"/>
+    <string name="cog" title="COG"/>
+    <string name="phonePrefix" title="Calling code"/>
+
+    <many-to-one name="economicArea" ref="com.axelor.apps.base.db.EconomicArea"/>
+
+    <many-to-one name="addressTemplate" ref="com.axelor.apps.base.db.AddressTemplate"
+      massUpdate="true" required="true"/>
+    <many-to-one name="registrationNumberTemplate"
+      ref="com.axelor.apps.base.db.RegistrationNumberTemplate" title="Registration number template"/>
+
+    <many-to-one name="citizenship" title="Citizenship"
+      ref="com.axelor.apps.base.db.Citizenship"/>
+
+    <finder-method name="findByAlpha3Code" using="alpha3Code"/>
+    <finder-method name="findByAlpha2Code" using="alpha2Code"/>
+    <finder-method name="findByNumericCode" using="numericCode"/>
+
+  </entity>
+
+</domain-models>

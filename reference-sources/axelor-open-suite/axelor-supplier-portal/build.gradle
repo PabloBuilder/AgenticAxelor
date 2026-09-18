@@ -1,0 +1,18 @@
+plugins {
+	id 'com.axelor.app'
+}
+
+apply from: "../version.gradle"
+
+apply {
+	version = openSuiteVersion
+}
+
+axelor {
+	title "Axelor Supplier Portal"
+	description "Axelor Supplier Portal Module"
+}
+
+dependencies {
+	api project(":modules:axelor-supplychain")
+}

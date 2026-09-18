@@ -1,0 +1,489 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.account.service.invoice.generator.tax;
+
+import com.axelor.apps.account.db.Account;
+import com.axelor.apps.account.db.FiscalPosition;
+import com.axelor.apps.account.db.Invoice;
+import com.axelor.apps.account.db.InvoiceLine;
+import com.axelor.apps.account.db.InvoiceLineTax;
+import com.axelor.apps.account.db.Tax;
+import com.axelor.apps.account.db.TaxEquiv;
+import com.axelor.apps.account.db.TaxLine;
+import com.axelor.apps.account.db.repo.InvoiceRepository;
+import com.axelor.apps.account.db.repo.MoveLineRepository;
+import com.axelor.apps.account.service.TaxAccountService;
+import com.axelor.apps.account.service.invoice.InvoiceJournalService;
+import com.axelor.apps.account.service.invoice.InvoiceToolService;
+import com.axelor.apps.account.service.invoice.generator.TaxGenerator;
+import com.axelor.apps.account.service.invoice.tax.InvoiceLineTaxToolService;
+import com.axelor.apps.account.service.invoice.tax.InvoiceTaxComputeService;
+import com.axelor.apps.account.util.TaxAccountToolService;
+import com.axelor.apps.account.util.TaxConfiguration;
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Partner;
+import com.axelor.apps.base.service.CurrencyScaleService;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.apps.base.service.tax.TaxService;
+import com.axelor.common.ObjectUtils;
+import com.axelor.common.StringUtils;
+import com.axelor.inject.Beans;
+import java.lang.invoke.MethodHandles;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.apache.commons.collections.CollectionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class TaxInvoiceLine extends TaxGenerator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  protected CurrencyScaleService currencyScaleService;
+  protected TaxAccountService taxAccountService;
+  protected TaxAccountToolService taxAccountToolService;
+  protected InvoiceJournalService invoiceJournalService;
+  protected InvoiceLineTaxToolService invoiceLineTaxToolService;
+  protected InvoiceTaxComputeService invoiceTaxComputeService;
+
+  public TaxInvoiceLine(Invoice invoice, List<InvoiceLine> invoiceLines) {
+    super(invoice, invoiceLines);
+
+    this.currencyScaleService = Beans.get(CurrencyScaleService.class);
+    this.taxAccountService = Beans.get(TaxAccountService.class);
+    this.taxAccountToolService = Beans.get(TaxAccountToolService.class);
+    this.invoiceJournalService = Beans.get(InvoiceJournalService.class);
+    this.invoiceLineTaxToolService = Beans.get(InvoiceLineTaxToolService.class);
+    this.invoiceTaxComputeService = Beans.get(InvoiceTaxComputeService.class);
+  }
+
+  /**
+   * Créer les lignes de TVA de la facure. La création des lignes de TVA se basent sur les lignes de
+   * factures
+   *
+   * @return La liste des lignes de TVA de la facture.
+   * @throws AxelorException
+   */
+  @Override
+  public List<InvoiceLineTax> creates() throws AxelorException {
+
+    Map<TaxConfiguration, InvoiceLineTax> map = new HashMap<>();
+    Map<TaxConfiguration, Set<InvoiceLine>> invoiceLineSetMap = new HashMap<>();
+
+    List<InvoiceLineTax> updatedInvoiceLineTaxList =
+        new ArrayList<>(invoice.getInvoiceLineTaxList());
+    invoice.getInvoiceLineTaxList().clear();
+
+    if (invoiceLines != null && !invoiceLines.isEmpty()) {
+
+      LOG.debug("Creation of lines with taxes for the invoices lines");
+
+      for (InvoiceLine invoiceLine : invoiceLines) {
+        // map is updated with created invoice line taxes
+        createInvoiceLineTaxes(invoiceLine, map, invoiceLineSetMap);
+      }
+    }
+
+    FiscalPosition fiscalPosition = invoice.getFiscalPosition();
+
+    if (fiscalPosition == null || !fiscalPosition.getCustomerSpecificNote()) {
+      if (invoiceLines != null) {
+        invoice.setSpecificNotes(
+            invoiceLines.stream()
+                .map(InvoiceLine::getTaxEquiv)
+                .filter(Objects::nonNull)
+                .map(
+                    taxEquiv -> {
+                      String vatNote =
+                          taxEquiv.getVatExemptionReason() != null
+                              ? taxEquiv.getVatExemptionReason().getNote()
+                              : null;
+                      return StringUtils.notEmpty(vatNote) ? vatNote : taxEquiv.getSpecificNote();
+                    })
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.joining("\n")));
+      }
+    } else {
+      Partner invoicePartner = invoice.getPartner();
+      String partnerNote =
+          invoicePartner != null && invoicePartner.getVatExemptionReason() != null
+              ? invoicePartner.getVatExemptionReason().getNote()
+              : null;
+      String fpNote =
+          Optional.ofNullable(fiscalPosition)
+              .map(FiscalPosition::getCustomerSpecificNoteText)
+              .orElse(null);
+      invoice.setSpecificNotes(StringUtils.notEmpty(partnerNote) ? partnerNote : fpNote);
+    }
+
+    return finalizeInvoiceLineTaxes(map, invoiceLineSetMap, updatedInvoiceLineTaxList);
+  }
+
+  protected void createInvoiceLineTaxes(
+      InvoiceLine invoiceLine,
+      Map<TaxConfiguration, InvoiceLineTax> map,
+      Map<TaxConfiguration, Set<InvoiceLine>> invoiceLineSetMap)
+      throws AxelorException {
+    Set<TaxLine> taxLineSet = invoiceLine.getTaxLineSet();
+    int vatSystem = 0;
+    Account imputedAccount;
+
+    if (CollectionUtils.isNotEmpty(taxLineSet)) {
+      for (TaxLine taxLine : taxLineSet) {
+        if (taxLine.getValue().signum() != 0) {
+          if (invoice.getOperationSubTypeSelect() == InvoiceRepository.OPERATION_SUB_TYPE_ADVANCE) {
+            vatSystem = MoveLineRepository.VAT_CASH_PAYMENTS;
+          } else {
+            vatSystem =
+                taxAccountToolService.calculateVatSystem(
+                    invoice.getVatSystemSelect(), invoiceLine.getAccount());
+          }
+
+          imputedAccount = getImputedAccount(invoiceLine, taxLine, vatSystem);
+        } else {
+          vatSystem = 0;
+          imputedAccount = null;
+        }
+
+        createOrUpdateInvoiceLineTax(
+            invoiceLine, taxLine, imputedAccount, vatSystem, map, invoiceLineSetMap);
+      }
+
+      TaxEquiv taxEquiv = invoiceLine.getTaxEquiv();
+      AppBaseService appBaseService = Beans.get(AppBaseService.class);
+      TaxService taxService = Beans.get(TaxService.class);
+      Set<TaxLine> taxLineRCSet = new HashSet<>();
+      if (taxEquiv != null && taxEquiv.getReverseCharge()) {
+        // We get active tax line if it exist, else we fetch one in taxLine list of reverse charge
+        // tax
+        taxLineRCSet =
+            taxService.getTaxLineSet(
+                taxEquiv.getReverseChargeTaxSet(),
+                appBaseService.getTodayDate(
+                    Optional.ofNullable(invoiceLine.getInvoice())
+                        .map(Invoice::getCompany)
+                        .orElse(null)));
+      }
+      if (CollectionUtils.isNotEmpty(taxLineRCSet)) {
+        for (TaxLine taxLineRC : taxLineRCSet) {
+          imputedAccount = getImputedAccount(invoiceLine, taxLineRC, vatSystem);
+          createOrUpdateInvoiceLineTaxRc(
+              invoiceLine, taxLineRC, imputedAccount, vatSystem, map, invoiceLineSetMap);
+        }
+      }
+    }
+  }
+
+  protected Account getImputedAccount(InvoiceLine invoiceLine, TaxLine taxLine, int vatSystem)
+      throws AxelorException {
+    return taxAccountService.getAccount(
+        taxLine.getTax(),
+        invoice.getCompany(),
+        invoiceJournalService.getJournal(invoice),
+        invoiceLine.getAccount(),
+        vatSystem,
+        invoiceLine.getFixedAssets(),
+        InvoiceToolService.getFunctionalOrigin(invoice));
+  }
+
+  protected void createOrUpdateInvoiceLineTax(
+      InvoiceLine invoiceLine,
+      TaxLine taxLine,
+      Account imputedAccount,
+      int vatSystem,
+      Map<TaxConfiguration, InvoiceLineTax> map,
+      Map<TaxConfiguration, Set<InvoiceLine>> invoiceLineSetMap) {
+    LOG.debug("Tax {}", taxLine);
+
+    TaxConfiguration taxConfiguration =
+        new TaxConfiguration(
+            taxLine, imputedAccount, vatSystem, invoiceLine.getVatExemptionReason());
+    InvoiceLineTax invoiceLineTax = map.get(taxConfiguration);
+
+    if (invoiceLineTax != null) {
+      updateInvoiceLineTax(invoiceLine, invoiceLineTax, vatSystem);
+      invoiceLineTax.setReverseCharged(false);
+    } else {
+      invoiceLineTax = createInvoiceLineTax(invoiceLine, taxLine, imputedAccount, vatSystem);
+      invoiceLineTax.setReverseCharged(false);
+      map.put(taxConfiguration, invoiceLineTax);
+    }
+    invoiceLineSetMap.computeIfAbsent(taxConfiguration, key -> new HashSet<>()).add(invoiceLine);
+  }
+
+  protected void createOrUpdateInvoiceLineTaxRc(
+      InvoiceLine invoiceLine,
+      TaxLine taxLineRC,
+      Account imputedAccount,
+      int vatSystem,
+      Map<TaxConfiguration, InvoiceLineTax> map,
+      Map<TaxConfiguration, Set<InvoiceLine>> invoiceLineSetMap) {
+    TaxConfiguration taxConfiguration =
+        new TaxConfiguration(
+            taxLineRC, imputedAccount, vatSystem, invoiceLine.getVatExemptionReason());
+    InvoiceLineTax invoiceLineTaxRC = map.get(taxConfiguration);
+    if (invoiceLineTaxRC != null) {
+      updateInvoiceLineTax(invoiceLine, invoiceLineTaxRC, vatSystem);
+    } else {
+      invoiceLineTaxRC = createInvoiceLineTax(invoiceLine, taxLineRC, imputedAccount, vatSystem);
+      map.put(taxConfiguration, invoiceLineTaxRC);
+    }
+    invoiceLineTaxRC.setReverseCharged(true);
+    invoiceLineSetMap.computeIfAbsent(taxConfiguration, key -> new HashSet<>()).add(invoiceLine);
+  }
+
+  protected void updateInvoiceLineTax(
+      InvoiceLine invoiceLine, InvoiceLineTax invoiceLineTax, int vatSystem) {
+    // Dans la devise de la facture
+    invoiceLineTax.setExTaxBase(invoiceLineTax.getExTaxBase().add(invoiceLine.getExTaxTotal()));
+    // Dans la devise de la société
+    invoiceLineTax.setCompanyExTaxBase(
+        currencyScaleService.getCompanyScaledValue(
+            invoiceLine,
+            invoiceLineTax.getCompanyExTaxBase().add(invoiceLine.getCompanyExTaxTotal())));
+    invoiceLineTax.setInTaxTotal(invoiceLineTax.getInTaxTotal().add(invoiceLine.getInTaxTotal()));
+    invoiceLineTax.setCompanyInTaxTotal(
+        currencyScaleService.getCompanyScaledValue(
+            invoiceLine,
+            invoiceLineTax.getCompanyInTaxTotal().add(invoiceLine.getCompanyInTaxTotal())));
+
+    invoiceLineTax.setVatSystemSelect(vatSystem);
+  }
+
+  protected InvoiceLineTax createInvoiceLineTax(
+      InvoiceLine invoiceLine, TaxLine taxLine, Account imputedAccount, int vatSystem) {
+    InvoiceLineTax invoiceLineTax = new InvoiceLineTax();
+    invoiceLineTax.setInvoice(invoice);
+
+    // Dans la devise de la facture
+    invoiceLineTax.setExTaxBase(invoiceLine.getExTaxTotal());
+    // Dans la devise de la comptabilité du tiers
+    invoiceLineTax.setCompanyExTaxBase(
+        currencyScaleService.getCompanyScaledValue(invoice, invoiceLine.getCompanyExTaxTotal()));
+    invoiceLineTax.setInTaxTotal(invoiceLineTax.getInTaxTotal().add(invoiceLine.getInTaxTotal()));
+    invoiceLineTax.setCompanyInTaxTotal(
+        currencyScaleService.getCompanyScaledValue(
+            invoice,
+            invoiceLineTax.getCompanyInTaxTotal().add(invoiceLine.getCompanyInTaxTotal())));
+
+    invoiceLineTax.setImputedAccount(imputedAccount);
+    invoiceLineTax.setVatSystemSelect(vatSystem);
+    invoiceLineTax.setTaxLine(taxLine);
+    invoiceLineTax.setCoefficient(invoiceLine.getCoefficient());
+    invoiceLineTax.setTaxType(
+        Optional.ofNullable(taxLine.getTax()).map(Tax::getTaxType).orElse(null));
+    invoiceLineTax.setVatExemptionReason(invoiceLine.getVatExemptionReason());
+
+    return invoiceLineTax;
+  }
+
+  protected List<InvoiceLineTax> finalizeInvoiceLineTaxes(
+      Map<TaxConfiguration, InvoiceLineTax> map,
+      Map<TaxConfiguration, Set<InvoiceLine>> invoiceLineSetMap,
+      List<InvoiceLineTax> updatedInvoiceLineTaxList) {
+    List<InvoiceLineTax> invoiceLineTaxList = new ArrayList<>();
+    Map<InvoiceLineTax, Set<InvoiceLine>> invoiceLineSetByInvoiceLineTax = new HashMap<>();
+    map.forEach(
+        (taxConfiguration, invoiceLineTax) ->
+            invoiceLineSetByInvoiceLineTax.put(
+                invoiceLineTax, invoiceLineSetMap.getOrDefault(taxConfiguration, Set.of())));
+
+    List<InvoiceLineTax> deductibleTaxList =
+        map.values().stream()
+            .filter(it -> !this.isNonDeductibleTax(it))
+            .collect(Collectors.toList());
+    List<InvoiceLineTax> nonDeductibleTaxList =
+        map.values().stream().filter(this::isNonDeductibleTax).collect(Collectors.toList());
+
+    nonDeductibleTaxList.forEach(
+        it ->
+            computeAndAddInvoiceLineTax(
+                it,
+                updatedInvoiceLineTaxList,
+                invoiceLineTaxList,
+                deductibleTaxList,
+                invoiceLineSetByInvoiceLineTax));
+    deductibleTaxList.forEach(
+        it ->
+            computeAndAddInvoiceLineTax(
+                it,
+                updatedInvoiceLineTaxList,
+                invoiceLineTaxList,
+                nonDeductibleTaxList,
+                invoiceLineSetByInvoiceLineTax));
+
+    return invoiceLineTaxList;
+  }
+
+  protected void computeAndAddInvoiceLineTax(
+      InvoiceLineTax invoiceLineTax,
+      List<InvoiceLineTax> updatedInvoiceLineTaxList,
+      List<InvoiceLineTax> invoiceLineTaxList,
+      List<InvoiceLineTax> oppositeTaxList,
+      Map<InvoiceLineTax, Set<InvoiceLine>> invoiceLineSetByInvoiceLineTax) {
+    TaxLine taxLine = invoiceLineTax.getTaxLine();
+    BigDecimal taxValue = getTaxRate(invoiceLineTax);
+    if (taxLine.getTax().getIsNonDeductibleTax()) {
+      taxValue =
+          this.getAdjustedNonDeductibleTaxValue(
+              invoiceLineTax, taxValue, oppositeTaxList, invoiceLineSetByInvoiceLineTax);
+    } else {
+      taxValue =
+          this.getAdjustedTaxValue(
+              invoiceLineTax, taxValue, oppositeTaxList, invoiceLineSetByInvoiceLineTax);
+    }
+
+    // Dans la devise de la facture
+    BigDecimal taxTotal =
+        invoiceTaxComputeService.computeTaxAmount(
+            invoiceLineTax,
+            invoiceLineTax.getExTaxBase(),
+            taxValue,
+            invoiceLineTax.getInTaxTotal());
+    if (invoiceLineTax.getReverseCharged()) {
+      taxTotal = taxTotal.negate();
+    }
+    if (!ObjectUtils.isEmpty(updatedInvoiceLineTaxList)) {
+      for (InvoiceLineTax updatedInvoiceLineTax : updatedInvoiceLineTaxList) {
+        if (invoiceLineTaxToolService.isManageByAmount(invoiceLineTax)
+            && Objects.equals(
+                updatedInvoiceLineTax.getVatSystemSelect(), invoiceLineTax.getVatSystemSelect())
+            && updatedInvoiceLineTax.getImputedAccount() == invoiceLineTax.getImputedAccount()
+            && updatedInvoiceLineTax.getPercentageTaxTotal().compareTo(taxTotal) == 0
+            && updatedInvoiceLineTax.getExTaxBase().compareTo(invoiceLineTax.getExTaxBase()) == 0) {
+          invoiceLineTaxList.add(updatedInvoiceLineTax);
+
+          LOG.debug(
+              "Tax line : Tax total => {}, Total W.T. => {}",
+              invoiceLineTax.getTaxTotal(),
+              invoiceLineTax.getInTaxTotal());
+          return;
+        }
+      }
+    }
+
+    invoiceLineTax.setTaxTotal(taxTotal);
+    invoiceLineTax.setPercentageTaxTotal(taxTotal);
+    invoiceLineTax.setInTaxTotal(invoiceLineTax.getExTaxBase().add(taxTotal));
+
+    // Dans la devise de la société
+    BigDecimal companyTaxTotal =
+        invoiceTaxComputeService.computeTaxAmount(
+            invoiceLineTax,
+            invoiceLineTax.getCompanyExTaxBase(),
+            taxValue,
+            invoiceLineTax.getCompanyInTaxTotal());
+    if (invoiceLineTax.getReverseCharged()) {
+      companyTaxTotal = companyTaxTotal.negate();
+    }
+    invoiceLineTax.setCompanyTaxTotal(companyTaxTotal);
+    invoiceLineTax.setCompanyInTaxTotal(invoiceLineTax.getCompanyExTaxBase().add(companyTaxTotal));
+
+    invoiceLineTaxList.add(invoiceLineTax);
+
+    LOG.debug(
+        "Tax line : Tax total => {}, Total W.T. => {}",
+        invoiceLineTax.getTaxTotal(),
+        invoiceLineTax.getInTaxTotal());
+  }
+
+  protected boolean isNonDeductibleTax(InvoiceLineTax invoiceLineTax) {
+    return Optional.of(invoiceLineTax.getTaxLine().getTax().getIsNonDeductibleTax()).orElse(false);
+  }
+
+  protected BigDecimal getAdjustedTaxValue(
+      InvoiceLineTax deductibleInvoiceLineTax,
+      BigDecimal taxValue,
+      List<InvoiceLineTax> nonDeductibleTaxList,
+      Map<InvoiceLineTax, Set<InvoiceLine>> invoiceLineSetByInvoiceLineTax) {
+    BigDecimal deductibleBase = deductibleInvoiceLineTax.getExTaxBase();
+    if (CollectionUtils.isEmpty(nonDeductibleTaxList) || deductibleBase.signum() == 0) {
+      return taxValue;
+    }
+    BigDecimal nonDeductibleBase = BigDecimal.ZERO;
+    for (InvoiceLineTax nonDeductibleInvoiceLineTax : nonDeductibleTaxList) {
+      BigDecimal nonDeductibleTaxRate = getTaxRate(nonDeductibleInvoiceLineTax);
+      BigDecimal overlapBase =
+          getOverlapBase(
+              deductibleInvoiceLineTax,
+              nonDeductibleInvoiceLineTax,
+              invoiceLineSetByInvoiceLineTax);
+      nonDeductibleBase = nonDeductibleBase.add(overlapBase.multiply(nonDeductibleTaxRate));
+    }
+    return taxValue
+        .multiply(deductibleBase.subtract(nonDeductibleBase))
+        .divide(deductibleBase, AppBaseService.COMPUTATION_SCALING, RoundingMode.HALF_UP);
+  }
+
+  protected BigDecimal getAdjustedNonDeductibleTaxValue(
+      InvoiceLineTax nonDeductibleInvoiceLineTax,
+      BigDecimal taxValue,
+      List<InvoiceLineTax> deductibleTaxList,
+      Map<InvoiceLineTax, Set<InvoiceLine>> invoiceLineSetByInvoiceLineTax) {
+    BigDecimal nonDeductibleBase = nonDeductibleInvoiceLineTax.getExTaxBase();
+    if (CollectionUtils.isEmpty(deductibleTaxList) || nonDeductibleBase.signum() == 0) {
+      return BigDecimal.ZERO;
+    }
+
+    BigDecimal deductibleTaxBase = BigDecimal.ZERO;
+    for (InvoiceLineTax deductibleInvoiceLineTax : deductibleTaxList) {
+      BigDecimal overlapBase =
+          getOverlapBase(
+              nonDeductibleInvoiceLineTax,
+              deductibleInvoiceLineTax,
+              invoiceLineSetByInvoiceLineTax);
+      deductibleTaxBase =
+          deductibleTaxBase.add(overlapBase.multiply(getTaxRate(deductibleInvoiceLineTax)));
+    }
+    return taxValue
+        .multiply(deductibleTaxBase)
+        .divide(nonDeductibleBase, AppBaseService.COMPUTATION_SCALING, RoundingMode.HALF_UP);
+  }
+
+  protected BigDecimal getOverlapBase(
+      InvoiceLineTax firstInvoiceLineTax,
+      InvoiceLineTax secondInvoiceLineTax,
+      Map<InvoiceLineTax, Set<InvoiceLine>> invoiceLineSetByInvoiceLineTax) {
+    Set<InvoiceLine> firstInvoiceLineSet =
+        invoiceLineSetByInvoiceLineTax.getOrDefault(firstInvoiceLineTax, Set.of());
+    Set<InvoiceLine> secondInvoiceLineSet =
+        invoiceLineSetByInvoiceLineTax.getOrDefault(secondInvoiceLineTax, Set.of());
+
+    return firstInvoiceLineSet.stream()
+        .filter(secondInvoiceLineSet::contains)
+        .map(InvoiceLine::getExTaxTotal)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  protected BigDecimal getTaxRate(InvoiceLineTax invoiceLineTax) {
+    return invoiceLineTax
+        .getTaxLine()
+        .getValue()
+        .divide(BigDecimal.valueOf(100), AppBaseService.COMPUTATION_SCALING, RoundingMode.HALF_UP);
+  }
+}

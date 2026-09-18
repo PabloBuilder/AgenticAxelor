@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="configurator-grid" title="Configurators"
+    model="com.axelor.apps.sale.db.Configurator">
+    <field name="configuratorCreator"/>
+    <field name="attributes"/>
+    <field name="indicators"/>
+  </grid>
+
+  <form name="configurator-form" title="Configurator"
+    model="com.axelor.apps.sale.db.Configurator">
+    <panel name="mainPanel">
+      <field name="product" readonly="true" showTitle="false" showIf="product" colSpan="12"
+        domain="self.dtype = 'Product'">
+        <viewer>
+          <![CDATA[<><Badge bg="danger">{_t('Product generated')}</Badge></>]]>
+        </viewer>
+      </field>
+      <panel name="configuratorPanel" colSpan="12">
+        <field name="configuratorCreator" form-view="configurator-creator-form"
+          grid-view="configurator-creator-grid" onSelect="action-configurator-method-creator-domain"
+          onChange="action-configurator-group-creator-onchange" colSpan="6"/>
+        <field name="configuratorVersion" colSpan="1"/>
+        <button name="regenerateProductBtn" title="Regenerate Product"
+          onClick="save,action-configurator-regenerate-product" showIf="product" colOffset="1"
+          colSpan="4"/>
+        <field name="configuratorCreatorName"/>
+      </panel>
+      <field name="attributes" colSpan="12"/>
+    </panel>
+    <panel name="indicatorsPanel" readonly="true">
+      <field name="indicators" colSpan="12"/>
+    </panel>
+    <panel name="actionPanel" showIf="configuratorCreator.generateProduct">
+      <button name="generateProductBtn" title="Generate Product"
+        onClick="save,action-configurator-generate-product" showIf="!product" colSpan="4"/>
+      <button name="regenerateProductBtn" title="Regenerate Product"
+        onClick="save,action-configurator-regenerate-product" showIf="product" colSpan="4"
+        colOffset="4"/>
+      <field name="configuratorCreator.generateProduct" hidden="true"/>
+    </panel>
+
+  </form>
+
+  <form name="regenerate-configurator-form" title="Configurator"
+    model="com.axelor.apps.sale.db.Configurator">
+    <panel name="mainPanel">
+      <field name="product" readonly="true" showTitle="false" showIf="product" colSpan="12"
+        domain="self.dtype = 'Product'">
+        <viewer>
+          <![CDATA[<><Badge bg="danger">{_t('Product generated')}</Badge></>]]>
+        </viewer>
+      </field>
+      <panel name="configuratorPanel" colSpan="12">
+        <field name="configuratorCreator" form-view="configurator-creator-form"
+          grid-view="configurator-creator-grid" onSelect="action-configurator-method-creator-domain"
+          onChange="action-configurator-group-creator-onchange" colSpan="6"/>
+        <field name="configuratorVersion" readonly="true" colSpan="1"/>
+        <button name="regenerateLineBtn" title="Regenerate line"
+          onClick="save,action-configurator-regenerate-line-for-sale-order" colSpan="4"
+          colOffset="1"/>
+        <field name="configuratorCreatorName"/>
+      </panel>
+      <field name="attributes" colSpan="12"/>
+    </panel>
+    <panel name="indicatorsPanel" readonly="true">
+      <field name="indicators" colSpan="12"/>
+    </panel>
+    <panel name="actionPanel" colSpan="12">
+      <button name="regenerateLineBtn" title="Regenerate line"
+        onClick="save,action-configurator-regenerate-line-for-sale-order" colSpan="4" colOffset="8"/>
+      <field name="_saleOrderLineId" hidden="true"/>
+    </panel>
+
+  </form>
+
+  <form name="generate-configurator-form" model="com.axelor.apps.sale.db.Configurator"
+    title="Generate configurator">
+    <panel name="mainPanel">
+      <field name="configuratorCreator" form-view="configurator-creator-form"
+        grid-view="configurator-creator-grid" onSelect="action-configurator-method-creator-domain"
+        onChange="action-configurator-record-fill-creator-name"/>
+      <button name="generateBtn" title="Generate"
+        onClick="action-configurator-group-create-configurator"/>
+      <field name="configuratorCreatorName"/>
+    </panel>
+    <panel name="configuratorPanel" hidden="true" colSpan="12">
+      <field name="configuratorCreator" readonly="true" showTitle="false" css="bold large"
+        canView="false" colSpan="6"/>
+      <field name="configuratorVersion" readonly="true" colSpan="1"/>
+      <button name="validateBtn" title="Validate and generate the line" colSpan="4"
+        colOffset="1" onClick="save,action-configurator-method-generate"/>
+    </panel>
+    <panel name="attributesPanel" hidden="true">
+      <field name="attributes" colSpan="12"/>
+    </panel>
+    <panel name="indicatorsPanel" hidden="true">
+      <field name="indicators" colSpan="12" readonly="true"/>
+    </panel>
+    <panel name="btnPanel" hidden="true" colSpan="12">
+      <button name="validateBtn" title="Validate and generate the line" colSpan="4"
+        colOffset="8" onClick="save,action-configurator-method-generate"/>
+    </panel>
+  </form>
+
+  <action-group name="action-configurator-group-create-configurator">
+    <action name="save"/>
+    <action name="action-configurator-attrs-create-configurator"/>
+    <action name="action-configurator-update-indicators"/>
+  </action-group>
+
+  <action-group name="action-configurator-group-creator-onchange">
+    <action name="save"/>
+    <action name="action-configurator-update-indicators"/>
+    <action name="action-configurator-record-fill-creator-name"/>
+  </action-group>
+
+  <action-method name="action-configurator-update-indicators">
+    <call class="com.axelor.apps.sale.web.ConfiguratorController" method="updateIndicators"/>
+  </action-method>
+
+  <action-method name="action-configurator-generate-product">
+    <call class="com.axelor.apps.sale.web.ConfiguratorController" method="generateProduct"/>
+  </action-method>
+
+  <action-method name="action-configurator-regenerate-line-for-sale-order">
+    <call class="com.axelor.apps.sale.web.ConfiguratorController"
+      method="regenerateForSaleOrder"/>
+  </action-method>
+
+  <action-method name="action-configurator-regenerate-product">
+    <call class="com.axelor.apps.sale.web.ConfiguratorController" method="regenerateProduct"/>
+  </action-method>
+
+  <action-record name="action-configurator-record-fill-creator-name"
+    model="com.axelor.apps.sale.db.Configurator">
+    <field name="configuratorCreatorName" expr="eval: configuratorCreator.name"/>
+  </action-record>
+
+  <action-method name="action-configurator-method-creator-domain">
+    <call class="com.axelor.apps.sale.web.ConfiguratorController"
+      method="createDomainForCreator"/>
+  </action-method>
+
+  <action-method name="action-configurator-method-generate">
+    <call class="com.axelor.apps.sale.web.ConfiguratorController" method="generateForSaleOrder"/>
+  </action-method>
+
+  <action-attrs name="action-configurator-attrs-create-configurator">
+    <attribute name="hidden" for="configuratorPanel" expr="false"/>
+    <attribute name="hidden" for="attributesPanel" expr="false"/>
+    <attribute name="hidden" for="indicatorsPanel" expr="false"/>
+    <attribute name="hidden" for="btnPanel" expr="false"/>
+    <attribute name="hidden" for="validateBtn" expr="false"/>
+    <attribute name="hidden" for="mainPanel" expr="true"/>
+    <attribute name="title" for="generate-configurator-form" expr="configuratorCreator"/>
+  </action-attrs>
+
+
+
+</object-views>

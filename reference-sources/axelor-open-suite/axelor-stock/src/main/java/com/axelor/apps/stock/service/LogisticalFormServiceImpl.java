@@ -1,0 +1,208 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.stock.service;
+
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.repo.TraceBackRepository;
+import com.axelor.apps.stock.db.FreightCarrierCustomerAccountNumber;
+import com.axelor.apps.stock.db.LogisticalForm;
+import com.axelor.apps.stock.db.StockConfig;
+import com.axelor.apps.stock.db.repo.LogisticalFormRepository;
+import com.axelor.apps.stock.db.repo.StockMoveRepository;
+import com.axelor.apps.stock.exception.StockExceptionMessage;
+import com.axelor.apps.stock.service.config.StockConfigService;
+import com.axelor.i18n.I18n;
+import com.google.common.base.Preconditions;
+import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.commons.collections.CollectionUtils;
+
+public class LogisticalFormServiceImpl implements LogisticalFormService {
+
+  protected final StockConfigService stockConfigService;
+
+  @Inject
+  public LogisticalFormServiceImpl(StockConfigService stockConfigService) {
+    this.stockConfigService = stockConfigService;
+  }
+
+  @Override
+  public String getStockMoveDomain(LogisticalForm logisticalForm) throws AxelorException {
+
+    Company company = logisticalForm.getCompany();
+    if (company == null) {
+      return "self IS NULL";
+    }
+
+    StockConfig stockConfig = stockConfigService.getStockConfig(company);
+    List<String> domainList = new ArrayList<>();
+
+    domainList.add("self.company = :company");
+    domainList.add("self.logisticalForm.id = :id OR self.logisticalForm IS NULL");
+    if (stockConfig.getAllowInternalStockMoveOnLogisticalForm()) {
+      if (!stockConfig.getIsLogisticalFormMultiClientsEnabled()) {
+        domainList.add(
+            String.format(
+                "(self.typeSelect = %d AND self.partner = :deliverToCustomerPartner) OR self.typeSelect = %d",
+                StockMoveRepository.TYPE_OUTGOING, StockMoveRepository.TYPE_INTERNAL));
+      } else {
+        domainList.add(
+            String.format(
+                "self.statusSelect in (%d, %d)",
+                StockMoveRepository.TYPE_OUTGOING, StockMoveRepository.TYPE_INTERNAL));
+      }
+    } else {
+      domainList.add(String.format("self.typeSelect = %d", StockMoveRepository.TYPE_OUTGOING));
+      if (!stockConfig.getIsLogisticalFormMultiClientsEnabled()) {
+        domainList.add("self.partner = :deliverToCustomerPartner");
+      }
+    }
+    if (stockConfigService
+        .getStockConfig(company)
+        .getRealizeStockMovesUponParcelPalletCollection()) {
+      domainList.add(String.format("self.statusSelect = %d", StockMoveRepository.STATUS_PLANNED));
+    } else {
+      domainList.add(
+          String.format(
+              "self.statusSelect in (%d, %d)",
+              StockMoveRepository.STATUS_PLANNED, StockMoveRepository.STATUS_REALIZED));
+    }
+    domainList.add("COALESCE(self.fullySpreadOverLogisticalFormsFlag, FALSE) = FALSE");
+    if (logisticalForm.getStockLocation() != null) {
+      domainList.add("self.stockMoveLineList.fromStockLocation = :stockLocation");
+    }
+
+    return domainList.stream()
+        .map(domain -> String.format("(%s)", domain))
+        .collect(Collectors.joining(" AND "));
+  }
+
+  @Override
+  public Map<String, Object> getStockMoveDomainParam(LogisticalForm logisticalForm)
+      throws AxelorException {
+    Map<String, Object> params = new HashMap<>();
+
+    Company company = logisticalForm.getCompany();
+    if (company == null) {
+      return params;
+    }
+
+    StockConfig stockConfig = stockConfigService.getStockConfig(company);
+
+    params.put("company", company);
+    params.put("id", logisticalForm.getId());
+    if ((stockConfig.getAllowInternalStockMoveOnLogisticalForm()
+            && !stockConfig.getIsLogisticalFormMultiClientsEnabled())
+        || !stockConfig.getIsLogisticalFormMultiClientsEnabled()) {
+      params.put("deliverToCustomerPartner", logisticalForm.getDeliverToCustomerPartner());
+    }
+
+    if (logisticalForm.getStockLocation() != null) {
+      params.put("stockLocation", logisticalForm.getStockLocation());
+    }
+
+    return params;
+  }
+
+  @Override
+  public Optional<String> getCustomerAccountNumberToCarrier(LogisticalForm logisticalForm)
+      throws AxelorException {
+    Preconditions.checkNotNull(logisticalForm);
+    List<FreightCarrierCustomerAccountNumber> freightCarrierCustomerAccountNumberList = null;
+
+    switch (logisticalForm.getAccountSelectionToCarrierSelect()) {
+      case LogisticalFormRepository.ACCOUNT_COMPANY:
+        if (logisticalForm.getCompany() != null
+            && logisticalForm.getCompany().getStockConfig() != null) {
+          freightCarrierCustomerAccountNumberList =
+              logisticalForm
+                  .getCompany()
+                  .getStockConfig()
+                  .getFreightCarrierCustomerAccountNumberList();
+        }
+        break;
+      case LogisticalFormRepository.ACCOUNT_CUSTOMER:
+        if (logisticalForm.getDeliverToCustomerPartner() != null) {
+          freightCarrierCustomerAccountNumberList =
+              logisticalForm
+                  .getDeliverToCustomerPartner()
+                  .getFreightCarrierCustomerAccountNumberList();
+        }
+        break;
+      default:
+        throw new AxelorException(
+            logisticalForm,
+            TraceBackRepository.CATEGORY_CONFIGURATION_ERROR,
+            I18n.get(StockExceptionMessage.LOGISTICAL_FORM_UNKNOWN_ACCOUNT_SELECTION));
+    }
+
+    if (freightCarrierCustomerAccountNumberList != null) {
+      Optional<FreightCarrierCustomerAccountNumber> freightCarrierCustomerAccountNumber =
+          freightCarrierCustomerAccountNumberList.stream()
+              .filter(it -> it.getCarrierPartner().equals(logisticalForm.getCarrierPartner()))
+              .findFirst();
+
+      if (freightCarrierCustomerAccountNumber.isPresent()) {
+        return Optional.ofNullable(
+            freightCarrierCustomerAccountNumber.get().getCustomerAccountNumber());
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  @Transactional(rollbackOn = {Exception.class})
+  @Override
+  public void carrierValidate(LogisticalForm logisticalForm) throws AxelorException {
+    if (logisticalForm.getStatusSelect() == null
+        || logisticalForm.getStatusSelect() != LogisticalFormRepository.STATUS_PROVISION) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_INCONSISTENCY,
+          I18n.get(StockExceptionMessage.LOGISTICAL_FORM_CARRIER_VALIDATE_WRONG_STATUS));
+    }
+    logisticalForm.setStatusSelect(LogisticalFormRepository.STATUS_CARRIER_VALIDATED);
+  }
+
+  @Transactional(rollbackOn = {Exception.class})
+  @Override
+  public void backToProvision(LogisticalForm logisticalForm) throws AxelorException {
+    List<Integer> authorizedStatus = new ArrayList<>();
+    authorizedStatus.add(LogisticalFormRepository.STATUS_CARRIER_VALIDATED);
+    authorizedStatus.add(LogisticalFormRepository.STATUS_COLLECTED);
+    if (logisticalForm.getStatusSelect() == null
+        || !authorizedStatus.contains(logisticalForm.getStatusSelect())) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_INCONSISTENCY,
+          I18n.get(StockExceptionMessage.LOGISTICAL_FORM_PROVISION_WRONG_STATUS));
+    }
+    logisticalForm.setStatusSelect(LogisticalFormRepository.STATUS_PROVISION);
+    if (CollectionUtils.isNotEmpty(logisticalForm.getStockMoveList())) {
+      logisticalForm
+          .getStockMoveList()
+          .forEach(stockMove -> stockMove.setFullySpreadOverLogisticalFormsFlag(false));
+    }
+  }
+}

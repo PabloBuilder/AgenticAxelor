@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="team-task-grid" id="base-team-task-grid" title="Tasks"
+    model="com.axelor.team.db.TeamTask">
+    <field name="name"/>
+    <field name="team"/>
+    <field name="taskDate"/>
+    <field name="status"/>
+    <field name="priority"/>
+  </grid>
+
+  <form name="team-task-form" id="base-team-task-form" title="Task"
+    model="com.axelor.team.db.TeamTask" extension="true">
+    <extend target="/">
+      <attribute name="onNew" value="action-team-task-group-onnew"/>
+      <insert position="before">
+        <panel showIf="nextTeamTask">
+          <field name="doApplyToAllNextTasks" colSpan="12" widget="InlineCheckbox"/>
+        </panel>
+      </insert>
+    </extend>
+    <extend target="//panel[@title='Overview']">
+      <attribute name="title" value=""/>
+    </extend>
+
+    <extend target="//field[@name='assignedTo']">
+      <move position="after" source="//field[@name='description']"/>
+    </extend>
+    <extend target="//field[@name='description']">
+      <attribute name="widget" value="html"/>
+      <insert position="after">
+        <field name="typeSelect" hidden="true"/>
+      </insert>
+    </extend>
+
+    <extend target="//field[@name='taskDate']">
+      <attribute name="onChange"
+        value="action-team-task-record-set-date-or-frequency-changed"/>
+    </extend>
+    <extend target="//field[@name='relatedModel']">
+      <replace></replace>
+    </extend>
+    <extend target="//field[@name='role']">
+      <replace></replace>
+    </extend>
+
+    <extend target="//panel[@title='Attributes']">
+      <replace></replace>
+    </extend>
+
+    <extend target="/">
+      <insert position="after">
+        <panel-tabs>
+          <panel title="Frequency">
+            <field name="frequency" canNew="true"
+              onChange="action-team-task-record-set-date-or-frequency-changed" domain="1 &lt;> 1"
+              form-view="frequency-form" grid-view="frequency-grid"/>
+            <field name="nextTeamTask" hidden="true" showIf="nextTeamTask"/>
+            <field name="isFirst" hidden="true"/>
+            <field name="doUpdateNextTasks" hidden="true"/>
+            <field name="hasDateOrFrequencyChanged" hidden="true"/>
+          </panel>
+          <panel name="rolePanel" title="Role">
+            <field name="role"/>
+          </panel>
+        </panel-tabs>
+      </insert>
+    </extend>
+  </form>
+
+  <action-group name="action-team-task-group-onnew">
+    <action name="team.task.on-new"/>
+    <action name="action-team-task-record-set-default"/>
+  </action-group>
+
+  <action-record name="action-team-task-record-set-default"
+    model="com.axelor.team.db.TeamTask">
+    <field name="isFirst" expr="true"/>
+    <field name="typeSelect" expr="eval: _typeSelect" if="_typeSelect"/>
+  </action-record>
+
+  <action-record name="action-team-task-record-set-date-or-frequency-changed"
+    model="com.axelor.team.db.TeamTask">
+    <field name="hasDateOrFrequencyChanged" expr="true" if="nextTeamTask"/>
+  </action-record>
+
+  <search-filters name="team-task-filters" model="com.axelor.team.db.TeamTask"
+    title="Team task filters">
+    <field name="totalPlannedHrs" hidden="true" if="!__config__.app.isApp('employee')"/>
+    <field name="budgetedTime" hidden="true" if="!__config__.app.isApp('employee')"/>
+    <field name="plannedProgress" hidden="true" if="!__config__.app.isApp('employee')"/>
+    <field name="totalRealHrs" hidden="true" if="!__config__.app.isApp('timesheet')"/>
+  </search-filters>
+
+</object-views>

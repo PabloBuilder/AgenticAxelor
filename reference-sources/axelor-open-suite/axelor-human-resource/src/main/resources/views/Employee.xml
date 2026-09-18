@@ -1,0 +1,895 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="employee-grid" title="Employee" model="com.axelor.apps.hr.db.Employee"
+    orderBy="contactPartner.simpleFullName">
+    <toolbar>
+      <button name="printEmployeePhoneBookBtn" title="Employee PhoneBook" icon="printer"
+        onClick="action-print-employee-phonebook"/>
+    </toolbar>
+    <field name="contactPartner.partnerSeq" width="120"/>
+    <field name="contactPartner.simpleFullName"/>
+    <field name="contactPartner.fixedPhone" widget="phone"
+      x-placeholder-number-type="FIXED_LINE"/>
+    <field name="contactPartner.mobilePhone" widget="phone"/>
+    <field name="managerUser" form-view="user-form" grid-view="user-grid"/>
+    <field name="mainEmploymentContract.companyDepartment" form-view="company-department-form"
+      grid-view="company-department-grid"/>
+    <field name="mainEmploymentContract.payCompany"/>
+    <field name="archived" hidden="true"/>
+  </grid>
+
+  <grid name="employee-lite-grid" title="Employee" model="com.axelor.apps.hr.db.Employee">
+    <field name="contactPartner" grid-view="partner-contact-grid"
+      form-view="partner-contact-form"/>
+    <field name="managerUser" form-view="user-form" grid-view="user-grid"/>
+    <field name="$employeeStatus" title="Employee status"
+      selection="hr.employee.employee.status.select" type="string" widget="single-select"/>
+    <field name="mainEmploymentContract.companyDepartment" form-view="company-department-form"
+      grid-view="company-department-grid"/>
+  </grid>
+
+  <form name="employee-form" title="Employee" model="com.axelor.apps.hr.db.Employee"
+    width="large" onLoad="action-group-employee-on-load" onNew="action-group-employee-on-new">
+
+    <toolbar>
+      <button name="annualReportBtn" title="Show expenses annual report" showIf="id"
+        onClick="action-employee-view-annual-report-wizard"/>
+      <button onClick="action-employee-view-employee-planning" name="employeePlanningBtn"
+        title="Employee planning" if-module="axelor-business-production"
+        if="__config__.app.getApp('production')?.getEmployeeScheduling()"/>
+    </toolbar>
+
+    <!-- New employee wizard -->
+    <panel name="stepByStepControlsPanel" showIf="stepByStepSelect &lt; 5" colSpan="12">
+      <button name="previousSBSBtn" colSpan="1" icon="caret-left-fill"
+        readonlyIf="stepByStepSelect &lt; 2"
+        onClick="validate,action-employee-record-previous-step,save"/>
+      <field name="stepByStepSelect" colSpan="8" css="text-center" readonly="true"
+        showTitle="false" widget="NavSelect" selection-in="[1, 2, 3, 4]"/>
+      <button name="nextSBSBtn" colSpan="1" icon="caret-right-fill"
+        readonlyIf="(user &amp;&amp; stepByStepSelect &gt;= 3) || (user == null &amp;&amp; stepByStepSelect &gt; 3) "
+        onClick="validate,action-employee-record-next-step,save"/>
+      <button name="finishBtn" colSpan="2" title="Finish"
+        onClick="validate,action-employee-record-finish-sbs,save"
+        showIf="stepByStepSelect == 4 || (user &amp;&amp; stepByStepSelect == 3)"/>
+    </panel>
+
+    <panel name="contactSBSPanel" colSpan="12" showIf="stepByStepSelect &lt; 5" sidebar="true">
+      <panel colSpan="12">
+        <field name="hrManager" colSpan="6" widget="InlineCheckbox"/>
+        <field name="external" colSpan="6" widget="InlineCheckbox"/>
+      </panel>
+      <field name="contactPartner" colSpan="12"
+        domain="self.employee IS null AND (self.partnerTypeSelect = 2 OR self.isContact = true)"
+        form-view="partner-contact-form" grid-view="partner-contact-grid" showTitle="false"
+        onChange="action-employee-attrs-fill-user">
+        <editor x-viewer="true">
+          <panel name="imagePanel" colSpan="12">
+            <field name="picture" colSpan="12" css="center" showTitle="false" widget="Image"/>
+          </panel>
+          <panel name="contactDetailsPanel" colSpan="12" itemSpan="12">
+            <field name="titleSelect" colSpan="2" showIf="!$readonly()"/>
+            <field name="firstName"
+              onChange="action-partner-record-simple-and-full-name,action-employee-contact-method-set-social-network-url"
+              colSpan="5" showIf="!$readonly()"/>
+            <field name="name" title="Name"
+              onChange="action-partner-record-simple-and-full-name,action-employee-contact-method-set-social-network-url"
+              colSpan="5" showIf="!$readonly()"/>
+
+            <field name="emailAddress" canNew="true" form-view="email-address-simple-form"
+              canSelect="false"/>
+            <field name="webSite" placeholder="http://www.url.com" widget="url"
+              pattern="^(?:http(?:s)?://)?\S+(?:\.\S+)+$"/>
+
+            <field name="fixedPhone" widget="phone" x-placeholder-number-type="FIXED_LINE"/>
+            <field name="mobilePhone" widget="phone"/>
+          </panel>
+        </editor>
+      </field>
+    </panel>
+
+    <!-- Basic info -->
+    <panel name="phoneProSBSPanel" title="Work phones" showIf="stepByStepSelect == 1">
+      <field name="fixedProPhone" widget="phone" colSpan="4"
+        x-placeholder-number-type="FIXED_LINE"/>
+      <field name="mobileProPhone" widget="phone" colSpan="4"/>
+      <field name="phoneAtCustomer" widget="phone" colSpan="4"/>
+    </panel>
+
+    <panel name="personalInfoSBSPanel" title="Personal information"
+      showIf="stepByStepSelect == 1">
+      <field name="birthDate" colSpan="4"/>
+      <field name="maritalStatus" colSpan="4"/>
+      <field name="sexSelect" colSpan="4"/>
+      <field name="countryOfBirth" colSpan="4"
+        onChange="action-employee-attrs-country-of-birth-on-change"/>
+      <field name="departmentOfBirth" colSpan="4" grid-view="hr-department-grid"
+        onChange="action-employee-attrs-department-of-birth-on-change"
+        onSelect="action-employee-attrs-department-of-birth-on-select"/>
+      <field name="cityOfBirth" colSpan="4"
+        onSelect="action-employee-attrs-city-of-birth-on-select"/>
+      <field name="citizenship" colSpan="4"/>
+      <field name="maritalName" colSpan="4"/>
+      <field name="dependentChildren" colSpan="4"/>
+      <field name="maidenName" colSpan="4" hideIf="sexSelect!='F'"/>
+      <field name="socialSecurityNumber" colSpan="4" max="15" min="12"/>
+      <field name="$employeeStatus" hidden="true"/>
+    </panel>
+
+    <panel name="emergencyContactSBSPanel" title="Contact in case of emergency"
+      showIf="stepByStepSelect == 1">
+      <field name="emergencyContact" colSpan="4"/>
+      <field name="emergencyNumber" widget="phone" colSpan="4"/>
+      <field name="emergencyContactRelationship" colSpan="4" title="Relationship"/>
+    </panel>
+
+    <panel name="rhInfoSBSPanel" title="HR information" showIf="stepByStepSelect == 1">
+      <panel colSpan="12">
+        <field name="managerUser" canEdit="false" canNew="false" canView="false" colSpan="4"
+          form-view="user-form" grid-view="user-grid"/>
+        <field name="exportCode" colSpan="4"/>
+      </panel>
+
+      <panel colSpan="12">
+        <field name="weeklyPlanning" title="Weekly planning" canNew="true" colSpan="4"
+          form-view="weekly-planning-form" grid-view="weekly-planning-grid"/>
+        <field name="publicHolidayEventsPlanning" canEdit="false" colSpan="4"
+          form-view="events-planning-form" grid-view="events-planning-grid"/>
+        <field name="imposedDayEventsPlanning" canEdit="false" colSpan="4"
+          form-view="events-planning-form" grid-view="events-planning-grid"/>
+      </panel>
+    </panel>
+    <!-- END OF Basic info -->
+
+    <!-- Employment contract -->
+    <panel name="contractualInfoSBSPanel" title="Contractual information"
+      showIf="stepByStepSelect == 2">
+      <field name="hireDate" colSpan="3" onChange="action-employee-attrs-set-seniority-date"/>
+      <field name="seniorityDate" colSpan="3"/>
+      <field name="bonusCoef" colSpan="3"/>
+      <field name="profitSharingBeneficiary" colSpan="3"/>
+
+      <field name="weeklyWorkHours" colSpan="3"/>
+      <field name="dailyWorkHours" colSpan="3"
+        onChange="action-employee-record-set-daily-salary-cost"/>
+      <field name="hourlyRate" colSpan="3"
+        onChange="action-employee-record-set-daily-salary-cost"/>
+      <field name="dailySalaryCost" title="Daily cost" colSpan="3" readonly="true"/>
+    </panel>
+
+    <panel name="mainEmploymentContractSBSPanel" title="Main employment contract"
+      showIf="stepByStepSelect == 2">
+      <field name="mainEmploymentContract" colSpan="12" domain="self.employee.id = :id"
+        showTitle="false">
+        <editor x-viewer="true">
+          <field name="payCompany" colSpan="3"/>
+          <field name="executiveStatusSelect" colSpan="3"/>
+          <field name="employment" colSpan="3"/>
+          <field name="companyDepartment" colSpan="3" form-view="company-department-form"
+            grid-view="company-department-grid"/>
+        </editor>
+      </field>
+      <field name="bankDetails" colSpan="3" form-view="bank-details-form"
+        grid-view="bank-details-grid" if="__config__.app.getApp('base')?.getManageMultiBanks()"
+        showIf="mainEmploymentContract.payCompany" if-module="axelor-cash-management"
+        widget="SuggestBox" onSelect="action-employee-attrs-bank-details-on-select"/>
+    </panel>
+
+    <panel-related name="employmentContractsSBSPanel" field="employmentContractList"
+      form-view="employment-contract-form" grid-view="employment-contract-employee-grid"
+      showIf="stepByStepSelect == 2"/>
+    <!-- END OF Employment contract -->
+
+    <!-- Leaves and timesheets -->
+    <panel name="leaveListSBSPanel" title="Leave List" if="__config__.app.isApp('leave')"
+      showIf="stepByStepSelect == 3">
+      <field name="leaveLineList" colSpan="12" form-view="leave-line-form"
+        grid-view="leave-line-grid"/>
+      <field name="negativeValueLeave" widget="InlineCheckbox"/>
+    </panel>
+
+    <panel name="timesheetsSBSPanel" title="Timesheets" if="__config__.app.isApp('timesheet')"
+      showIf="stepByStepSelect == 3">
+      <field name="timeLoggingPreferenceSelect" colSpan="3"/>
+      <field name="product" canEdit="false" colSpan="3"
+        domain="self.isActivity = true AND self.dtype = 'Product'" form-view="product-form"
+        grid-view="product-grid"/>
+      <field name="timesheetReminder" colSpan="3"/>
+    </panel>
+    <!-- END OF Leaves and timesheets -->
+
+    <!-- User creation -->
+    <panel name="userPanel" title="User" showIf="stepByStepSelect == 4">
+      <field name="user" title="Attach to" onSelect="action-employee-attrs-change-domain"/>
+      <button name="createUserBtn" title="Create new user"
+        onClick="save,action-employee-view-open-user-creation-form" hideIf="user != null"
+        hidden="true"/>
+    </panel>
+    <!-- END OF User creation -->
+    <!-- END OF New employee wizard -->
+    <panel name="contactPanel" showIf="stepByStepSelect == 5 &amp;&amp; $readonly()"
+      sidebar="true">
+      <field name="$viewerTags" showTitle="false" readonly="true" showIf="$readonly()"
+        colSpan="12">
+        <viewer>
+          <![CDATA[
+            <>
+            	<Box d="flex" justifyContent="center" gap="4">
+            		{hrManager && <Badge style={{ backgroundColor: "#84429f" }}>{_t('HR manager')}</Badge>}
+            		{external && <Badge style={{ backgroundColor: "#2b9cff" }}>{_t('External')}</Badge>}
+            		{$employeeStatus == "new" && <Badge style={{ backgroundColor: "#20BCB5" }}>{_t('New employee')}</Badge>}
+            		{$employeeStatus == "former" && <Badge style={{ backgroundColor: "#a1a1a1" }}>{_t('Former employee')}</Badge>}
+            	</Box>
+            </>
+	        ]]>
+        </viewer>
+      </field>
+
+      <field name="contactPartner.picture" widget="Image" showTitle="false">
+        <viewer depends="contactPartner.picture">
+          <![CDATA[
+            <>
+            	<Box d="flex" justifyContent="center">
+            		{id && <Image src={$image('id', 'content')}></Image>}
+	                {!id && <Image src="img/partner-default.png"></Image>}
+            	</Box>
+            </>
+          ]]>
+        </viewer>
+      </field>
+
+      <field name="contactPartner.fullName" showTitle="false">
+        <viewer depends="contactPartner.fullName">
+          <![CDATA[<><Box d="flex" justifyContent="center" fontWeight="bold">{contactPartner.fullName}</Box></>]]>
+        </viewer>
+      </field>
+
+      <panel name="hrPanel" showIf="managerUser || exportCode" title="Employee information"
+        colSpan="12" itemSpan="12">
+        <field name="managerUser" showIf="managerUser" colSpan="6"/>
+        <field name="exportCode" showIf="exportCode" colSpan="6"/>
+      </panel>
+
+      <panel name="contactInformationPanel" title="Contact details" itemSpan="12"
+        showIf="$readonly() &amp;&amp; (contactPartner.emailAddress.address || contactPartner.mobilePhone || contactPartner.fixedPhone || fixedProPhone || mobileProPhone || phoneAtCustomer)">
+        <field name="$contactDetails" showIf="$readonly()" showTitle="false">
+          <viewer
+            depends="contactPartner.emailAddress.address, contactPartner.mobilePhone, contactPartner.fixedPhone, fixedProPhone, mobileProPhone, phoneAtCustomer">
+            <![CDATA[
+            <>
+            	{contactPartner.emailAddress.address &&
+            		<Box d="flex" alignItems="center">
+            			<Icon icon="envelope-fill" fontSize="15px"/>
+            			<Link href={`mailto:${contactPartner.emailAddress.address}`}> {contactPartner.emailAddress.address} </Link>
+            		</Box>
+            	}
+            	{contactPartner.mobilePhone &&
+            		<Box d="flex" alignItems="center">
+            			<Icon icon="telephone" fontSize="15px"/>
+            			<Link href={`tel:${contactPartner.mobilePhone}`}> {contactPartner.mobilePhone} </Link>
+            		</Box>
+            	}
+            	{contactPartner.fixedPhone &&
+            		<Box d="flex" alignItems="center">
+            			<Icon icon="telephone" fontSize="15px"/>
+            			<Link href={`tel:${contactPartner.fixedPhone}`}> {contactPartner.fixedPhone} </Link>
+            		</Box>
+            	}
+            	{fixedProPhone &&
+            		<Box d="flex" alignItems="center">
+            			<Icon icon="telephone" fontSize="15px"/>
+            			<Link href={`tel:${fixedProPhone}`}> {fixedProPhone} </Link>
+            		</Box>
+            	}
+            	{mobileProPhone &&
+            		<Box d="flex" alignItems="center">
+            			<Icon icon="telephone" fontSize="15px"/>
+            			<Link href={`tel:${mobileProPhone}`}> {mobileProPhone} </Link>
+            		</Box>
+            	}
+            	{phoneAtCustomer &&
+            		<Box d="flex" alignItems="center">
+            			<Icon icon="telephone" fontSize="15px"/>
+            			<Link href={`tel:${phoneAtCustomer}`}> {phoneAtCustomer} </Link>
+            		</Box>
+            	}
+            </>
+          ]]>
+          </viewer>
+        </field>
+        <field name="contactPartner.emailAddress.address" hidden="true"/>
+      </panel>
+
+      <panel name="medicalVisitDatePanel" title="Medical visit" showIf="$readonly()"
+        colSpan="12"
+        if="__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getIsMedicalVisitEnabled()">
+        <field name="lastMedicalVisitDate" hidden="true"/>
+        <field name="nextMedicalVisitDate" hidden="true"/>
+        <field name="$medicalVisitDates" showTitle="false" colSpan="12">
+          <viewer depends="lastMedicalVisitDate, nextMedicalVisitDate">
+            <![CDATA[
+              <>
+                  <Box fontWeight="bold">
+                      {!lastMedicalVisitDate && <span>{_t('Last medical visit : XX/XX/XXXX')}</span>}
+                      {lastMedicalVisitDate &&
+                          <Box>
+                      		  <Box>{_t('Last medical visit :')}</Box>
+                      		  <Box>{lastMedicalVisitDate}</Box>
+                      	  </Box>
+                      }
+                      {nextMedicalVisitDate &&
+                      	  <Box>
+                      	  	  <Box>{_t('Next medical visit :')}</Box>
+                      	      <Box>{nextMedicalVisitDate}</Box>
+                      	  </Box>
+                      }
+                  </Box>
+              </>
+            ]]>
+          </viewer>
+        </field>
+      </panel>
+    </panel>
+    <panel name="editContactPanel" showIf="stepByStepSelect == 5 &amp;&amp; !$readonly()"
+      sidebar="true" colSpan="12">
+      <panel name="booleanPanel" colSpan="12">
+        <field name="hrManager" colSpan="6" widget="InlineCheckbox"/>
+        <field name="external" colSpan="6" widget="InlineCheckbox"/>
+        <field name="managerUser" canEdit="false" canNew="false" canView="false" colSpan="6"
+          form-view="user-form" grid-view="user-grid"/>
+        <field name="exportCode" colSpan="6"/>
+      </panel>
+      <field name="contactPartner" colSpan="12"
+        domain="self.employee IS null AND (self.partnerTypeSelect = 2 OR self.isContact = true)"
+        form-view="partner-contact-form" grid-view="partner-contact-grid" showTitle="false"
+        onChange="action-employee-attrs-fill-user">
+        <editor x-viewer="true">
+          <panel name="imagePanel" colSpan="12">
+            <field name="picture" colSpan="12" css="center" showTitle="false" widget="Image"/>
+          </panel>
+          <panel name="contactDetailsPanel" colSpan="12" itemSpan="12">
+            <field name="titleSelect" colSpan="2" showIf="!$readonly()"/>
+            <field name="firstName"
+              onChange="action-partner-record-simple-and-full-name,action-employee-contact-method-set-social-network-url"
+              colSpan="5" showIf="!$readonly()"/>
+            <field name="name" title="Name"
+              onChange="action-partner-record-simple-and-full-name,action-employee-contact-method-set-social-network-url"
+              colSpan="5" showIf="!$readonly()"/>
+
+            <field name="emailAddress" canNew="true" form-view="email-address-simple-form"
+              canSelect="false"/>
+            <field name="webSite" placeholder="http://www.url.com" widget="url"
+              pattern="^(?:http(?:s)?://)?\S+(?:\.\S+)+$"/>
+
+            <field name="fixedPhone" widget="phone" x-placeholder-number-type="FIXED_LINE"/>
+            <field name="mobilePhone" widget="phone"/>
+            <field name="simpleFullName" hidden="true"/>
+          </panel>
+        </editor>
+      </field>
+      <panel name="phoneProPanel" title="Work phones" colSpan="12" itemSpan="12"
+        canCollapse="true" collapseIf="true">
+        <field name="fixedProPhone" widget="phone" x-placeholder-number-type="FIXED_LINE"/>
+        <field name="mobileProPhone" widget="phone"/>
+        <field name="phoneAtCustomer" widget="phone"/>
+      </panel>
+    </panel>
+
+    <panel name="personalInfoPanel" title="Personal information" colSpan="12"
+      showIf="stepByStepSelect == 5" canCollapse="true">
+      <field name="birthDate" colSpan="4"/>
+      <field name="maritalStatus" colSpan="4"/>
+      <field name="sexSelect" colSpan="4"/>
+      <field name="countryOfBirth" colSpan="4"
+        onChange="action-employee-attrs-country-of-birth-on-change"/>
+      <field name="departmentOfBirth" colSpan="4" grid-view="hr-department-grid"
+        onChange="action-employee-attrs-department-of-birth-on-change"
+        onSelect="action-employee-attrs-department-of-birth-on-select"/>
+      <field name="cityOfBirth" colSpan="4"
+        onSelect="action-employee-attrs-city-of-birth-on-select"/>
+      <field name="citizenship" colSpan="4"/>
+      <field name="maritalName" colSpan="4"/>
+      <field name="dependentChildren" colSpan="4"/>
+      <field name="maidenName" colSpan="4" hideIf="sexSelect!='F'"/>
+      <field name="socialSecurityNumber" colSpan="4" max="15" min="12"/>
+      <field name="bankDetails" colSpan="4" form-view="bank-details-form"
+        grid-view="bank-details-grid" if="__config__.app.getApp('base')?.getManageMultiBanks()"
+        if-module="axelor-cash-management" widget="SuggestBox"
+        onSelect="action-employee-attrs-bank-details-on-select"/>
+
+      <panel name="emergencyContactPanel" title="Contact in case of emergency" colSpan="12">
+        <field name="emergencyContact" colSpan="4"/>
+        <field name="emergencyNumber" widget="phone" colSpan="4"/>
+        <field name="emergencyContactRelationship" colSpan="4" title="Relationship"/>
+      </panel>
+    </panel>
+
+
+    <panel-tabs name="mainPanelTab" showIf="stepByStepSelect == 5">
+      <panel name="employmentContractsPanel" title="Employment contracts">
+        <panel name="contractualInfoPanel" title="Contractual information" colSpan="12"
+          canCollapse="true">
+          <field name="hireDate" colSpan="4"
+            onChange="action-employee-attrs-set-seniority-date"/>
+          <field name="seniorityDate" colSpan="4"/>
+          <field name="leavingDate" colSpan="4"/>
+          <field name="bonusCoef" colSpan="6"/>
+          <field name="profitSharingBeneficiary" colSpan="6"/>
+
+          <field name="weeklyWorkHours" colSpan="3"/>
+          <field name="dailyWorkHours" colSpan="3"
+            onChange="action-employee-record-set-daily-salary-cost"/>
+          <field name="hourlyRate" colSpan="3"
+            onChange="action-employee-record-set-daily-salary-cost"/>
+          <field name="dailySalaryCost" title="Daily cost" colSpan="3" readonly="true"/>
+
+          <panel name="planningPanel" title="Plannings" colSpan="12" canCollapse="true"
+            collapseIf="true">
+            <field name="weeklyPlanning" title="Weekly planning" canNew="true" colSpan="4"
+              form-view="weekly-planning-form" grid-view="weekly-planning-grid"/>
+            <field name="publicHolidayEventsPlanning" canEdit="false" colSpan="4"
+              form-view="events-planning-form" grid-view="events-planning-grid"/>
+            <field name="imposedDayEventsPlanning" canEdit="false" colSpan="4"
+              form-view="events-planning-form" grid-view="events-planning-grid"/>
+          </panel>
+
+          <panel name="mainEmploymentContractPanel" title="Main employment contract"
+            colSpan="12" canCollapse="true" collapseIf="true">
+            <field name="mainEmploymentContract" colSpan="12" domain="self.employee.id = :id"
+              showTitle="false">
+              <editor x-viewer="true">
+                <field name="payCompany" colSpan="3"/>
+                <field name="executiveStatusSelect" colSpan="3"/>
+                <field name="employment" colSpan="3"/>
+                <field name="companyDepartment" colSpan="3"
+                  form-view="company-department-form" grid-view="company-department-grid"/>
+              </editor>
+            </field>
+          </panel>
+        </panel>
+
+        <field name="employmentContractList" colSpan="12" form-view="employment-contract-form"
+          grid-view="employment-contract-employee-grid"/>
+      </panel>
+
+      <panel name="leaveListPanel" title="Leave List" if="__config__.app.isApp('leave')">
+        <field name="leaveLineList" colSpan="12" form-view="leave-line-form"
+          grid-view="leave-line-grid"/>
+        <field name="negativeValueLeave" widget="InlineCheckbox"/>
+      </panel>
+
+      <panel name="timesheetsPanel" title="Timesheets" if="__config__.app.isApp('timesheet')">
+        <field name="timeLoggingPreferenceSelect" colSpan="3"
+          validIf="(timesheetImputationSelect == 2 &amp;&amp; timeLoggingPreferenceSelect != 'days') || timesheetImputationSelect != 2"/>
+        <field name="product" canEdit="false" colSpan="3"
+          domain="self.isActivity = true AND self.dtype = 'Product'" form-view="product-form"
+          grid-view="product-grid"/>
+        <field name="timesheetReminder" colSpan="3"/>
+
+        <panel-dashlet name="employeeUserTimesheetsPanel"
+          action="action-employee-view-user-timesheets" colSpan="12"/>
+      </panel>
+
+      <panel name="benefitsPanel" title="Benefits and expenses" colSpan="12" itemSpan="12">
+        <panel name="lunchVoucherPanel" title="Lunch vouchers"
+          if="__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getLunchVoucher()"
+          canCollapse="true" collapseIf="true">
+          <field name="lunchVoucherFormatSelect" colSpan="3"/>
+          <field name="lunchVoucherDistribution" showIf="lunchVoucherFormatSelect == 3"
+            colSpan="3"/>
+
+          <panel-dashlet name="lunchVouchersDashletPanel" title="Lunch vouchers"
+            action="action-employee-view-show-lunch-voucher" colSpan="12"/>
+
+          <panel-related name="lunchVoucherAdvanceListPanel"
+            field="lunchVoucherAdvanceList" canEdit="false" canNew="false" canRemove="true"
+            colSpan="12" form-view="lunch-voucher-advance-form"
+            grid-view="lunch-voucher-advance-grid"/>
+          <button name="addLunchVoucherAdvanceBtn" title="Add an advance" colSpan="3"
+            icon="ticket-fill" onClick="save,action-lunch-voucher-advance-new"/>
+        </panel>
+
+        <panel name="expensesPanel" title="Expenses" canCollapse="true" collapseIf="true">
+          <field name="companyCbSelect" onChange="action-hr-record-reset-company-cb-details"
+            colSpan="3"/>
+          <field name="companyCbDetails" colSpan="3" hidden="true"
+            showIf="companyCbSelect > 1"/>
+          <field name="analyticDistributionTemplate"
+            grid-view="analytic-distribution-template-grid"
+            form-view="analytic-distribution-template-form"
+            if="__config__.app.isApp('account') &amp;&amp; __config__.app.getApp('account')?.getManageAnalyticAccounting()"
+            onSelect="action-employee-method-set-domain-analytic-distribution-template"/>
+          <panel-related name="expenseLimitListPanel" title="Expense limits"
+            field="expenseLimitList" colSpan="12" form-view="expense-limit-form"
+            grid-view="expense-limit-grid"/>
+          <panel-related name="employeeAdvanceListPanel" title="Employee advances"
+            field="employeeAdvanceList" colSpan="12" form-view="employee-advance-employee-form"
+            grid-view="employee-advance-employee-grid"
+            if="__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getAdvanceManagement()"
+            readonly="false"/>
+          <panel-related name="bankCardPanel" title="Bank cards" field="bankCardList"
+            colSpan="12" form-view="bank-card-form-from-employee" grid-view="bank-card-grid"/>
+        </panel>
+
+        <panel name="vehiclePanel" title="Vehicle" if="__config__.app.isApp('expense')"
+          canCollapse="true" collapseIf="true">
+          <panel-related name="kilometricLogListPanel" title="Kilometric log"
+            field="kilometricLogList" colSpan="12" form-view="kilometric-log-form"
+            grid-view="kilometric-log-grid" if="__config__.app.isApp('timesheet')" readonly="true"/>
+
+          <panel name="vehicleListPanel" title="Vehicles" colSpan="12">
+            <field name="employeeVehicleList" colSpan="12" showTitle="false">
+              <editor colSpan="12" x-layout="table" x-show-on-new="true" x-viewer="true">
+                <field name="vehicleRegistrationCertificate" colSpan="2" widget="Image"/>
+                <panel colSpan="10" itemSpan="4">
+                  <field name="vehicleMake"/>
+                  <field name="vehicleModel"/>
+                  <field name="plateNo"/>
+                  <field name="kilometricAllowParam" canEdit="false" widget="SuggestBox"/>
+                  <field name="startDate" onChange="action-employee-validate-dates"/>
+                  <field name="endDate" onChange="action-employee-validate-dates"/>
+                </panel>
+              </editor>
+            </field>
+          </panel>
+        </panel>
+
+        <panel name="bonusDashletPanel" title="Bonuses" canCollapse="true" collapseIf="true">
+          <panel-dashlet name="employeeBonusDashletPanel" title="Bonuses"
+            action="employee.dashlet.employee.bonus" colSpan="12"
+            if="__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getEmployeeBonus()"
+            readonly="true" canCollapse="true" collapseIf="true"/>
+        </panel>
+      </panel>
+
+      <panel name="talentPanel" title="Training" colSpan="12" itemSpan="12"
+        if="__config__.app.isApp('training')">
+        <panel-include if-module="axelor-talent" view="talent-employee-form"/>
+      </panel>
+      <panel name="dpaePanel" title="DPAE" if="__user__.activeCompany?.hrConfig?.enableDPAE">
+        <button name="generateNewDPAE" title="Generate new DPAE" colSpan="3"
+          onClick="save,action-employee-method-generate-new-dpae"/>
+        <panel-related field="dpaeList" colSpan="12" canNew="false"
+          grid-view="dpae-grid" form-view="dpae-form"/>
+      </panel>
+
+      <panel name="employeeFileListPanel" title="Files" colSpan="12">
+        <panel-related field="employeeFileList" showTitle="false"
+          grid-view="employee-file-grid" form-view="file-form" colSpan="12"/>
+      </panel>
+
+      <panel name="medicalVisitPanel" title="Medical visit" colSpan="12"
+        if="__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getIsMedicalVisitEnabled()">
+        <panel-related field="medicalVisitList" showTitle="false"
+          form-view="medical-visit-form" grid-view="medical-visit-grid" colSpan="12"
+          onChange="action-employee-method-update-employee-files-with-medical-visit"
+          x-can-copy="true"/>
+      </panel>
+    </panel-tabs>
+
+    <panel-mail name="mailPanel">
+      <mail-messages limit="4"/>
+      <mail-followers/>
+    </panel-mail>
+
+  </form>
+
+  <action-method name="action-employee-method-generate-new-dpae">
+    <call class="com.axelor.apps.hr.web.EmployeeController" method="generateNewDPAE"/>
+  </action-method>
+
+  <action-record name="action-employee-record-previous-step"
+    model="com.axelor.apps.hr.db.Employee">
+    <field name="stepByStepSelect" expr="eval: stepByStepSelect - 1"/>
+  </action-record>
+
+  <action-attrs name="action-employee-attrs-timesheet-imputation-select-selection-in">
+    <attribute name="selection-in" for="timeLoggingPreferenceSelect"
+      expr="eval:['hours', 'minutes']" if="timesheetImputationSelect == 2"/>
+    <attribute name="selection-in" for="timeLoggingPreferenceSelect"
+      expr="eval:['days','hours','minutes']" if="timesheetImputationSelect != 2"/>
+  </action-attrs>
+
+  <action-record name="action-employee-record-next-step"
+    model="com.axelor.apps.hr.db.Employee">
+    <field name="stepByStepSelect" expr="eval: stepByStepSelect + 1"/>
+  </action-record>
+
+  <action-record name="action-employee-record-finish-sbs"
+    model="com.axelor.apps.hr.db.Employee">
+    <field name="stepByStepSelect" expr="eval: 5"/>
+  </action-record>
+
+  <action-attrs name="action-employee-attrs-country-of-birth-on-change">
+    <attribute name="value" for="citizenship" expr="eval: countryOfBirth?.citizenship"/>
+    <attribute name="value" for="departmentOfBirth" expr="eval: null"/>
+    <attribute name="value" for="cityOfBirth" expr="eval: null"/>
+  </action-attrs>
+
+  <action-attrs name="action-employee-attrs-department-of-birth-on-select">
+    <attribute name="domain" for="departmentOfBirth"
+      expr="eval: &quot; self.region.country.id = ${countryOfBirth?.id} &quot;"/>
+  </action-attrs>
+
+  <action-attrs name="action-employee-attrs-city-of-birth-on-select">
+    <attribute name="domain" for="cityOfBirth" expr="eval: &quot; self.id IN (0) &quot;"/>
+    <attribute name="domain" for="cityOfBirth"
+      expr="eval: &quot; self.country.id = ${countryOfBirth?.id} &quot;"
+      if="countryOfBirth != null &amp;&amp; departmentOfBirth == null"/>
+    <attribute name="domain" for="cityOfBirth"
+      expr="eval: &quot; self.department.id = ${departmentOfBirth?.id} &quot;"
+      if="countryOfBirth == null &amp;&amp; departmentOfBirth != null"/>
+    <attribute name="domain" for="cityOfBirth"
+      expr="eval: &quot; self.country.id = ${countryOfBirth?.id} AND self.department.id = ${departmentOfBirth?.id} &quot;"
+      if="countryOfBirth != null &amp;&amp; departmentOfBirth != null"/>
+  </action-attrs>
+
+  <action-attrs name="action-employee-attrs-department-of-birth-on-change">
+    <attribute name="value" for="cityOfBirth" expr="eval: null"/>
+  </action-attrs>
+
+  <action-attrs name="action-employee-attrs-bank-details-on-select">
+    <attribute name="domain" expr="eval: &quot;self IS null&quot;" for="bankDetails"/>
+    <attribute if="!mainEmploymentContract?.payCompany?.bankDetailsList?.isEmpty()"
+      name="domain"
+      expr="eval: &quot;self.id IN (${mainEmploymentContract?.payCompany?.bankDetailsList?.collect{it.id}?.join(',')}) AND self.active = true&quot;"
+      for="bankDetails"/>
+  </action-attrs>
+
+  <form name="employee-annual-report-form" title="Annual report"
+    model="com.axelor.apps.hr.db.Employee">
+    <panel name="mainPanel">
+      <field name="year" title="Year" domain="self.typeSelect = 1"
+        target="com.axelor.apps.base.db.Year" type="many-to-one"/>
+      <button name="showAnnualReportBtn" title="Show expenses annual report"
+        readonlyIf="year == null" onClick="action-employee-method-show-annual-report"/>
+    </panel>
+  </form>
+
+  <cards name="employee-card" title="Employee" model="com.axelor.apps.hr.db.Employee"
+    css="rect-image" orderBy="contactPartner.simpleFullName">
+    <toolbar>
+      <button name="printEmployeePhoneBookBtn" title="Employee PhoneBook" icon="printer"
+        onClick="action-print-employee-phonebook"/>
+    </toolbar>
+    <field name="contactPartner.picture"/>
+    <field name="contactPartner.firstName"/>
+    <field name="contactPartner.name"/>
+    <field name="contactPartner.fixedPhone"/>
+    <field name="contactPartner.mobilePhone"/>
+    <field name="mainEmploymentContract.payCompany"/>
+    <field name="mainEmploymentContract.companyDepartment"/>
+    <field name="hrManager"/>
+    <field name="external"/>
+    <field name="$employeeStatus"/>
+    <template><![CDATA[
+		<>
+			<Box style={{ height: 180, margin: "-1rem", ...(hrManager && { borderStyle: "inset" }), ...(external && { backgroundColor: "#7dc2ff" }), ...($employeeStatus == "former" && { backgroundColor: "#c9c9c9" }) }}>
+			    <Box d="grid" gridTemplateColumns="35% 65%" style={{ height: 150 }}>
+			        <Box d="flex" flexDirection="column" alignItems="center" justifyContent="center">
+			            <Image src={$image('contactPartner.picture', 'content')} style={{ width: 128, height: 64 }}></Image>
+			            <Box as="strong" mt={2} style={{ ...((external || $employeeStatus == "former") && { color: "black" }) }}>{contactPartner.firstName} {contactPartner.name}</Box>
+			        </Box>
+			        <Box position="absolute" ps={4} style={{ width: "60%", height: "100%", left: "35%", top: 0 }}>
+			            <Box d="flex" alignItems="center" borderStart borderWidth={2} w={100} h={100} style={{ transform: "skew(-20deg, 0deg)" }}>
+			                <Box style={{ height: "60%", width: "2rem", boxShadow: "rgb(0 0 0 / 25%) 3px 3px 8px", backgroundColor: "#ddd", ...($employeeStatus == "new" && { backgroundColor: "#20BCB5" }), ...(external && { backgroundColor: "#2b9cff" }), ...(hrManager && { backgroundColor: "#84429f" }) }} />
+
+			                <Box d="flex" alignItems="center" w={100} style={{ position: "absolute", top: "20%", left: "0.25rem", minHeight: "60%" }}>
+			                    <Box as="ul" m={0} p={0} w={100} style={{ listStyle: "none" }}>
+			                        {(() => {
+			                            const renderItem = (icon, value, title) => {
+			                                return value && String(value).trim() && (
+			                                    <Box as="li" d="flex" gap={24} style={{ transform: "skew(20deg, 0deg)" }}>
+			                                        <Icon icon={icon} color={(hrManager || $employeeStatus == "new") ? "white" : "black"}/>
+			                                        <Box as="span" style={{ ...((external || $employeeStatus == "former") && { color: "black" }) }}>{title && <strong>{title} : </strong>} {value}</Box>
+			                                    </Box>
+			                                );
+			                            };
+			                            return (
+			                                <>
+			                                    {renderItem("telephone", contactPartner.fixedPhone)}
+			                                    {renderItem("phone", contactPartner.mobilePhone)}
+			                                    {renderItem("house-fill", mainEmploymentContract.payCompany.name, "Company")}
+			                                    {renderItem("house-fill", mainEmploymentContract.companyDepartment.name, "Department")}
+			                                </>
+			                            );
+			                        })()}
+			                    </Box>
+			                </Box>
+			            </Box>
+			        </Box>
+			    </Box>
+			    <Box d="flex" justifyContent="flex-end" gap="4" alignItems="center" me={1}>
+			        {hrManager && <Badge style={{ backgroundColor: "#84429f" }}>{_t('HR manager')}</Badge>}
+			        {external && <Badge style={{ backgroundColor: "#2b9cff" }}>{_t('External')}</Badge>}
+                    {$employeeStatus == "new" && <Badge style={{ backgroundColor: "#20BCB5" }}>{_t('New employee')}</Badge>}
+			        {$employeeStatus == "former" && <Badge style={{ backgroundColor: "#707070" }}>{_t('Former employee')}</Badge>}
+			    </Box>
+			</Box>
+		</>
+		]]>
+    </template>
+  </cards>
+
+  <action-record name="action-employee-record-default"
+    model="com.axelor.apps.hr.db.Employee">
+    <field name="timeLoggingPreferenceSelect"
+      expr="eval:__config__.app.getApp('base')?.getTimeLoggingPreferenceSelect()"/>
+    <field name="dailyWorkHours"
+      expr="eval:__config__.app.getApp('base')?.getDailyWorkHours()"/>
+    <field name="negativeValueLeave"
+      expr="eval:__config__.app.getApp('leave')?.getAllowNegativeLeaveEmployees()"
+      if="__config__.app.isApp('leave')"/>
+    <field name="publicHolidayEventsPlanning"
+      expr="eval: __user__.activeCompany?.publicHolidayEventsPlanning"/>
+    <field name="weeklyPlanning" expr="eval: __user__.activeCompany?.weeklyPlanning"/>
+  </action-record>
+
+  <action-record name="action-hr-record-reset-company-cb-details"
+    model="com.axelor.apps.hr.db.Employee">
+    <field name="companyCbDetails" expr="eval: ''"/>
+  </action-record>
+
+  <action-attrs name="action-attrs-employee-step-by-step-select-selection-in">
+    <attribute name="selection-in" for="stepByStepSelect" expr="eval: [1, 2, 3, 4]"
+      if="user == null"/>
+    <attribute name="selection-in" for="stepByStepSelect" expr="eval: [1, 2, 3]" if="user"/>
+  </action-attrs>
+
+  <action-group name="action-group-employee-on-load">
+    <action name="action-employee-method-set-social-network-url"/>
+    <action name="action-attrs-employee-step-by-step-select-selection-in"/>
+    <action name="action-employee-attrs-timesheet-imputation-select-selection-in"/>
+  </action-group>
+
+  <action-group name="action-group-employee-on-new">
+    <action name="action-employee-record-default"/>
+    <action name="action-attrs-employee-step-by-step-select-selection-in"/>
+    <action name="action-employee-attrs-timesheet-imputation-select-selection-in"/>
+  </action-group>
+
+  <action-view name="action-employee-user-show-employee" title="Employee"
+    model="com.axelor.apps.hr.db.Employee">
+    <view type="grid" name="employee-grid"/>
+    <view type="form" name="employee-form"/>
+    <view-param name="forceEdit" value="true"/>
+    <context name="_showRecord" expr="eval:employee?.id"/>
+  </action-view>
+
+  <action-view name="action-employee-view-show-lunch-voucher" title="Lunch Vouchers"
+    model="com.axelor.apps.hr.db.LunchVoucherMgtLine">
+    <view type="grid" name="lunch-voucher-mgt-line-employee-grid"/>
+    <view type="form" name="lunch-voucher-mgt-line-form"/>
+    <domain>self.employee.id = :employeeId</domain>
+    <context name="employeeId" expr="eval: id"/>
+  </action-view>
+
+  <action-view name="employee.dashlet.employee.bonus" title="Bonuses"
+    model="com.axelor.apps.hr.db.EmployeeBonusMgtLine">
+    <view type="grid" name="employee-bonus-mgt-line-employee-grid"/>
+    <view type="form" name="employee-bonus-mgt-line-employee-form"/>
+    <domain>self.employee.id = :employeeId</domain>
+    <context name="employeeId" expr="eval: id"/>
+  </action-view>
+
+  <action-view name="action-employee-view-annual-report-wizard" title="Annual report"
+    model="com.axelor.apps.hr.db.Employee">
+    <view type="form" name="employee-annual-report-form"/>
+    <view-param name="popup" value="reload"/>
+    <view-param name="show-toolbar" value="false"/>
+    <view-param name="show-confirm" value="false"/>
+    <view-param name="popup-save" value="false"/>
+    <view-param name="width" value="800"/>
+  </action-view>
+
+  <action-view name="action-employee-view-user-timesheets" title="Timesheets"
+    model="com.axelor.apps.hr.db.Timesheet">
+    <view type="grid" name="my-timesheets-grid"/>
+    <view type="form" name="timesheet-form"/>
+    <domain>self.employee.id = :id</domain>
+  </action-view>
+
+  <action-method name="action-employee-method-show-annual-report">
+    <call class="com.axelor.apps.hr.web.EmployeeController" method="showAnnualReport"/>
+  </action-method>
+
+  <action-method name="action-employee-method-set-social-network-url">
+    <call class="com.axelor.apps.hr.web.EmployeeController"
+      method="setEmployeeSocialNetworkUrl"/>
+  </action-method>
+
+  <action-method name="action-employee-contact-method-set-social-network-url">
+    <call class="com.axelor.apps.hr.web.EmployeeController" method="setContactSocialNetworkUrl"/>
+  </action-method>
+
+  <action-method name="action-print-employee-phonebook">
+    <call class="com.axelor.apps.hr.web.EmployeeController" method="printEmployeePhonebook"/>
+  </action-method>
+
+  <action-condition name="action-employee-validate-dates">
+    <check error="Invalid date" field="endDate"
+      if="startDate != null &amp;&amp; endDate != null  &amp;&amp; (endDate &lt; startDate)"/>
+  </action-condition>
+
+  <action-attrs name="action-employee-attrs-change-domain">
+    <attribute for="user" name="domain"
+      expr="eval: &quot;self.employee IS null AND self.partner IS null&quot;"
+      if="__this__.contactPartner.linkedUser == null"/>
+    <attribute for="user" name="domain"
+      expr="eval: &quot;self.employee IS null AND self.partner = :contactPartner&quot;"
+      if="__this__.contactPartner.linkedUser != null"/>
+  </action-attrs>
+
+  <action-attrs name="action-employee-attrs-set-seniority-date">
+    <attribute name="value" for="seniorityDate" expr="eval: hireDate"
+      if="seniorityDate == null"/>
+  </action-attrs>
+
+  <action-attrs name="action-employee-attrs-fill-user">
+    <!-- This case doesn't currently work due to an AOP issue -->
+    <!--attribute for="user" name="value" expr="eval: null" if="contactPartner == null"/ -->
+    <attribute for="user" name="value" expr="eval: contactPartner?.linkedUser"
+      if="contactPartner?.linkedUser != null &amp;&amp; contactPartner?.employee == null"/>
+  </action-attrs>
+
+  <action-method
+    name="action-employee-method-update-employee-files-with-medical-visit">
+    <call class="com.axelor.apps.hr.web.EmployeeController"
+      method="updateEmployeeFilesWithMedicalVisit"/>
+  </action-method>
+
+  <action-method
+    name="action-employee-method-set-domain-analytic-distribution-template">
+    <call class="com.axelor.apps.hr.web.EmployeeController"
+      method="setDomainAnalyticDistributionTemplate"/>
+  </action-method>
+
+  <action-record name="action-employee-record-set-daily-salary-cost"
+    model="com.axelor.apps.hr.db.Employee">
+    <field name="dailySalaryCost" expr="eval: dailyWorkHours * hourlyRate"/>
+  </action-record>
+
+  <search-filters name="employee-filters" model="com.axelor.apps.hr.db.Employee"
+    title="Employee filters">
+    <field name="bankDetails" hidden="true"
+      if="!__config__.app.getApp('base')?.getManageMultiBanks()"/>
+    <field name="lunchVoucherFormatSelect" hidden="true"
+      if="!(__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getLunchVoucher())"/>
+    <field name="lunchVoucherAdvanceList" hidden="true"
+      if="!(__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getLunchVoucher())"/>
+    <field name="employeeAdvanceList" hidden="true"
+      if="!(__config__.app.isApp('employee') &amp;&amp; __config__.app.getApp('employee')?.getAdvanceManagement())"/>
+    <field name="leaveLineList" hidden="true" if="!__config__.app.isApp('leave')"/>
+    <field name="negativeValueLeave" hidden="true" if="!__config__.app.isApp('leave')"/>
+    <field name="timeLoggingPreferenceSelect" hidden="true"
+      if="!__config__.app.isApp('timesheet')"/>
+    <field name="product" hidden="true" if="!__config__.app.isApp('timesheet')"/>
+    <field name="timesheetReminder" hidden="true" if="!__config__.app.isApp('timesheet')"/>
+    <field name="kilometricLogList" hidden="true" if="!__config__.app.isApp('timesheet')"/>
+    <field name="employeeVehicleList" hidden="true" if="!__config__.app.isApp('expense')"/>
+    <field name="mainEmploymentContract.payCompany"
+      title="Pay company main employment contract"/>
+    <field name="mainEmploymentContract.executiveStatusSelect"
+      title="Main employment contract status"/>
+    <field name="socialSecurityNumber" title="Social security number" hidden="true"/>
+    <field name="contactPartner.firstName" title="First name"/>
+    <filter name="employee-filters-new-employees" title="New employees">
+      <domain>self.leavingDate IS NULL AND self.hireDate &gt; CURRENT_DATE - 30</domain>
+    </filter>
+    <filter name="employee-filters-active-employees" title="Active employees">
+      <domain>(self.hireDate IS NULL AND self.leavingDate &gt;= CURRENT_DATE)
+        OR (self.leavingDate IS
+        NULL AND (self.hireDate + 30) &lt;= CURRENT_DATE)
+        OR (self.hireDate IS NOT NULL AND
+        self.leavingDate IS NOT NULL
+        AND (self.hireDate + 30) &lt;= CURRENT_DATE AND self.leavingDate
+        &gt;= CURRENT_DATE)</domain>
+    </filter>
+    <filter name="employee-filters-former-employees" title="Former employees">
+      <domain>self.leavingDate &lt; CURRENT_DATE</domain>
+    </filter>
+  </search-filters>
+</object-views>

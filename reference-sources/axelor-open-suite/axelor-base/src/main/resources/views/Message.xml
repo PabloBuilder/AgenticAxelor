@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <form name="message-form" id="base-message-form" title="Email"
+    model="com.axelor.message.db.Message" extension="true">
+    <extend target="/">
+      <attribute name="onNew" value="action-group-base-message-onnew"/>
+    </extend>
+    <extend target="//field[@name='$statusSelectTag']">
+      <replace/>
+    </extend>
+    <extend target="//field[@name='mediaTypeSelect']">
+      <insert position="before">
+        <field name="$statusSelectTag" showTitle="false" readonly="true" colSpan="12"
+          css="label-bold bold">
+          <viewer><![CDATA[
+	          <>
+	              <Box d="flex" justifyContent="flex-end">
+	                  {statusSelect == 1 && sentDateT == null && <Badge bg="info">{_t('Not sent')}</Badge>}
+	                  {statusSelect == 3 && sentDateT != null && <Badge bg="success">{_t('Successful send')}</Badge>}
+	                  {statusSelect == 2 && sentDateT == null && <Badge bg="danger">{_t('In progress')}</Badge>}
+	              </Box>
+	          </>
+          ]]></viewer>
+        </field>
+      </insert>
+    </extend>
+    <extend target="//field[@name='senderUser']">
+      <attribute name="canNew" value="false"/>
+      <attribute name="canView" value="false"/>
+      <attribute name="canEdit" value="false"/>
+    </extend>
+    <extend target="//field[@name='sentDateT']">
+      <attribute name="colSpan" value=""/>
+      <attribute name="showIf" value="sentDateT"/>
+    </extend>
+    <extend target="//field[@name='mailAccount']">
+      <attribute name="domain" value=""/>
+      <attribute name="onSelect" value="action-message-attribute-mail-account"/>
+    </extend>
+    <extend target="//field[@name='replyToEmailAddressSet']">
+      <attribute name="hidden" value="true"/>
+    </extend>
+    <extend target="//panel[@name='recipientsPanel']">
+      <attribute name="showIf" value="mediaTypeSelect == 2"/>
+    </extend>
+    <extend target="//panel[@name='recipientPanel']">
+      <replace/>
+    </extend>
+    <extend target="//field[@name='recipientUser']">
+      <attribute name="canNew" value="false"/>
+      <attribute name="canView" value="false"/>
+      <attribute name="canEdit" value="false"/>
+    </extend>
+    <extend target="//field[@name='multiRelatedList']">
+      <insert position="before">
+        <field name="company" form-view="company-form" grid-view="company-grid" colSpan="12"
+          canEdit="false"/>
+      </insert>
+    </extend>
+  </form>
+
+  <action-group name="action-group-base-message-onnew">
+    <action name="action-group-message-message-onnew"/>
+    <action name="action-message-record-active-company" if="_message == null"/>
+  </action-group>
+
+  <action-attrs name="action-message-attribute-mail-account">
+    <attribute name="domain" for="mailAccount" expr="self.isValid IS TRUE"/>
+    <attribute name="domain" for="mailAccount"
+      expr="self.isValid IS TRUE AND self.company = :company"
+      if="eval: __config__.app.getApp('base')?.getEmailAccountByCompany() &amp;&amp; company != null"/>
+    <attribute name="domain" for="mailAccount"
+      expr="self.isValid IS TRUE AND self.user = :__user__"
+      if="eval: __config__.app.getApp('base')?.getEmailAccountByUser()"/>
+    <attribute name="domain" for="mailAccount"
+      expr="self.isValid IS TRUE AND (self.user IS NULL OR self.user = :__user__) AND (self.company IS NULL OR self.company = :company)"
+      if="eval: __config__.app.getApp('base').getEmailAccountByUser() &amp;&amp; __config__.app.getApp('base').getEmailAccountByCompany() &amp;&amp; company != null"/>
+  </action-attrs>
+
+  <action-record model="com.axelor.message.db.Message"
+    name="action-message-record-active-company">
+    <field name="company" expr="eval:__user__.activeCompany"
+      if="__user__.activeCompany != null"/>
+    <field name="company" expr="eval:__repo__(Company).all().fetchOne()"
+      if="__user__.activeCompany == null &amp;&amp; __repo__(Company).all().count() == 1"/>
+  </action-record>
+
+</object-views>

@@ -1,0 +1,164 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.account.web;
+
+import com.axelor.apps.account.db.PaymentMode;
+import com.axelor.apps.account.db.PaymentSchedule;
+import com.axelor.apps.account.db.repo.PaymentScheduleRepository;
+import com.axelor.apps.account.service.BankDetailsDomainServiceAccount;
+import com.axelor.apps.account.service.IrrecoverableService;
+import com.axelor.apps.account.service.PaymentScheduleService;
+import com.axelor.apps.account.service.invoice.BankDetailsServiceAccount;
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.BankDetails;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Partner;
+import com.axelor.apps.base.db.repo.PartnerRepository;
+import com.axelor.apps.base.service.BankDetailsService;
+import com.axelor.apps.base.service.exception.ErrorException;
+import com.axelor.apps.base.service.exception.TraceBackService;
+import com.axelor.inject.Beans;
+import com.axelor.rpc.ActionRequest;
+import com.axelor.rpc.ActionResponse;
+import jakarta.inject.Singleton;
+
+@Singleton
+public class PaymentScheduleController {
+
+  // Validation button
+  public void validate(ActionRequest request, ActionResponse response) {
+
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+    paymentSchedule = Beans.get(PaymentScheduleRepository.class).find(paymentSchedule.getId());
+
+    try {
+      Beans.get(PaymentScheduleService.class).validatePaymentSchedule(paymentSchedule);
+      response.setReload(true);
+    } catch (Exception e) {
+      TraceBackService.trace(response, e);
+    }
+  }
+
+  // Cancel button
+  public void cancel(ActionRequest request, ActionResponse response) {
+
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+    paymentSchedule = Beans.get(PaymentScheduleRepository.class).find(paymentSchedule.getId());
+
+    try {
+      Beans.get(PaymentScheduleService.class).toCancelPaymentSchedule(paymentSchedule);
+      response.setReload(true);
+    } catch (Exception e) {
+      TraceBackService.trace(response, e);
+    }
+  }
+
+  /**
+   * Called on partner, company or payment mode change. Fill the bank details with a default value.
+   *
+   * @param request
+   * @param response
+   * @throws AxelorException
+   */
+  public void fillCompanyBankDetails(ActionRequest request, ActionResponse response)
+      throws AxelorException {
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+    PaymentMode paymentMode = paymentSchedule.getPaymentMode();
+    Company company = paymentSchedule.getCompany();
+    Partner partner = paymentSchedule.getPartner();
+
+    if (company == null) {
+      return;
+    }
+    if (partner != null) {
+      partner = Beans.get(PartnerRepository.class).find(partner.getId());
+    }
+    BankDetails defaultBankDetails =
+        Beans.get(BankDetailsService.class)
+            .getDefaultCompanyBankDetails(company, paymentMode, partner, null);
+    response.setValue("companyBankDetails", defaultBankDetails);
+  }
+
+  /**
+   * Called on partner change. Fill the bank details with a default value.
+   *
+   * @param request
+   * @param response
+   */
+  public void fillPartnerBankDetails(ActionRequest request, ActionResponse response) {
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+    BankDetails defaultBankDetails =
+        Beans.get(BankDetailsServiceAccount.class)
+            .getDefaultBankDetails(
+                paymentSchedule.getPartner(),
+                paymentSchedule.getCompany(),
+                paymentSchedule.getPaymentMode());
+    response.setValue("bankDetails", defaultBankDetails);
+  }
+
+  // Creating payment schedule lines button
+  public void createPaymentScheduleLines(ActionRequest request, ActionResponse response) {
+
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+    paymentSchedule = Beans.get(PaymentScheduleRepository.class).find(paymentSchedule.getId());
+
+    Beans.get(PaymentScheduleService.class).createPaymentScheduleLines(paymentSchedule);
+    response.setReload(true);
+  }
+
+  public void passInIrrecoverable(ActionRequest request, ActionResponse response) {
+
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+    paymentSchedule = Beans.get(PaymentScheduleRepository.class).find(paymentSchedule.getId());
+
+    try {
+      Beans.get(IrrecoverableService.class).passInIrrecoverable(paymentSchedule);
+      response.setReload(true);
+    } catch (Exception e) {
+      TraceBackService.trace(response, e);
+    }
+  }
+
+  public void notPassInIrrecoverable(ActionRequest request, ActionResponse response) {
+
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+    paymentSchedule = Beans.get(PaymentScheduleRepository.class).find(paymentSchedule.getId());
+
+    try {
+      Beans.get(IrrecoverableService.class).notPassInIrrecoverable(paymentSchedule);
+      response.setReload(true);
+    } catch (Exception e) {
+      TraceBackService.trace(response, e);
+    }
+  }
+
+  @ErrorException
+  public void setBankDetailsDomain(ActionRequest request, ActionResponse response) {
+    PaymentSchedule paymentSchedule = request.getContext().asType(PaymentSchedule.class);
+
+    String domain =
+        Beans.get(BankDetailsDomainServiceAccount.class)
+            .createDomainForBankDetails(
+                paymentSchedule.getPartner(),
+                paymentSchedule.getPaymentMode(),
+                paymentSchedule.getCompany());
+
+    response.setAttr("bankDetails", "domain", domain);
+  }
+}

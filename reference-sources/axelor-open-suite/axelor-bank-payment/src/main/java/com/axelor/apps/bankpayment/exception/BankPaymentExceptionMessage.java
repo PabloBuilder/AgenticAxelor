@@ -1,0 +1,334 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.bankpayment.exception;
+
+public final class BankPaymentExceptionMessage {
+
+  private BankPaymentExceptionMessage() {}
+
+  /** Bank statement service */
+  public static final String BANK_STATEMENT_2 = /*$$(*/
+      "%s : MoveLine amount is not equals with bank statement line %s" /*)*/;
+
+  public static final String BANK_STATEMENT_3 = /*$$(*/
+      "%s : Bank statement line %s amount can't be null" /*)*/;
+
+  /** Account config Bank Payment Service */
+  public static final String ACCOUNT_CONFIG_41 = /*$$(*/
+      "%s : Please, configure a default signer for the company %s" /*)*/;
+
+  public static final String ACCOUNT_CONFIG_1 = /*$$(*/
+      "%s : You must configure bank payment's information for the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_5 = /*$$(*/
+      "%s : Please, configure a sequence for the SEPA Credit Transfers and the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_6 = /*$$(*/
+      "%s : Please, configure a sequence for the SEPA Direct Debits and the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_7 = /*$$(*/
+      "%s : Please, configure a sequence for the International Credit Transfers and the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_8 = /*$$(*/
+      "%s : Please, configure a sequence for the International Direct Debits and the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_9 = /*$$(*/
+      "%s : Please, configure a sequence for the International Treasury Transfers and the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_10 = /*$$(*/
+      "%s : Please, configure a sequence for the National Treasury Transfers and the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_11 = /*$$(*/
+      "%s : Please, configure a sequence for the Other Bank Orders and the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_SEQUENCE_12 = /*$$(*/
+      "%s : Please, configure a sequence for the Bill of exchange and the company %s" /*)*/;
+
+  public static final String ACCOUNT_CONFIG_EXTERNAL_BANK_TO_BANK_ACCOUNT = /*$$(*/
+      "%s : Please, configure an account for the bank order for the external bank to bank transfer for the company %s" /*)*/;
+  public static final String ACCOUNT_CONFIG_INTERNAL_BANK_TO_BANK_ACCOUNT = /*$$(*/
+      "%s : Please, configure an account for the bank order for the internal bank to bank transfer for the company %s" /*)*/;
+
+  public static final String ACCOUNT_CONFIG_MISSING_ICS_NUMBER = /*$$(*/
+      "%s : Please configure an ICS number for the company %s." /*)*/;
+
+  /** BankOrder service */
+  public static final String BANK_ORDER_DATE_MISSING = /*$$(*/ "Please fill bank order date" /*)*/;
+
+  public static final String BANK_ORDER_TYPE_MISSING = /*$$(*/ "Please fill bank order type" /*)*/;
+  public static final String BANK_ORDER_FILE_FORMAT_MISSING = /*$$(*/
+      "Please fill the bank order file format on the payment mode %s" /*)*/;
+  public static final String BANK_ORDER_PARTNER_TYPE_MISSING = /*$$(*/
+      "Please fill partner type for the bank order" /*)*/;
+  public static final String BANK_ORDER_COMPANY_MISSING = /*$$(*/
+      "Please fill the sender company" /*)*/;
+  public static final String BANK_ORDER_BANK_DETAILS_MISSING = /*$$(*/
+      "Please fill the bank details" /*)*/;
+  public static final String BANK_ORDER_PAYMENT_MODE_MISSING = /*$$(*/
+      "Please select a payment mode" /*)*/;
+  public static final String BANK_ORDER_WRONG_SENDER_RECORD = /*$$(*/
+      "Anomaly has been detected during file generation for the sender record of the bank order %s" /*)*/;
+  public static final String BANK_ORDER_WRONG_MAIN_DETAIL_RECORD = /*$$(*/
+      "Anomaly has been detected during file generation for the detail record of the bank order line %s" /*)*/;
+  public static final String BANK_ORDER_WRONG_ENDORSED_DETAIL_RECORD = /*$$(*/
+      "Anomaly has been detected during file generation for the endorsed detail record of the bank order line %s" /*)*/;
+  public static final String BANK_ORDER_WRONG_ADDITIONAL_DETAIL_RECORD = /*$$(*/
+      "Anomaly has been detected during file generation for the additional detail record of the bank order line %s" /*)*/;
+  public static final String BANK_ORDER_WRONG_BENEFICIARY_BANK_DETAIL_RECORD = /*$$(*/
+      "Anomaly has been detected during file generation for the beneficiary bank detail record of the bank order line %s" /*)*/;
+  public static final String BANK_ORDER_WRONG_FURTHER_INFORMATION_DETAIL_RECORD = /*$$(*/
+      "Anomaly has been detected during file generation for the further information detail record of the bank order line %s" /*)*/;
+  public static final String BANK_ORDER_WRONG_TOTAL_RECORD = /*$$(*/
+      "Anomaly has been detected during file generation for the total record of the bank order %s" /*)*/;
+  public static final String BANK_ORDER_ISSUE_DURING_FILE_GENERATION = /*$$(*/
+      "Anomaly has been detected during file generation for bank order %s" /*)*/;
+  public static final String BANK_ORDER_COMPANY_NO_SEQUENCE = /*$$(*/
+      "The company %s does not have bank order sequence" /*)*/;
+  public static final String BANK_ORDER_BANK_DETAILS_EMPTY_IBAN = /*$$(*/
+      "The Iban is mandatory for the partner %s, bank order %s" /*)*/;
+  public static final String BANK_ORDER_BANK_DETAILS_NOT_ACTIVE = /*$$(*/
+      "The sender bank details is inactive." /*)*/;
+  public static final String BANK_ORDER_BANK_DETAILS_TYPE_NOT_COMPATIBLE = /*$$(*/
+      "The bank details type is not compatible with the accepted types in file format." /*)*/;
+  public static final String BANK_ORDER_BANK_DETAILS_CURRENCY_NOT_COMPATIBLE = /*$$(*/
+      "The sender bank details currency is not compatible with the currency in bank order." /*)*/;
+  public static final String BANK_ORDER_BANK_DETAILS_MISSING_CURRENCY = /*$$(*/
+      "Please fill the sender bank details currency." /*)*/;
+  public static final String BANK_ORDER_CANNOT_REMOVE = /*$$(*/
+      "Bank orders can only be deleted at draft or canceled status." /*)*/;
+  public static final String BANK_ORDER_NO_SENDER_CURRENCY = /*$$(*/
+      "Please set a currency in the sender bank details : %s." /*)*/;
+
+  public static final String BANK_ORDER_RECEIVER_BANK_DETAILS_MISSING_BANK_ADDRESS = /*$$(*/
+      "Please fill the bank address in the receiver bank details." /*)*/;
+  public static final String BANK_ORDER_RECEIVER_BANK_DETAILS_MISSING_PARTNER_ADDRESS = /*$$(*/
+      "Please fill the address in %s's partner details." /*)*/;
+  public static final String BANK_ORDER_RECEIVER_BANK_DETAILS_MISSING_PARTNER_ZIP = /*$$(*/
+      "Please fill the zip in %s's partner details." /*)*/;
+  public static final String BANK_ORDER_RECEIVER_BANK_DETAILS_MISSING_PARTNER_CITY = /*$$(*/
+      "Please fill the city in %s's partner details." /*)*/;
+  public static final String BANK_ORDER_RECEIVER_BANK_DETAILS_MISSING_BANK = /*$$(*/
+      "Please fill the bank in the receiver bank details." /*)*/;
+
+  /** BankOrder lines */
+  public static final String BANK_ORDER_LINES_MISSING = /*$$(*/
+      "You can't validate this bank order. you need to fill at least one bank order line" /*)*/;
+
+  public static final String BANK_ORDER_LINE_COMPANY_MISSING = /*$$(*/
+      "Please select a company for the bank order lines inserted" /*)*/;
+  public static final String BANK_ORDER_LINE_PARTNER_MISSING = /*$$(*/
+      "Please select a partner for the bank order lines inserted" /*)*/;
+  public static final String BANK_ORDER_LINE_AMOUNT_NEGATIVE = /*$$(*/
+      "Amount value of a bank order line is not valid" /*)*/;
+  public static final String BANK_ORDER_LINE_TOTAL_AMOUNT_INVALID = /*$$(*/
+      "Total amount of bank order lines must be equal to the bank order amount" /*)*/;
+  public static final String BANK_ORDER_LINE_BANK_DETAILS_MISSING = /*$$(*/
+      "Please fill the receiver bank details" /*)*/;
+  public static final String BANK_ORDER_LINE_BANK_DETAILS_NOT_ACTIVE = /*$$(*/
+      "The receiver bank details for the line %s is inactive." /*)*/;
+  public static final String BANK_ORDER_LINE_BANK_DETAILS_TYPE_NOT_COMPATIBLE = /*$$(*/
+      "The receiver bank details type is not compatible with the accepted types in file format." /*)*/;
+  public static final String BANK_ORDER_LINE_BANK_DETAILS_CURRENCY_NOT_COMPATIBLE = /*$$(*/
+      "The receiver bank details currency is not compatible with the currency in bank order." /*)*/;
+  public static final String BANK_ORDER_LINE_NO_RECEIVER_ADDRESS = /*$$(*/
+      "No address has been defined in the receiver %s" /*)*/;
+  public static final String BANK_ORDER_LINE_ORIGIN_NO_DMS_FILE = /*$$(*/
+      "There is no file linked to this origin." /*)*/;
+
+  /** BankOrder merge */
+  public static final String BANK_ORDER_MERGE_AT_LEAST_TWO_BANK_ORDERS = /*$$(*/
+      "Please select at least two bank orders" /*)*/;
+
+  public static final String BANK_ORDER_MERGE_STATUS = /*$$(*/
+      "Please select draft bank orders only" /*)*/;
+  public static final String BANK_ORDER_MERGE_SAME_STATUS = /*$$(*/
+      "Please select some bank orders that have the same status" /*)*/;
+  public static final String BANK_ORDER_MERGE_SAME_ORDER_TYPE_SELECT = /*$$(*/
+      "Please select some bank orders that have the same status" /*)*/;
+  public static final String BANK_ORDER_MERGE_SAME_PAYMENT_MODE = /*$$(*/
+      "Please select some bank orders that have the same payment mode" /*)*/;
+  public static final String BANK_ORDER_MERGE_SAME_PARTNER_TYPE_SELECT = /*$$(*/
+      "Please select some bank orders that have the same partner type" /*)*/;
+  public static final String BANK_ORDER_MERGE_SAME_SENDER_COMPANY = /*$$(*/
+      "Please select some bank orders that have the same sender company" /*)*/;
+  public static final String BANK_ORDER_MERGE_SAME_SENDER_BANK_DETAILS = /*$$(*/
+      "Please select some bank orders that have the same sender bank details" /*)*/;
+  public static final String BANK_ORDER_MERGE_SAME_CURRENCY = /*$$(*/
+      "Please select some bank orders that have the same currency" /*)*/;
+  public static final String BANK_ORDER_MERGE_NO_BANK_ORDERS = /*$$(*/ "No bank orders found" /*)*/;
+
+  /** BankOrder file */
+  public static final String BANK_ORDER_FILE_NO_SENDER_ADDRESS = /*$$(*/
+      "No address has been defined in the sender company %s" /*)*/;
+
+  public static final String BANK_ORDER_FILE_NO_FOLDER_PATH = /*$$(*/
+      "No folder path has been defined in the payment mode %s" /*)*/;
+  public static final String BANK_ORDER_FILE_UNKNOWN_FORMAT = /*$$(*/
+      "Unknown format for file generation" /*)*/;
+  public static final String BANK_ORDER_FILE_UNKNOWN_SEPA_TYPE = /*$$(*/
+      "Unknown SEPA type for file generation" /*)*/;
+
+  public static final String BANK_ORDER_FILE_DECRYPT_ERROR = /*$$(*/
+      "Error during file decryption." /*)*/;
+
+  public static final String BANK_ORDER_FILE_ENCRYPTION_NO_PASSWORD = /*$$(*/
+      "The field encryption.bankorder.password in config file must be filled." /*)*/;
+
+  public static final String BANK_ORDER_FILE_ENCRYPTION_INCORRECT_PASSWORD = /*$$(*/
+      "The password is incorrect." /*)*/;
+
+  /** Batch bank statement */
+
+  /** BankStatement import */
+  public static final String BANK_STATEMENT_FILE_UNKNOWN_FORMAT = /*$$(*/
+      "Unknown format for file import process" /*)*/;
+
+  public static final String BANK_STATEMENT_MISSING_FILE = /*$$(*/
+      "Missing bank statement file" /*)*/;
+  public static final String BANK_STATEMENT_MISSING_FILE_FORMAT = /*$$(*/
+      "Missing bank statement file format" /*)*/;
+  public static final String BANK_STATEMENT_ALREADY_IMPORTED = /*$$(*/
+      "Bank statement already imported. Aborted." /*)*/;
+  public static final String BANK_STATEMENT_NOT_MATCHING = /*$$(*/
+      "Current bank statement's initial balance does not match previous bank statement's final balance" /*)*/;
+  public static final String BANK_STATEMENT_INCOHERENT_BALANCE = /*$$(*/
+      "Opening and closing balance don't match with the sum of movements." /*)*/;
+  public static final String BANK_STATEMENT_NO_INITIAL_LINE_ON_IMPORT = /*$$(*/
+      "Current bank statement doesn't contain an initial line" /*)*/;
+
+  public static final String BANK_STATEMENT_NO_FINAL_LINE_ON_IMPORT = /*$$(*/
+      "Current bank statement doesn't contain a final line" /*)*/;
+
+  public static final String BANK_STATEMENT_IMPORT_ERROR = /*$$(*/
+      "Error while reading the csv file. Make sure that decimal values use a dot and not a comma." /*)*/;
+
+  /*
+   * Batch direct debit
+   */
+  public static final String BATCH_DIRECT_DEBIT_MISSING_COMPANY_BANK_DETAILS = /*$$(*/
+      "Company bank details is missing in batch." /*)*/;
+  public static final String BATCH_DIRECT_DEBIT_NO_PROCESSED_PAYMENT_SCHEDULE_LINES = /*$$(*/
+      "No processed payment schedule lines" /*)*/;
+  public static final String BATCH_DIRECT_DEBIT_UNKNOWN_DATA_TYPE = /*$$(*/
+      "Unknown direct debit data type" /*)*/;
+  public static final String DIRECT_DEBIT_MISSING_PARTNER_ACTIVE_UMR = /*$$(*/
+      "Please add an Active UMR to the partner %s for the bank details %s." /*)*/;
+
+  /** Generate bank order from invoices */
+  public static final String
+      MOVE_LINE_ARCHIVE_NOT_OK_BECAUSE_OF_BANK_RECONCILIATION_AMOUNT = /*$$(*/
+          "This move line %s can not be archived because its bank reconciliation amount is superior to 0." /*)*/;
+
+  public static final String INVOICE_PAYMENT_MODE_MISSING = /*$$(*/
+      "Payment mode is missing on the invoice %s" /*)*/;
+
+  /** Bank reconciliation */
+  public static final String BANK_RECONCILIATION_MISSING_JOURNAL = /*$$(*/
+      "Some entries from the reconciliation have an empty moveLine and an account filled. The journal is required to generate automatically the Move/Move Lines for those entries." /*)*/;
+
+  /** Bank reconciliation */
+  public static final String BANK_RECONCILIATION_MISSING_CASH_ACCOUNT = /*$$(*/
+      "Some entries from the reconciliation have an empty moveLine and an account filled. The cash account is required to generate automatically the counterpart Move Lines for those entries." /*)*/;
+
+  public static final String
+      BANK_RECONCILIATION_SELECT_MOVE_LINE_AND_BANK_RECONCILIATION_LINE = /*$$(*/
+          "Please select one bank statement line and one accounting move line" /*)*/;
+  public static final String BANK_RECONCILIATION_SELECT_BANK_RECONCILIATION_LINE = /*$$(*/
+      "Please select one bank reconciliation line" /*)*/;
+  public static final String BANK_RECONCILIATION_SELECT_MOVE_LINE = /*$$(*/
+      "Please select one move line" /*)*/;
+  public static final String BANK_RECONCILIATION_ALREADY_OPEN = /*$$(*/
+      "Can't load while another reconciliation is open" /*)*/;
+  public static final String BANK_RECONCILIATION_BANK_STATEMENT_NO_BANK_DETAIL = /*$$(*/
+      "The selected bank statement doesn't contain, at the lines level, any information allowing to identify which bank details it concerns. Please verify the format of the data source or the configuration of the bank details in the software and please make sure both are matching." /*)*/;
+  public static final String BANK_RECONCILIATION_CANNOT_DELETE_VALIDATED = /*$$(*/
+      "Selected bank reconciliation is validated and can not be deleted" /*)*/;
+  public static final String BANK_RECONCILIATION_CANNOT_DELETE_UNDER_CORRECTION = /*$$(*/
+      "Selected bank reconciliation is under correction and can not be deleted" /*)*/;
+  public static final String BANK_RECONCILIATION_BANK_DETAILS_CURRENCY_NOT_COMPATIBLE = /*$$(*/
+      "The bank reconciliation currency is different from the bank details currency so the reconciliation cannot be initiated. Please select a currency which is equal to the bank statement currency." /*)*/;
+
+  /** Bank Statement Query */
+  public static final String BANK_STATEMENT_QUERY_SEQUENCE_USED = /*$$(*/
+      "Sequence is already used" /*)*/;
+
+  public static final String BATCH_BOE_SEND_BILLING_PARTNER_ADRESS_MISSING = /*$$(*/
+      "Email adress is missing for partner %s" /*)*/;
+
+  public static final String PAYMENT_SESSION_GENERATED_BANK_ORDER = /*$$(*/
+      "The bank order %s has been generated successfully." /*)*/;
+
+  public static final String
+      BANK_STATEMENT_MOVE_LINE_QUERY_FORMULA_NOT_EVALUATED_TO_MOVE_LINE = /*$$(*/
+          "Move line's query formula has not been evaluated to a Move line" /*)*/;
+  public static final String BANK_STATEMENT_PARTNER_QUERY_FORMULA_NOT_EVALUATED_TO_PARTNER = /*$$(*/
+      "Partner's query formula has not been evaluated to a Partner" /*)*/;
+
+  public static final String BANK_STATEMENT_RULE_CASH_ACCOUNT_MISSING = /*$$(*/
+      "Please select a cash account in the bank statement rule %s" /*)*/;
+
+  public static final String BANK_STATEMENT_RULE_COUNTERPART_ACCOUNT_MISSING = /*$$(*/
+      "Please select a counterpart account in the bank statement rule %s" /*)*/;
+
+  public static final String STATEMENT_REMOVE_NOT_OK_NB = /*$$(*/
+      "%d bank statement couldn't be deleted, please check the logs." /*)*/;
+
+  public static final String STATEMENT_REMOVE_OK = /*$$(*/
+      "Bank statement(s) has been removed successfully" /*)*/;
+
+  public static final String NO_STATEMENT_TO_REMOVE = /*$$(*/ "Please select statements" /*)*/;
+
+  /** Move Reverse */
+  public static final String MOVE_LINKED_TO_VALIDATED_BANK_RECONCILIATION = /*$$(*/
+      "The move %s can't be reversed because it is linked to a bank reconciliation with status validated" /*)*/;
+
+  public static final String MOVES_LINKED_TO_VALIDATED_BANK_RECONCILIATION = /*$$(*/
+      "The moves %s couldn't be reversed because these are linked to a bank reconciliation with status validated" /*)*/;
+
+  public static final String VALIDATION_BANK_ORDER_MOVE_INV_PAYMENT_FAIL = /*$$(*/
+      "Failed to create a move for the invoice payment." /*)*/;
+
+  public static final String MOVE_LINE_CHECK_BANK_RECONCILED_AMOUNT = /*$$(*/
+      "Bank reconcile amount must be inferior or equal to credit or debit." /*)*/;
+
+  public static final String BATCH_BILL_OF_EXCHANGE_BANK_DETAILS_IS_MISSING_ON_INVOICE = /*$$(*/
+      "Bank details is missing on invoice %s." /*)*/;
+
+  public static final String BATCH_BILL_OF_EXCHANGE_BANK_DETAILS_IS_INACTIVE_ON_INVOICE = /*$$(*/
+      "The bank details %s attached to the invoice/ invoice term %s and to the partner %s is inactive. Only invoices with active bank details can be processed." /*)*/;
+
+  public static final String BANK_ACCOUNT_DIFFERENT_THAN_CASH_ACCOUNT = /*$$(*/
+      "Your bank detail's bank account for bank details %s (%s) is different from the cash account of the account config for %s's bank statement rule (%s). Please fix it before auto accounting the bank statement." /*)*/;
+
+  public static final String BANK_RECONCILIATION_CREATING_MOVE_MISSING_JOURNAL = /*$$(*/
+      "Missing journal while creating a move from a bank reconciliation." /*)*/;
+
+  public static final String BANK_RECONCILIATION_MULTIPLE_MOVE_LINE_RECONCILIATION_ERROR = /*$$(*/
+      "The movelines %s are already reconciled with another bank statement line. Multiple bank statement lines can't be reconciled with the same move line." /*)*/;
+
+  public static final String BANK_STATEMENT_XML_FILE_READ_ERROR = /*$$(*/
+      "Error while reading the input XML file." /*)*/;
+
+  public static final String BANK_STATEMENT_XML_FILE_NO_BANK_STATEMENT_FOUND_ERROR = /*$$(*/
+      "Error: No bank statement found." /*)*/;
+
+  public static final String BANK_STATEMENT_XML_FILE_UNMARSHAL_ERROR = /*$$(*/
+      "Error: File format unmarshalling process failed." /*)*/;
+
+  public static final String BANK_STATEMENT_BANK_DETAILS_NOT_EXIST_ERROR = /*$$(*/
+      "Error: The bank details doesn't exist." /*)*/;
+
+  public static final String INVOICE_PAYMENT_ALERT_BANK_ORDER_REVERSE = /*$$(*/
+      "Warning: this payment is related to a carried out bank order. Do you want to reverse the payment accounting entry ?" /*)*/;
+
+  public static final String BANK_ORDER_MISSING_RECEIVER_BANK_DETAILS = /*$$(*/
+      "The recipient partner attached to the employee does not have an associated bank account, please create one." /*)*/;
+}

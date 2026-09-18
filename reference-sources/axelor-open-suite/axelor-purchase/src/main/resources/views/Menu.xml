@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+
+  <menuitem name="sc-root-purchase" title="Purchases" order="-1800"
+    if="__config__.app.isApp('purchase')" icon="cart-fill" icon-background="#b6473f"/>
+
+  <menuitem name="sc-root-purchase-suppliers" parent="sc-root-purchase" order="100"
+    title="Suppliers" action="sc.root.purchase.suppliers"/>
+
+  <action-view name="sc.root.purchase.suppliers" title="Suppliers"
+    model="com.axelor.apps.base.db.Partner">
+    <view type="cards" name="partner-cards"/>
+    <view type="grid" name="partner-supplier-grid"/>
+    <view type="form" name="partner-supplier-form"/>
+    <view-param name="limit" value="39"/>
+    <view-param name="search-filters" value="partner-filters"/>
+    <domain>self.isContact = false AND self.isSupplier = true</domain>
+    <context name="_isSupplier" expr="true"/>
+    <context name="_domain" expr="self.isContact = false AND self.isSupplier = true"/>
+  </action-view>
+
+  <menuitem name="sc-root-purchase-contacts" parent="sc-root-purchase" order="200"
+    title="Contacts" action="sc.root.purchase.contacts"/>
+
+  <action-view name="sc.root.purchase.contacts" title="Contacts"
+    model="com.axelor.apps.base.db.Partner">
+    <view type="cards" name="partner-contact-cards"/>
+    <view type="grid" name="partner-contact-grid"/>
+    <view type="form" name="partner-contact-form"/>
+    <view-param name="limit" value="39"/>
+    <view-param name="search-filters" value="partner-filters"/>
+    <domain>self.isContact = true AND self.mainPartner.isSupplier = true</domain>
+    <context name="_domain"
+      expr="self.isContact = true AND self.mainPartner.isSupplier = true"/>
+  </action-view>
+
+  <menuitem name="sc-root-purchase-products" parent="sc-root-purchase" order="300"
+    title="Products &amp; services" action="sc.root.purchase.products"/>
+
+  <action-view name="sc.root.purchase.products" title="Products &amp; services"
+    model="com.axelor.apps.base.db.Product">
+    <view type="cards" name="product-cards"/>
+    <view type="grid" name="product-purchase-grid"/>
+    <view type="form" name="product-form"/>
+    <view-param name="search-filters" value="products-filters"/>
+    <domain>self.isModel = false AND self.purchasable = true AND self.dtype = 'Product'</domain>
+    <context name="_fromPurchase" expr="eval:true"/>
+  </action-view>
+
+  <!-- Purchase request menus -->
+  <menuitem name="sc-root-purchase-request" parent="sc-root-purchase"
+    if="__config__.app.isApp('purchase-request')" title="Internal purchase requests" order="400"
+    icon="megaphone" icon-background="#b6473f" action="sc.root.purchase.request.all"/>
+
+  <action-view name="sc.root.purchase.request.all"
+    model="com.axelor.apps.purchase.db.PurchaseRequest" title="Internal purchase requests">
+    <view type="grid" name="purchase-request-grid"/>
+    <view type="form" name="purchase-request-form"/>
+    <view-param name="search-filters" value="purchase-request-filters"/>
+  </action-view>
+
+  <!-- Purchase request menus end -->
+
+  <menuitem name="sc-root-purchase-quotations" title="Purchase quotations" order="500"
+    action="sc.root.purchase.quotations" parent="sc-root-purchase"/>
+
+  <action-view name="sc.root.purchase.quotations" title="Purchase quotations"
+    model="com.axelor.apps.purchase.db.PurchaseOrder">
+    <view type="cards" name="purchase-quotations-order-cards"/>
+    <view type="grid" name="purchase-order-quotation-grid"/>
+    <view type="form" name="purchase-order-form"/>
+    <view-param name="search-filters" value="purchase-order-filters"/>
+    <domain>self.statusSelect &lt; 3</domain>
+    <context name="_internalUser" expr="eval: __user__.id"/>
+    <context name="_status" expr="eval: [1,2]"/>
+  </action-view>
+
+  <menuitem name="sc-root-purchase-orders" title="Purchase orders" order="600"
+    action="sc.root.purchase.orders" parent="sc-root-purchase"/>
+
+  <action-view name="sc.root.purchase.orders" title="Purchase orders"
+    model="com.axelor.apps.purchase.db.PurchaseOrder">
+    <view type="cards" name="purchase-order-cards"/>
+    <view type="grid" name="purchase-order-grid"/>
+    <view type="form" name="purchase-order-form"/>
+    <view-param name="search-filters" value="purchase-order-filters"/>
+    <domain>self.statusSelect IN (3)</domain>
+    <context name="_internalUser" expr="eval: __user__.id"/>
+    <context name="_status" expr="eval: 3"/>
+  </action-view>
+
+  <menuitem name="purchase-root-abc-analysis" title="ABC analysis" order="900"
+    action="purchase.root.abc.analysis" parent="sc-root-purchase"/>
+
+  <action-view name="purchase.root.abc.analysis" title="ABC analysis"
+    model="com.axelor.apps.base.db.ABCAnalysis">
+    <view type="grid" name="abc-analysis-grid"/>
+    <view type="form" name="abc-analysis-form"/>
+    <domain>self.typeSelect = :_type</domain>
+    <context name="_type"
+      expr="com.axelor.apps.purchase.service.ABCAnalysisServicePurchaseImpl"/>
+  </action-view>
+
+  <menuitem name="sc-root-purchase-historical" title="Historical" order="1100"
+    parent="sc-root-purchase" action="purchase.historical.orders"/>
+
+  <action-view name="purchase.historical.orders" title="Historical"
+    model="com.axelor.apps.purchase.db.PurchaseOrder">
+
+    <view type="grid" name="purchase-order-grid"/>
+    <view type="cards" name="purchase-order-cards"/>
+    <view type="form" name="purchase-order-form"/>
+    <view-param name="search-filters" value="purchase-order-filters"/>
+    <context name="_internalUser" expr="eval: __user__.id"/>
+    <context name="_status" expr="eval: [1,2,3,4,5]"/>
+  </action-view>
+
+  <menuitem name="sc-root-purchase-report" parent="sc-root-purchase" title="Reportings"
+    order="1300" icon="bar-chart"/>
+
+  <menuitem name="purchase-report-maps" parent="sc-root-purchase-report" title="Maps"
+    order="300"/>
+
+  <menuitem name="purchase-maps-partner-suppliers" parent="purchase-report-maps"
+    title="Suppliers" action="action-purchase-method-show-suppliers-on-map-page" order="100"/>
+
+  <action-method name="action-purchase-method-show-suppliers-on-map-page">
+    <call method="showSuppliersOnMap" class="com.axelor.apps.base.web.AppBaseController"/>
+  </action-method>
+
+  <menuitem name="sc-root-purchase-conf" parent="sc-root-purchase" title="Configuration"
+    order="1400" icon="gear"/>
+
+  <menuitem name="sc-root-purchase-conf-partner-price-list" parent="sc-root-purchase-conf"
+    title="Supplier partner price lists" action="sc.root.purchase.conf.partner.price.list"
+    order="100"/>
+
+  <action-view name="sc.root.purchase.conf.partner.price.list"
+    title="Supplier partner price list" model="com.axelor.apps.base.db.PartnerPriceList">
+    <view type="grid" name="partner-price-list-grid"/>
+    <view type="form" name="partner-price-list-form"/>
+    <view-param name="forceTitle" value="true"/>
+    <domain>self.typeSelect = 2</domain>
+    <context name="_typeSelect" expr="eval: 2"/>
+  </action-view>
+
+  <menuitem name="sc-root-purchase-conf-price-list" parent="sc-root-purchase-conf"
+    title="Price lists" action="sc.root.purchase.conf.price.list" order="200"/>
+
+  <action-view name="sc.root.purchase.conf.price.list" title="Price lists"
+    model="com.axelor.apps.base.db.PriceList">
+    <view type="grid" name="price-list-grid"/>
+    <view type="form" name="price-list-form"/>
+    <domain>self.typeSelect = :_typeSelect AND self.parentPriceList IS NULL</domain>
+    <context name="_typeSelect" expr="eval: 2"/>
+  </action-view>
+
+  <menuitem name="menu-purchase-dashboard-1" parent="sc-root-purchase-report"
+    title="Purchase Buyer" action="purchase.dashboard.1" order="100"/>
+
+  <action-view name="purchase.dashboard.1" title="Purchase Buyer">
+    <view type="dashboard" name="purchase.dashboard.1"/>
+    <context name="_user_id" expr="eval:__user__.id"/>
+  </action-view>
+
+  <menuitem name="menu-purchase-dashboard-2" parent="sc-root-purchase-report"
+    title="Purchase Manager" action="purchase.dashboard.2" order="200"/>
+
+  <action-view name="purchase.dashboard.2" title="Purchase Manager">
+    <view type="dashboard" name="purchase.dashboard.2"/>
+  </action-view>
+
+  <menuitem name="purchase-root-call-for-tenders" title="Call for tenders" order="1200"
+    action="purchase.root.call.for.tenders" parent="sc-root-purchase"
+    if="__config__.app.getApp('purchase')?.manageCallForTender"/>
+
+  <action-view name="purchase.root.call.for.tenders" title="Call for tenders"
+    model="com.axelor.apps.purchase.db.CallTender">
+    <view type="grid" name="call-tender-grid"/>
+    <view type="form" name="call-tender-form"/>
+  </action-view>
+
+  <menuitem name="sc-root-purchase-conf-call-tender-attr-config"
+    parent="sc-root-purchase-conf" title="Call tender attribute configuration"
+    action="sc.root.purchase.conf.call.tender.attr.config" order="1100"
+    if="__config__.app.getApp('purchase')?.manageCallForTender"/>
+
+  <action-view name="sc.root.purchase.conf.call.tender.attr.config"
+    title="Call tender attribute configuration"
+    model="com.axelor.apps.purchase.db.CallTenderAttrConfig">
+    <view type="grid" name="call-tender-attr-config-grid"/>
+    <view type="form" name="call-tender-attr-config-form"/>
+  </action-view>
+
+  <menuitem title="Pricing" name="root-purchase-pricing" parent="sc-root-purchase-conf"
+    order="1200" action="root.purchase.pricing"
+    if="__config__.app.getApp('base')?.enablePricingScale"/>
+
+  <action-view name="root.purchase.pricing" title="Pricing"
+    model="com.axelor.apps.base.db.Pricing">
+    <view type="grid" name="pricing-grid"/>
+    <view type="form" name="pricing-form"/>
+    <domain>self.typeSelect = :_typeSelect</domain>
+    <context name="_typeSelect"
+      expr="eval: PricingRepository.PRICING_TYPE_SELECT_PURCHASE_PRICING"/>
+  </action-view>
+
+  <menuitem title="Pricing rules" name="root-purchase-conf-pricing-rule"
+    parent="sc-root-purchase-conf" order="1300" action="root.purchase.conf.pricing.rule"
+    if="__config__.app.getApp('base')?.enablePricingScale"/>
+
+  <action-view name="root.purchase.conf.pricing.rule" title="Pricing rules"
+    model="com.axelor.apps.base.db.PricingRule">
+    <view type="grid" name="pricing-rule-grid"/>
+    <view type="form" name="pricing-rule-form"/>
+    <domain>self.concernedModel.name != 'InvoiceLine'</domain>
+  </action-view>
+
+
+  <menuitem name="menu-purchase-conf-tender-report-config" parent="sc-root-purchase-conf"
+    title="Tender report configs" action="action-purchase-view-tender-report-config" order="1400"
+    if="__config__.app.getApp('purchase')?.manageCallForTender"/>
+
+  <action-view name="action-purchase-view-tender-report-config"
+    title="Tender report configs" model="com.axelor.apps.purchase.db.TenderReportConfig">
+    <view type="grid" name="tender-report-config-grid"/>
+    <view type="form" name="tender-report-config-form"/>
+  </action-view>
+
+</object-views>

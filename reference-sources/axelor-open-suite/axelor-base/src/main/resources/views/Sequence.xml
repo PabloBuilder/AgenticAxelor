@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="sequence-grid" title="Sequences" model="com.axelor.apps.base.db.Sequence">
+    <field name="name"/>
+    <field name="codeSelect"/>
+    <field name="company" form-view="company-form" grid-view="company-grid"
+      if="__config__.app.getApp('base')?.getEnableMultiCompany()"/>
+    <field name="prefixe"/>
+    <field name="suffixe"/>
+    <field name="padding"/>
+    <field name="toBeAdded"/>
+  </grid>
+
+  <form name="sequence-form" title="Sequence" model="com.axelor.apps.base.db.Sequence"
+    onNew="action-group-base-sequence-onnew" onLoad="action-sequence-attrs"
+    onSave="action-sequence-group-onsave">
+    <panel name="mainPanel">
+      <field name="fullName" showTitle="false" css="label-bold bold large" colSpan="12">
+        <editor>
+          <field name="name" showTitle="false" colSpan="6" css="label-bold bold large"
+            placeholder="Name" onChange="action-sequence-method-compute-fullname"/>
+        </editor>
+      </field>
+      <field name="codeSelect"
+        onChange="action-sequence-attrs,action-method-sequence-document-concerned-onchange"/>
+      <field name="company" widget="SuggestBox" form-view="company-form"
+        grid-view="company-grid" readonlyIf="$popup() &amp;&amp; company"/>
+    </panel>
+    <panel name="tipsPanel" title="Tips" sidebar="true" itemSpan="12">
+      <label name="prefixOrSuffixLabel"
+        title="The tags below can be used as a prefix or a suffix"/>
+      <label name="fullYearLabel" title="%YYYY : Full Year (2017)"/>
+      <label name="YYLabel" title="%YY : Year (17)"/>
+      <label name="MLabel" title="%M : Month (1, 2, 3, ...)"/>
+      <label name="FMLabel" title="%FM : Full Month (01, 02, 03, ...)"/>
+      <label name="DLabel" title="%D : Day"/>
+      <label name="WYLabel" title="%WY : Week number"/>
+
+      <label name="PatternLabel" title="The tags below can be used to specify the pattern"
+        showIf="sequenceTypeSelect == 'ALPHANUMERIC'"/>
+      <label name="NumberLabel" title="N : For numbers"
+        showIf="sequenceTypeSelect == 'ALPHANUMERIC'"/>
+      <label name="LettreLabel" title="L : For Letters"
+        showIf="sequenceTypeSelect == 'ALPHANUMERIC'"/>
+      <label name="ExampleLabel" title="Example of pattern NLL : 0AA, 0AB,0AC...0ZZ,1AA."
+        showIf="sequenceTypeSelect == 'ALPHANUMERIC'"/>
+
+
+    </panel>
+    <panel name="sequenceDefinitionPanel" title="Sequence Definition" colSpan="12">
+      <panel name="type" colSpan="12">
+        <field name="sequenceTypeSelect"/>
+      </panel>
+      <panel name="letters" showIf="sequenceTypeSelect == 'LETTERS'" colSpan="12">
+        <field name="padding" onChange=" action-sequence-method-compute-fullname,save"/>
+        <field name="sequenceLettersTypeSelect" requiredIf="sequenceTypeSelect == 'LETTERS'"/>
+      </panel>
+
+      <panel name="numbers" showIf="sequenceTypeSelect == 'NUMBERS'" colSpan="12">
+        <field name="padding" onChange=" action-sequence-method-compute-fullname,save"/>
+        <field name="toBeAdded"/>
+      </panel>
+
+      <panel name="alphanumeric" showIf="sequenceTypeSelect == 'ALPHANUMERIC'" colSpan="12">
+        <field name="padding" onChange=" action-sequence-method-compute-fullname,save"/>
+        <field name="pattern" pattern="^[NL]*$"
+          requiredIf="sequenceTypeSelect == 'ALPHANUMERIC'"
+          onChange="action-sequence-method-verify-pattern"/>
+      </panel>
+
+      <panel colSpan="12">
+        <panel stacked="true">
+          <field name="prefixe" pattern="^[^\/\\?*:\|&quot;&lt;>]*$"
+            onChange="action-sequence-method-compute-fullname" showIf="!prefixGroovyOk"/>
+          <field name="prefixGroovy" showIf="prefixGroovyOk" widget="CodeEditor"
+            x-code-syntax="groovy" height="100"/>
+        </panel>
+
+        <panel stacked="true">
+          <field name="suffixe" pattern="^[^\/\\?*:\|&quot;&lt;>]*$"
+            onChange="action-sequence-method-compute-fullname" showIf="!suffixGroovyOk"/>
+          <field name="suffixGroovy" widget="CodeEditor" x-code-syntax="groovy"
+            showIf="suffixGroovyOk" height="100"/>
+        </panel>
+      </panel>
+
+      <field name="prefixGroovyOk"
+        hideIf="codeSelect == 'invoice' || codeSelect == 'expense' || codeSelect =='fixedAsset'  || codeSelect == 'move' || codeSelect =='bankOrder'"
+        onChange="action-sequence-group-onChange-groovyOk"/>
+      <field name="suffixGroovyOk"
+        hideIf="codeSelect == 'invoice' || codeSelect == 'expense' || codeSelect =='fixedAsset'  || codeSelect == 'move' || codeSelect =='bankOrder'"
+        onChange="action-sequence-group-onChange-groovyOk"/>
+      <field name="yearlyResetOk" readonlyIf="monthlyResetOk"
+        onChange="action-sequence-group-yearly-reset-on-change"/>
+      <field name="monthlyResetOk" onChange="action-sequence-group-monthly-reset-on-change"/>
+    </panel>
+    <panel-related name="sequenceVersionListPanel" field="sequenceVersionList"
+      grid-view="sequence-version-grid" form-view="sequence-version-form"/>
+    <panel-mail name="mailsPanel">
+      <mail-messages limit="4"/>
+      <mail-followers/>
+    </panel-mail>
+  </form>
+
+  <grid editable="true" name="sequence-version-grid" title="Versions"
+    model="com.axelor.apps.base.db.SequenceVersion" orderBy="-startDate">
+    <field name="startDate" validIf="(startDate &lt; endDate) || (endDate == null)"
+      onChange="action-sequence-version-start-date-onchange-validate"/>
+    <field name="endDate" validIf="(endDate &gt; startDate) || (endDate == null)"
+      onChange="action-sequence-version-form-on-change-date-group"/>
+    <field name="nextNum"/>
+  </grid>
+
+  <form name="sequence-version-form" title="Version"
+    model="com.axelor.apps.base.db.SequenceVersion">
+    <panel name="mainPanel" itemSpan="4">
+      <field name="startDate" validIf="(startDate &lt; endDate) || (endDate == null)"
+        onChange="action-sequence-version-start-date-onchange-validate"/>
+      <field name="endDate" validIf="(endDate &gt; startDate) || (endDate == null)"
+        onChange="action-sequence-version-form-on-change-date-group"/>
+      <field name="nextNum"/>
+    </panel>
+  </form>
+
+  <!-- ACTION GROUPS -->
+  <action-group name="action-group-base-sequence-onnew">
+    <action name="action-sequence-default"/>
+    <action name="action-sequence-attrs"/>
+  </action-group>
+
+  <action-group name="action-sequence-group-onsave">
+    <action name="action-sequence-method-is-length-valid"/>
+    <action name="action-sequence-method-check-year-validity"/>
+    <action name="action-sequence-method-check-month-validity"/>
+    <action name="action-sequence-validate"/>
+    <action name="action-method-sequence-validate-before-save"/>
+    <action name="action-sequence-method-verify-pattern"/>
+    <action name="action-sequence-method-compute-fullname"/>
+  </action-group>
+
+  <action-group name="action-sequence-version-form-on-change-date-group">
+    <action name="action-sequence-version-end-date-onchange-info"/>
+    <action name="action-sequence-version-end-date-onchange-validate"/>
+  </action-group>
+
+  <!-- ACTION RECORD -->
+  <action-record name="action-sequence-default"
+    model="com.axelor.apps.base.db.Sequence">
+    <field name="padding" expr="3"/>
+    <field name="toBeAdded" expr="1"/>
+    <field name="company" expr="eval: __parent__?.company"/>
+    <field name="company" expr="eval:__user__.activeCompany"
+      if="(__parent__ == null || __parent__.company == null) &amp;&amp; __user__.activeCompany != null"/>
+    <field name="company" expr="eval:__repo__(Company).all().fetchOne()"
+      if="(__parent__ == null || __parent__.company == null) &amp;&amp; __user__.activeCompany == null &amp;&amp; __repo__(Company).all().count() == 1"/>
+  </action-record>
+
+  <action-record name="action-sequence-monthly-reset"
+    model="com.axelor.apps.base.db.Sequence">
+    <field if="monthlyResetOk" name="yearlyResetOk" expr="eval: true"/>
+  </action-record>
+
+  <action-attrs name="action-sequence-attrs">
+    <attribute name="hidden" for="company"
+      expr="eval: codeSelect in ['partner','productTrackingNumber','product']"/>
+    <attribute name="required" for="company"
+      expr="eval: !(codeSelect in ['partner','productTrackingNumber','product','bankOrder'])"/>
+  </action-attrs>
+
+  <action-validate name="action-sequence-validate">
+    <error message="Prefix or suffix must not contain characters forbidden in filenames."
+      if="p = ~/^[^\/\\?*:\|&quot;&lt;>]*$/; prefixe &amp;&amp; !(prefixe ==~ p) || suffixe &amp;&amp; !(suffixe ==~ p)"/>
+    <error message="Prefix cannot start with #." if="prefixe ==~ /^#.*$/"/>
+  </action-validate>
+
+  <action-method name="action-method-sequence-document-concerned-onchange">
+    <call class="com.axelor.apps.base.web.SequenceController" method="getDefaultTitle"/>
+  </action-method>
+
+  <action-method name="action-method-sequence-validate-before-save">
+    <call class="com.axelor.apps.base.web.SequenceController" method="validateSequence"/>
+  </action-method>
+
+  <action-method name="action-sequence-method-compute-fullname">
+    <call class="com.axelor.apps.base.web.SequenceController" method="computeFullName"/>
+  </action-method>
+
+  <action-method name="action-sequence-method-verify-pattern">
+    <call class="com.axelor.apps.base.web.SequenceController" method="verifyPattern"/>
+  </action-method>
+  <action-method name="action-sequence-method-is-length-valid">
+    <call class="com.axelor.apps.base.web.SequenceController" method="isLengthValid"/>
+  </action-method>
+
+  <action-method name="action-sequence-method-update-sequence-version-monthly">
+    <call class="com.axelor.apps.base.web.SequenceController"
+      method="updateSequenceVersionsMonthly"/>
+  </action-method>
+
+  <action-method name="action-sequence-method-update-sequence-version-yearly">
+    <call class="com.axelor.apps.base.web.SequenceController"
+      method="updateSequenceVersionsYearly"/>
+  </action-method>
+
+  <action-group name="action-sequence-group-yearly-reset-on-change">
+    <action name="action-sequence-method-update-sequence-version-yearly"/>
+  </action-group>
+
+  <action-group name="action-sequence-group-monthly-reset-on-change">
+    <action name="action-sequence-method-update-sequence-version-monthly"/>
+    <action name="action-sequence-monthly-reset"/>
+  </action-group>
+
+  <action-validate name="action-sequence-version-end-date-onchange-info">
+    <info
+      message="Changing manually the end date of a sequence which reset yearly or monthly could break the sequence system."
+      if="__self__ != null &amp;&amp; (sequence.yearlyResetOk || sequence.monthlyResetOk)"/>
+  </action-validate>
+
+  <action-validate name="action-sequence-version-start-date-onchange-validate">
+    <error if="(endDate &amp;&amp; startDate) &amp;&amp; (startDate &gt; endDate)"
+      message="Start date must be lower than end date"/>
+  </action-validate>
+
+  <action-validate name="action-sequence-version-end-date-onchange-validate">
+    <error if="(startDate &amp;&amp; endDate) &amp;&amp; (endDate &lt; startDate)"
+      message="End date must be greater than start date"/>
+  </action-validate>
+
+  <action-group name="action-sequence-group-onChange-groovyOk">
+    <action name="action-sequence-record-empty-suffix-prefix"/>
+    <action name="action-sequence-method-compute-fullname"/>
+  </action-group>
+
+  <action-record name="action-sequence-record-empty-suffix-prefix"
+    model="com.axelor.apps.base.db.Sequence">
+    <field name="prefixe" expr="eval:' '" if="prefixGroovyOk"/>
+    <field name="suffixe" expr="eval:' '" if="suffixGroovyOk"/>
+  </action-record>
+
+  <action-method name="action-sequence-method-check-year-validity">
+    <call class="com.axelor.apps.base.web.SequenceController" method="checkYearValidity"/>
+  </action-method>
+
+  <action-method name="action-sequence-method-check-month-validity">
+    <call class="com.axelor.apps.base.web.SequenceController" method="checkMonthValidity"/>
+  </action-method>
+
+  <search-filters name="sequence-filters" model="com.axelor.apps.base.db.Sequence"
+    title="Sequence filters">
+    <field name="company" hidden="true"
+      if="!__config__.app.getApp('base')?.getEnableMultiCompany()"/>
+  </search-filters>
+</object-views>

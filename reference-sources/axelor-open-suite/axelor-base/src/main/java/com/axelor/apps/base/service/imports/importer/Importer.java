@@ -1,0 +1,317 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.base.service.imports.importer;
+
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.ImportConfiguration;
+import com.axelor.apps.base.db.ImportHistory;
+import com.axelor.apps.base.db.repo.TraceBackRepository;
+import com.axelor.apps.base.exceptions.BaseExceptionMessage;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.apps.base.service.imports.listener.ImporterListener;
+import com.axelor.auth.AuthUtils;
+import com.axelor.common.FileUtils;
+import com.axelor.file.store.FileStoreFactory;
+import com.axelor.file.store.Store;
+import com.axelor.file.temp.TempFiles;
+import com.axelor.i18n.I18n;
+import com.axelor.meta.MetaFiles;
+import com.axelor.meta.db.MetaFile;
+import com.google.common.base.Preconditions;
+import jakarta.inject.Inject;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.invoke.MethodHandles;
+import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public abstract class Importer {
+
+  private static final File DEFAULT_WORKSPACE = createDefaultWorkspace();
+  private static final Logger LOG = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+  private ImportConfiguration configuration;
+  private File workspace;
+
+  protected ExcelToCSV excelToCSV;
+  protected MetaFiles metaFiles;
+  protected AppBaseService appBaseService;
+
+  @Inject
+  protected Importer(ExcelToCSV excelToCSV, MetaFiles metaFiles, AppBaseService appBaseService) {
+    this.excelToCSV = excelToCSV;
+    this.metaFiles = metaFiles;
+    this.appBaseService = appBaseService;
+  }
+
+  public void setConfiguration(ImportConfiguration configuration) {
+    this.configuration = configuration;
+  }
+
+  public void setWorkspace(File workspace) {
+    Preconditions.checkArgument(workspace.exists() && workspace.isDirectory());
+    this.workspace = workspace;
+  }
+
+  public ImportConfiguration getConfiguration() {
+    return this.configuration;
+  }
+
+  public File getWorkspace() {
+    return this.workspace;
+  }
+
+  public Importer init(ImportConfiguration configuration) {
+    return init(configuration, createDefaultWorkspace());
+  }
+
+  public Importer init(ImportConfiguration configuration, File workspace) {
+    setConfiguration(configuration);
+    setWorkspace(workspace);
+    LOG.debug("Initialization of the import for the configuration {}", configuration.getName());
+    return this;
+  }
+
+  public ImportHistory run(Map<String, Object> importContext) throws AxelorException, IOException {
+    MetaFile bindMetaFile = configuration.getBindMetaFile();
+    MetaFile dataMetaFile = configuration.getDataMetaFile();
+    File bind = MetaFiles.getPath(bindMetaFile).toFile();
+    File data = MetaFiles.getPath(dataMetaFile).toFile();
+    checkEntryFilesType(bindMetaFile, dataMetaFile);
+
+    if (!bind.exists()) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_CONFIGURATION_ERROR,
+          I18n.get(BaseExceptionMessage.IMPORTER_1));
+    }
+    if (!data.exists()) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_CONFIGURATION_ERROR,
+          I18n.get(BaseExceptionMessage.IMPORTER_2));
+    }
+
+    File fileWorkspace = createFinalWorkspace(configuration.getDataMetaFile());
+    ImportHistory importHistory =
+        process(bind.getAbsolutePath(), fileWorkspace.getAbsolutePath(), importContext);
+    deleteFinalWorkspace(fileWorkspace);
+
+    return importHistory;
+  }
+
+  public ImportHistory run() throws AxelorException, IOException {
+    return run(null);
+  }
+
+  protected abstract ImportHistory process(
+      String bind, String data, Map<String, Object> importContext)
+      throws IOException, AxelorException;
+
+  protected void deleteFinalWorkspace(File workspace) throws IOException {
+
+    if (workspace.isDirectory()) {
+      FileUtils.deleteDirectory(workspace);
+    } else {
+      Files.delete(workspace.toPath());
+    }
+  }
+
+  protected File createFinalWorkspace(MetaFile metaFile) throws IOException {
+
+    File data = MetaFiles.getPath(metaFile).toFile();
+    File finalWorkspace = new File(workspace, computeFinalWorkspaceName(data));
+    finalWorkspace.mkdir();
+
+    if (isZip(metaFile)) {
+      unZip(data, finalWorkspace);
+    } else {
+      org.apache.commons.io.FileUtils.copyFile(
+          data, new File(finalWorkspace, metaFile.getFileName()));
+    }
+
+    if (FileUtils.getExtension(data.getName()).equals("xlsx"))
+      importExcel(new File(finalWorkspace, metaFile.getFileName()));
+
+    return finalWorkspace;
+  }
+
+  protected String computeFinalWorkspaceName(File data) {
+    return String.format(
+        "%s-%s",
+        FileUtils.stripExtension(data.getName()),
+        LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")));
+  }
+
+  protected boolean isZip(MetaFile file) {
+    return FileUtils.getExtension(file.getFilePath()).equals("zip");
+  }
+
+  protected void unZip(File file, File directory) throws IOException {
+
+    File extractFile = null;
+    try (ZipFile zipFile = new ZipFile(file); ) {
+      Enumeration<? extends ZipEntry> entries = zipFile.entries();
+
+      while (entries.hasMoreElements()) {
+        ZipEntry entry = entries.nextElement();
+        try (InputStream entryInputStream = zipFile.getInputStream(entry)) {
+          byte[] buffer = new byte[1024];
+          int bytesRead = 0;
+
+          extractFile = new File(directory, entry.getName());
+          if (entry.isDirectory()) {
+            extractFile.mkdirs();
+            continue;
+          } else {
+            extractFile.getParentFile().mkdirs();
+            extractFile.createNewFile();
+          }
+
+          try (FileOutputStream fileOutputStream = new FileOutputStream(extractFile)) {
+            while ((bytesRead = entryInputStream.read(buffer)) != -1) {
+              fileOutputStream.write(buffer, 0, bytesRead);
+            }
+          }
+          if (FileUtils.getExtension(extractFile.getName()).equals("xlsx")) {
+            importExcel(extractFile);
+          }
+        } catch (IOException ioException) {
+          LOG.error(ioException.getMessage());
+        }
+      }
+    }
+  }
+
+  /**
+   * Adds a new log in the history table for data configuration.
+   *
+   * @param listener
+   * @param errorDir
+   * @return
+   * @throws IOException
+   */
+  protected ImportHistory addHistory(ImporterListener listener) throws IOException {
+
+    ImportHistory importHistory = new ImportHistory(AuthUtils.getUser(), getDataMetaFile());
+    File logFile = File.createTempFile("importLog", ".log");
+
+    try (FileWriter writer = new FileWriter(logFile)) {
+      writer.write(listener.getImportLog());
+    }
+
+    MetaFile logMetaFile =
+        metaFiles.upload(
+            new FileInputStream(logFile),
+            "importLog-" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".log");
+    importHistory.setLogMetaFile(logMetaFile);
+    importHistory.setImportConfiguration(configuration);
+    return importHistory;
+  }
+
+  private static File createDefaultWorkspace() {
+    File file = null;
+    try {
+      file = TempFiles.createTempDir(null).toFile();
+      file.deleteOnExit();
+    } catch (IOException e) {
+      LOG.error(e.getMessage());
+    }
+    return file;
+  }
+
+  public void importExcel(File excelFile) throws IOException {
+    List<Map> sheetList = excelToCSV.generateExcelSheets(excelFile);
+    FileInputStream inputStream = new FileInputStream(excelFile);
+    Workbook workBook = new XSSFWorkbook(inputStream);
+
+    try {
+      for (int i = 0; i < sheetList.size(); i++) {
+        Sheet sheet = workBook.getSheet(sheetList.get(i).get("name").toString());
+        File sheetFile =
+            new File(
+                excelFile.getParent() + "/" + sheetList.get(i).get("name").toString() + ".csv");
+        excelToCSV.writeTOCSV(sheetFile, sheet, 0, 0);
+      }
+
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void checkEntryFilesType(MetaFile bind, MetaFile data) throws AxelorException {
+    if (!FileUtils.getExtension(bind.getFilePath()).equals("xml")) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_INCONSISTENCY,
+          I18n.get(BaseExceptionMessage.IMPORT_CONFIGURATION_WRONG_BINDING_FILE_TYPE_MESSAGE));
+    }
+  }
+
+  protected String getErrorDirectory() throws IOException {
+    String importErrorPath = appBaseService.getImportErrorPath();
+    return new File(importErrorPath).toString();
+  }
+
+  protected MetaFile getErrorMetaFile(String errorDir) throws IOException {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    File[] files = new File(errorDir).listFiles();
+    if (files == null || files.length == 0) {
+      return null;
+    }
+    try (ZipOutputStream zout = new ZipOutputStream(out)) {
+      for (File file : files) {
+        zout.putNextEntry(new ZipEntry(file.getName()));
+        zout.write(Files.readAllBytes(file.toPath()));
+        zout.closeEntry();
+      }
+    }
+    ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
+    return metaFiles.upload(
+        in, "Error-" + new SimpleDateFormat("yyyyMMddHHmmss").format(new Date()) + ".zip");
+  }
+
+  protected MetaFile getDataMetaFile() throws IOException {
+    MetaFile dataMetaFile = configuration.getDataMetaFile();
+    Store store = FileStoreFactory.getStore();
+    if (dataMetaFile == null || !store.hasFile(dataMetaFile.getFilePath())) {
+      return null;
+    }
+    try (InputStream in = store.getStream(dataMetaFile.getFilePath())) {
+      return metaFiles.upload(in, dataMetaFile.getFileName());
+    }
+  }
+}

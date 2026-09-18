@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="message" package="com.axelor.message.db"/>
+
+  <entity name="Message">
+
+    <many-to-one name="event" ref="com.axelor.apps.crm.db.Event" title="Event"/>
+
+  </entity>
+
+</domain-models>

@@ -1,0 +1,215 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.account.service.fixedasset;
+
+import com.axelor.apps.account.db.FixedAsset;
+import com.axelor.apps.account.db.FixedAssetLine;
+import com.axelor.apps.account.db.repo.FixedAssetLineRepository;
+import com.axelor.apps.account.db.repo.FixedAssetRepository;
+import com.axelor.apps.account.exception.AccountExceptionMessage;
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.repo.TraceBackRepository;
+import com.axelor.apps.base.service.CurrencyScaleService;
+import com.axelor.common.StringUtils;
+import com.axelor.db.JPA;
+import com.axelor.i18n.I18n;
+import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import org.apache.commons.collections.CollectionUtils;
+
+public class FixedAssetValidateServiceImpl implements FixedAssetValidateService {
+
+  protected FixedAssetLineService fixedAssetLineService;
+
+  protected FixedAssetGenerationService fixedAssetGenerationService;
+
+  protected FixedAssetDerogatoryLineService fixedAssetDerogatoryLineService;
+
+  protected FixedAssetRepository fixedAssetRepo;
+  protected CurrencyScaleService currencyScaleService;
+
+  @Inject
+  public FixedAssetValidateServiceImpl(
+      FixedAssetLineService fixedAssetLineService,
+      FixedAssetGenerationService fixedAssetGenerationService,
+      FixedAssetDerogatoryLineService fixedAssetDerogatoryLineService,
+      FixedAssetRepository fixedAssetRepo,
+      CurrencyScaleService currencyScaleService) {
+    this.fixedAssetLineService = fixedAssetLineService;
+    this.fixedAssetGenerationService = fixedAssetGenerationService;
+    this.fixedAssetDerogatoryLineService = fixedAssetDerogatoryLineService;
+    this.fixedAssetRepo = fixedAssetRepo;
+    this.currencyScaleService = currencyScaleService;
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @throws AxelorException
+   * @throws NullPointerException if fixedAsset is null
+   */
+  @Override
+  @Transactional(rollbackOn = {Exception.class})
+  public void validate(FixedAsset fixedAsset) throws AxelorException {
+    Objects.requireNonNull(fixedAsset);
+
+    if (StringUtils.isEmpty(fixedAsset.getFixedAssetSeq())) {
+      fixedAsset.setFixedAssetSeq(fixedAssetGenerationService.generateSequence(fixedAsset));
+    }
+
+    if (fixedAsset.getFixedAssetLineList() != null
+        && !fixedAsset.getFixedAssetLineList().isEmpty()) {
+      fixedAssetLineService.clear(fixedAsset.getFixedAssetLineList());
+    }
+    if (fixedAsset.getFiscalFixedAssetLineList() != null
+        && !fixedAsset.getFiscalFixedAssetLineList().isEmpty()) {
+      fixedAssetLineService.clear(fixedAsset.getFiscalFixedAssetLineList());
+    }
+    if (fixedAsset.getFixedAssetDerogatoryLineList() != null
+        && !fixedAsset.getFixedAssetDerogatoryLineList().isEmpty()) {
+      fixedAssetDerogatoryLineService.clear(fixedAsset.getFixedAssetDerogatoryLineList());
+    }
+    if (fixedAsset.getIfrsFixedAssetLineList() != null
+        && !fixedAsset.getIfrsFixedAssetLineList().isEmpty()) {
+      fixedAssetLineService.clear(fixedAsset.getIfrsFixedAssetLineList());
+    }
+
+    if (fixedAsset.getDepreciationPlanSelect() != null) {
+      if (!fixedAsset
+          .getDepreciationPlanSelect()
+          .contains(FixedAssetRepository.DEPRECIATION_PLAN_NONE)) {
+        fixedAsset = fixedAssetGenerationService.generateAndComputeLines(fixedAsset);
+      } else {
+        fixedAsset.setNumberOfDepreciation(0);
+      }
+      setAccountingValue(fixedAsset);
+    }
+    if (fixedAsset.getStatusSelect() == FixedAssetRepository.STATUS_DRAFT) {
+      fixedAsset.setStatusSelect(FixedAssetRepository.STATUS_VALIDATED);
+      fixedAsset.setInitialPeriodicityInMonth(fixedAsset.getPeriodicityInMonth());
+    }
+    fixedAssetRepo.save(fixedAsset);
+  }
+
+  @Override
+  public int massValidation(List<Long> fixedAssetIds) throws AxelorException {
+    int count = 0;
+    for (Long id : fixedAssetIds) {
+      FixedAsset fixedAsset = fixedAssetRepo.find(id);
+      if (fixedAsset.getStatusSelect() == FixedAssetRepository.STATUS_DRAFT) {
+        try {
+          validate(fixedAsset);
+        } catch (AxelorException e) {
+          throw new AxelorException(
+              TraceBackRepository.CATEGORY_INCONSISTENCY,
+              I18n.get(AccountExceptionMessage.FIXED_ASSET_MASS_VALIDATION_EXCEPTION),
+              fixedAsset.getId(),
+              e.getLocalizedMessage());
+        }
+
+        JPA.clear();
+        count++;
+      }
+    }
+    return count;
+  }
+
+  protected void setAccountingValue(FixedAsset fixedAsset) {
+
+    Optional<FixedAssetLine> lastRealizedLine =
+        fixedAssetLineService.findNewestFixedAssetLine(
+            fixedAsset, FixedAssetLineRepository.STATUS_REALIZED, 0);
+
+    if (lastRealizedLine.isPresent()) {
+      BigDecimal lineValue = lastRealizedLine.get().getAccountingValue();
+      fixedAsset.setAccountingValue(
+          currencyScaleService.getCompanyScaledValue(fixedAsset, lineValue));
+      return;
+    }
+
+    BigDecimal gross = fixedAsset.getGrossValue();
+    BigDecimal residual = fixedAsset.getResidualValue();
+    BigDecimal imported = getImportAlreadyDepreciatedAmount(fixedAsset);
+
+    List<String> depreciationPlans = getDepreciationPlans(fixedAsset);
+    boolean noDepreciationPlan =
+        CollectionUtils.isEmpty(depreciationPlans)
+            || (depreciationPlans.size() == 1
+                && depreciationPlans.contains(FixedAssetRepository.DEPRECIATION_PLAN_NONE));
+
+    BigDecimal base;
+    if (imported.compareTo(BigDecimal.ZERO) > 0) {
+      base = gross.subtract(residual).subtract(imported);
+      if (base.signum() < 0) {
+        base = BigDecimal.ZERO;
+      }
+    } else if (noDepreciationPlan) {
+      base = gross;
+    } else {
+      base = gross.subtract(residual);
+    }
+
+    fixedAsset.setAccountingValue(currencyScaleService.getCompanyScaledValue(fixedAsset, base));
+  }
+
+  protected BigDecimal getImportAlreadyDepreciatedAmount(FixedAsset fixedAsset) {
+    BigDecimal importEconomic = fixedAsset.getImportAlreadyDepreciatedAmount();
+    BigDecimal importFiscal = fixedAsset.getImportFiscalAlreadyDepreciatedAmount();
+    BigDecimal importIfrs = fixedAsset.getImportIfrsAlreadyDepreciatedAmount();
+    if (Boolean.TRUE.equals(fixedAsset.getIsEqualToFiscalDepreciation())) {
+      return importEconomic;
+    }
+    List<String> depreciationPlans = getDepreciationPlans(fixedAsset);
+    if (isEconomic(depreciationPlans)) {
+      return importEconomic;
+    }
+    if (isFiscal(depreciationPlans)) {
+      return importFiscal;
+    }
+    if (isIfrs(depreciationPlans)) {
+      return importIfrs;
+    }
+    return importEconomic;
+  }
+
+  protected List<String> getDepreciationPlans(FixedAsset fixedAsset) {
+    return Optional.ofNullable(fixedAsset)
+        .map(FixedAsset::getDepreciationPlanSelect)
+        .map(plans -> Arrays.asList(plans.replace(" ", "").split(",")))
+        .orElse(List.of());
+  }
+
+  protected boolean isFiscal(List<String> depreciationPlans) {
+    return depreciationPlans.contains(FixedAssetRepository.DEPRECIATION_PLAN_FISCAL);
+  }
+
+  protected boolean isEconomic(List<String> depreciationPlans) {
+    return depreciationPlans.contains(FixedAssetRepository.DEPRECIATION_PLAN_ECONOMIC)
+        || depreciationPlans.contains(FixedAssetRepository.DEPRECIATION_PLAN_DEROGATION);
+  }
+
+  protected boolean isIfrs(List<String> depreciationPlans) {
+    return depreciationPlans.contains(FixedAssetRepository.DEPRECIATION_PLAN_IFRS);
+  }
+}

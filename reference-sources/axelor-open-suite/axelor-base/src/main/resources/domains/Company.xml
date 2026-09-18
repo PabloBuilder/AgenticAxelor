@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="base" package="com.axelor.apps.base.db"/>
+
+  <entity name="Company" cacheable="true">
+    <string name="name" title="Name" required="true" unique="true"/>
+    <string name="code" title="Code" required="true" unique="true"/>
+    <many-to-one name="address" ref="Address" title="Address" massUpdate="true"/>  <!-- A supprimer si Partner sur company -->
+
+    <many-to-one name="partner" ref="com.axelor.apps.base.db.Partner" title="Partner"/>
+    <many-to-one name="parent" ref="Company" title="Parent company" massUpdate="true"/>
+    <one-to-many name="companyDepartmentList" title="Company departments"
+      ref="com.axelor.apps.base.db.CompanyDepartment" mappedBy="company"/>
+
+    <string name="legalInformation" title="Legal information"/>
+    <string name="legalFormAndCapital" title="Legal form and capital"/>
+
+    <string name="notes" large="true" title="Notes"/>
+    <many-to-one name="logo" ref="com.axelor.meta.db.MetaFile" title="Logo"
+      help="The default logo, used in BIRT printings."/>
+    <many-to-one name="lightLogo" ref="com.axelor.meta.db.MetaFile" title="Light logo"
+      help="If non empty, this alternative logo will be displayed for users using a light mode-based theme."/>
+    <many-to-one name="darkLogo" ref="com.axelor.meta.db.MetaFile" title="Dark logo"
+      help="If non empty, this alternative logo will be displayed for users using a dark mode-based theme."/>
+
+    <many-to-one name="currency" ref="com.axelor.apps.base.db.Currency" title="Currency"
+      massUpdate="true"/>
+    <decimal name="customerPaymentDelay" title="Customers payment delay (Average in days)"/>
+    <decimal name="supplierPaymentDelay" title="Suppliers payment delay (Average in days)"/>
+
+    <!-- Onglet Bank Details -->
+    <many-to-one name="defaultBankDetails" ref="com.axelor.apps.base.db.BankDetails"
+      title="Default Bank Account"/>
+    <one-to-many name="bankDetailsList" ref="com.axelor.apps.base.db.BankDetails"
+      title="Bank accounts" mappedBy="company"/>
+
+    <many-to-one name="printingSettings" ref="PrintingSettings"
+      title="Printing Settings" massUpdate="true"/>
+
+    <integer name="defaultPartnerTypeSelect" title="Partner Type"
+      selection="company.partner.type.select" default="1" massUpdate="true"/>
+    <integer name="defaultPartnerCategorySelect" title="Partner default category"
+      selection="company.partner.category.select" massUpdate="true"/>
+
+    <one-to-many name="tradingNameList" ref="com.axelor.apps.base.db.TradingName"
+      title="Trading names" mappedBy="company"/>
+    <one-to-many name="tradingNamePrintingSettingsList"
+      ref="com.axelor.apps.base.db.TradingNamePrintingSettings" mappedBy="company"/>
+
+    <many-to-one name="weeklyPlanning" ref="com.axelor.apps.base.db.WeeklyPlanning"
+      massUpdate="true"/>
+    <many-to-one name="publicHolidayEventsPlanning"
+      ref="com.axelor.apps.base.db.EventsPlanning" title="Public Holiday Planning" massUpdate="true"/>
+    <many-to-one name="localization" ref="com.axelor.apps.base.db.Localization"
+      title="Localization" massUpdate="true"/>
+
+    <integer name="width" title="Width" min="0"/>
+    <integer name="height" title="Height" help="Maximum height should be 60 px." min="0"
+      max="60"/>
+
+    <one-to-many name="partnerList" ref="com.axelor.apps.base.db.Partner"
+      title="Attached partners"/>
+
+    <string name="timezone" title="Time Zone" selection="company.timezone.select"/>
+    <one-to-many name="emailAccountList" ref="com.axelor.message.db.EmailAccount"
+      title="Email accounts" mappedBy="company"/>
+    <extra-code><![CDATA[
+
+	   	// CATEGORY SELECT
+		public static final int CATEGORY_CUSTOMER = 1;
+		public static final int CATEGORY_SUPPLIER = 2;
+
+	]]></extra-code>
+
+    <track>
+      <field name="name" on="UPDATE"/>
+      <field name="code" on="UPDATE"/>
+      <field name="address" on="UPDATE"/>
+      <field name="partner" on="UPDATE"/>
+      <field name="parent" on="UPDATE"/>
+      <field name="notes" on="UPDATE"/>
+      <field name="logo" on="UPDATE"/>
+      <field name="lightLogo" on="UPDATE"/>
+      <field name="darkLogo" on="UPDATE"/>
+      <field name="currency" on="UPDATE"/>
+      <field name="customerPaymentDelay" on="UPDATE"/>
+      <field name="supplierPaymentDelay" on="UPDATE"/>
+      <field name="defaultBankDetails" on="UPDATE"/>
+      <field name="printingSettings" on="UPDATE"/>
+      <field name="defaultPartnerTypeSelect" on="UPDATE"/>
+      <field name="defaultPartnerCategorySelect" on="UPDATE"/>
+      <field name="weeklyPlanning" on="UPDATE"/>
+      <field name="publicHolidayEventsPlanning" on="UPDATE"/>
+      <field name="localization" on="UPDATE"/>
+      <field name="width" on="UPDATE"/>
+      <field name="height" on="UPDATE"/>
+      <field name="timezone" on="UPDATE"/>
+    </track>
+  </entity>
+
+</domain-models>

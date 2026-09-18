@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="stock" package="com.axelor.apps.stock.db"/>
+
+  <entity name="StockMoveLine">
+
+    <many-to-one name="saleOrderLine" ref="com.axelor.apps.sale.db.SaleOrderLine"
+      title="Sales order line"/>
+    <many-to-one name="parentStockMoveLine" ref="com.axelor.apps.stock.db.StockMoveLine"
+      title="Parent stock move line"/>
+    <one-to-many name="childStockMoveLineList"
+      ref="com.axelor.apps.stock.db.StockMoveLine" mappedBy="parentStockMoveLine"
+      orphanRemoval="false" title="Child stock move lines"/>
+    <many-to-one name="purchaseOrderLine"
+      ref="com.axelor.apps.purchase.db.PurchaseOrderLine" title="Purchase order line"/>
+
+    <decimal name="reservedQty" title="Allocated Qty" precision="20" scale="10" copy="false"/>
+    <decimal name="requestedReservedQty" title="Requested reserved qty" precision="20"
+      scale="10" copy="false"/>
+
+    <decimal name="qtyInvoiced" title="Invoiced Qty" precision="20" scale="10"/>
+
+    <boolean name="isQtyRequested" readonly="true" title="Quantity requested"/>
+
+    <!-- Is not used in view but needed for java service -->
+    <boolean name="isMergedStockMoveLine" transient="true"/>
+
+    <string name="levelIndicator" title="Level"/>
+
+    <datetime name="reservationDateTime" readonly="true"/>
+
+    <decimal name="qtyRemainingToPackage" title="Qty remaining to package" default="0"
+      scale="3" precision="20"/>
+
+    <finder-method name="findForDeclarationOfExchanges"
+      using="LocalDate:fromDate,LocalDate:toDate,String:productTypeSelect,int:stockMoveTypeSelect,com.axelor.apps.base.db.Country:country,com.axelor.apps.base.db.Company:company "
+      filter="
+	        self.stockMove.realDate BETWEEN :fromDate AND :toDate
+	        AND self.product.usedInDEB is true
+	        AND self.product.productTypeSelect = :productTypeSelect
+	        AND self.stockMove.typeSelect = :stockMoveTypeSelect
+	        AND self.stockMove.statusSelect = 3
+	        AND self.stockMove.company = :company
+	        AND (COALESCE(self.stockMove.fromAddress.country, self.fromStockLocation.address.country) = :country
+	        OR COALESCE(self.stockMove.toAddress.country, self.toStockLocation.address.country) = :country)
+	        AND COALESCE(self.stockMove.fromAddress.country, self.fromStockLocation.address.country)
+	        != COALESCE(self.stockMove.toAddress.country, self.toStockLocation.address.country)
+	        AND COALESCE(self.stockMove.fromAddress.country.economicArea, self.stockMove.fromStockLocation.address.country.economicArea)
+	        = COALESCE(self.stockMove.toAddress.country.economicArea, self.toStockLocation.address.country.economicArea)
+	        AND ((self.saleOrderLine IS NULL AND self.purchaseOrderLine IS NULL)
+	          OR (self.saleOrderLine IS NOT NULL AND (self.saleOrderLine.saleOrder.taxNumber IS NULL OR self.saleOrderLine.saleOrder.taxNumber.includeInDEB = true))
+	          OR (self.purchaseOrderLine IS NOT NULL AND (self.purchaseOrderLine.purchaseOrder.taxNumber IS NULL OR self.purchaseOrderLine.purchaseOrder.taxNumber.includeInDEB = true)))"
+      orderBy="stockMove.realDate,id" all="true"/>
+
+    <track on="UPDATE">
+      <field name="requestedReservedQty"/>
+      <field name="reservedQty"/>
+    </track>
+
+  </entity>
+
+</domain-models>

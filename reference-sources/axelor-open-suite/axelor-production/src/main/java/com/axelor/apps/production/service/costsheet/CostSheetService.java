@@ -1,0 +1,101 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.production.service.costsheet;
+
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.production.db.BillOfMaterial;
+import com.axelor.apps.production.db.CostSheet;
+import com.axelor.apps.production.db.ManufOrder;
+import com.axelor.apps.supplychain.db.UnitCostCalculation;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Set;
+
+public interface CostSheetService {
+
+  public static final int ORIGIN_BILL_OF_MATERIAL = 0;
+  public static final int ORIGIN_MANUF_ORDER = 1;
+  public static final int ORIGIN_BULK_UNIT_COST_CALCULATION = 2;
+
+  /**
+   * @param billOfMaterial
+   * @param origin 0 : ORIGIN_BILL_OF_MATERIAL 1 : ORIGIN_MANUF_ORDER 2 :
+   *     ORIGIN_BULK_UNIT_COST_CALCULATION
+   * @param unitCostCalculation Required if origin = ORIGIN_BULK_UNIT_COST_CALCULATION
+   * @return
+   * @throws AxelorException
+   */
+  public CostSheet computeCostPrice(
+      BillOfMaterial billOfMaterial, int origin, UnitCostCalculation unitCostCalculation)
+      throws AxelorException;
+
+  public CostSheet computeCostPrice(
+      ManufOrder manufOrder, int calculationTypeSelect, LocalDate calculationDate)
+      throws AxelorException;
+
+  /**
+   * Same as {@link #computeCostPrice(ManufOrder, int, LocalDate)} but uses the given {@code
+   * overrideProducedQty} instead of computing the produced quantity from realized stock move lines.
+   * Useful when the OUT stock moves haven't been realized yet but the produced quantity is known
+   * (e.g. about to be realized with the resulting cost price). When {@code overrideProducedQty} is
+   * {@code null}, the default behavior applies.
+   */
+  CostSheet computeCostPrice(
+      ManufOrder manufOrder,
+      int calculationTypeSelect,
+      LocalDate calculationDate,
+      BigDecimal overrideProducedQty)
+      throws AxelorException;
+
+  /**
+   * Same as {@link #computeCostPrice(ManufOrder, int, LocalDate, BigDecimal)} but additionally
+   * excludes the given stock move line IDs from the consumed and produced aggregations. This
+   * complements the date-based {@code previousCostSheetDate} filter, which has off-by-one semantics
+   * (lines realized on the previous cost sheet date are kept). Passing here the set of lines
+   * already accounted for in prior cost sheets makes the result strictly batch-specific, even when
+   * partial and final finishes happen on the same day.
+   *
+   * @param excludedConsumedLineIds IDs of consumed stock move lines (typically the realized IN
+   *     lines from previous batches) to exclude from the consumed aggregation. May be empty.
+   * @param excludedProducedLineIds IDs of produced stock move lines (typically the realized OUT
+   *     lines from previous batches) to exclude from the producedQty aggregation. May be empty.
+   */
+  CostSheet computeCostPrice(
+      ManufOrder manufOrder,
+      int calculationTypeSelect,
+      LocalDate calculationDate,
+      BigDecimal overrideProducedQty,
+      Set<Long> excludedConsumedLineIds,
+      Set<Long> excludedProducedLineIds)
+      throws AxelorException;
+
+  /**
+   * Check whether the manufacturing order already has a dated partial or final closing cost sheet.
+   *
+   * @param manufOrder the manufacturing order to check
+   * @return {@code true} if a previous closing cost sheet exists
+   */
+  boolean hasPreviousCostSheet(ManufOrder manufOrder);
+
+  BigDecimal getQtyRatio(BillOfMaterial billOfMaterial) throws AxelorException;
+
+  BigDecimal getQtyRatio(
+      BillOfMaterial billOfMaterial, BigDecimal bomQty, BigDecimal calculationQty)
+      throws AxelorException;
+}

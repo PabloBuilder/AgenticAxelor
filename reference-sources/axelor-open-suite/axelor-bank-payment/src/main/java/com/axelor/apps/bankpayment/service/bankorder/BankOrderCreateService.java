@@ -1,0 +1,201 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.bankpayment.service.bankorder;
+
+import com.axelor.apps.account.db.Invoice;
+import com.axelor.apps.account.db.InvoicePayment;
+import com.axelor.apps.account.db.PaymentMode;
+import com.axelor.apps.account.db.repo.InvoiceRepository;
+import com.axelor.apps.account.service.invoice.InvoiceService;
+import com.axelor.apps.account.service.invoice.InvoiceToolService;
+import com.axelor.apps.bankpayment.db.BankOrder;
+import com.axelor.apps.bankpayment.db.BankOrderFileFormat;
+import com.axelor.apps.bankpayment.db.BankOrderLine;
+import com.axelor.apps.bankpayment.db.repo.BankOrderRepository;
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.BankDetails;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Currency;
+import com.axelor.apps.base.db.Partner;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.inject.Beans;
+import jakarta.inject.Inject;
+import java.lang.invoke.MethodHandles;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class BankOrderCreateService {
+
+  private final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  protected BankOrderRepository bankOrderRepository;
+  protected BankOrderLineService bankOrderLineService;
+  protected InvoiceService invoiceService;
+  protected BankOrderCheckService bankOrderCheckService;
+
+  @Inject
+  public BankOrderCreateService(
+      BankOrderRepository bankOrderRepository,
+      BankOrderLineService bankOrderLineService,
+      InvoiceService invoiceService,
+      BankOrderCheckService bankOrderCheckService) {
+
+    this.bankOrderRepository = bankOrderRepository;
+    this.bankOrderLineService = bankOrderLineService;
+    this.invoiceService = invoiceService;
+    this.bankOrderCheckService = bankOrderCheckService;
+  }
+
+  /**
+   * Créer un ordre bancaire avec tous les paramètres
+   *
+   * @param
+   * @return
+   * @throws AxelorException
+   */
+  public BankOrder createBankOrder(
+      PaymentMode paymentMode,
+      Integer partnerType,
+      LocalDate bankOrderDate,
+      Company senderCompany,
+      BankDetails senderBankDetails,
+      Currency currency,
+      String senderReference,
+      String senderLabel,
+      int technicalOriginSelect,
+      int functionalOriginSelect,
+      int accountingTriggerSelect)
+      throws AxelorException {
+
+    bankOrderCheckService.checkPreconditions(
+        paymentMode, partnerType, bankOrderDate, senderCompany, senderBankDetails);
+
+    BankOrderFileFormat bankOrderFileFormat = paymentMode.getBankOrderFileFormat();
+
+    BankOrder bankOrder = new BankOrder();
+
+    bankOrder.setOrderTypeSelect(paymentMode.getOrderTypeSelect());
+    bankOrder.setPaymentMode(paymentMode);
+    bankOrder.setPartnerTypeSelect(partnerType);
+
+    LocalDate todayDate = Beans.get(AppBaseService.class).getTodayDate(senderCompany);
+    bankOrder.setBankOrderDate(bankOrderDate.isBefore(todayDate) ? todayDate : bankOrderDate);
+    bankOrder.setIsMultiDate(bankOrderFileFormat.getIsMultiDate());
+
+    bankOrder.setStatusSelect(BankOrderRepository.STATUS_DRAFT);
+    bankOrder.setRejectStatusSelect(BankOrderRepository.REJECT_STATUS_NOT_REJECTED);
+    bankOrder.setSenderCompany(senderCompany);
+    bankOrder.setSenderBankDetails(senderBankDetails);
+
+    if (!bankOrderFileFormat.getIsMultiCurrency()) {
+      bankOrder.setBankOrderCurrency(currency);
+    }
+    bankOrder.setCompanyCurrency(senderCompany.getCurrency());
+
+    bankOrder.setSenderReference(senderReference);
+    bankOrder.setSenderLabel(senderLabel);
+    bankOrder.setBankOrderLineList(new ArrayList<>());
+    bankOrder.setBankOrderFileFormat(bankOrderFileFormat);
+    bankOrder.setTechnicalOriginSelect(technicalOriginSelect);
+    bankOrder.setFunctionalOriginSelect(functionalOriginSelect);
+    bankOrder.setAccountingTriggerSelect(accountingTriggerSelect);
+    return bankOrder;
+  }
+
+  /**
+   * Method to create a bank order for an invoice Payment
+   *
+   * @param invoicePayment An invoice payment
+   * @throws AxelorException
+   */
+  public BankOrder createBankOrder(InvoicePayment invoicePayment) throws AxelorException {
+    Invoice invoice = invoicePayment.getInvoice();
+    Company company = invoice.getCompany();
+    PaymentMode paymentMode = invoicePayment.getPaymentMode();
+    Partner partner = invoice.getPartner();
+    BigDecimal amount = invoicePayment.getAmount();
+    Currency currency = invoicePayment.getCurrency();
+    LocalDate dueDate = invoice.getDueDate();
+
+    BankDetails companyBankDetails =
+        invoicePayment.getCompanyBankDetails() != null
+            ? invoicePayment.getCompanyBankDetails()
+            : this.getSenderBankDetails(invoice);
+
+    String reference =
+        InvoiceToolService.isPurchase(invoice)
+            ? invoice.getSupplierInvoiceNb()
+            : invoice.getInvoiceId();
+
+    BankOrder bankOrder =
+        this.createBankOrder(
+            paymentMode,
+            this.getBankOrderPartnerType(invoice),
+            dueDate,
+            company,
+            companyBankDetails,
+            currency,
+            reference,
+            null,
+            BankOrderRepository.TECHNICAL_ORIGIN_AUTOMATIC,
+            BankOrderRepository.FUNCTIONAL_ORIGIN_INVOICE_PAYMENT,
+            paymentMode.getAccountingTriggerSelect());
+
+    BankDetails receiverBankDetails = invoiceService.getBankDetails(invoice);
+    BankOrderLine bankOrderLine =
+        bankOrderLineService.createBankOrderLine(
+            paymentMode.getBankOrderFileFormat(),
+            null,
+            partner,
+            receiverBankDetails,
+            amount,
+            currency,
+            dueDate,
+            reference,
+            null,
+            invoice);
+    bankOrder.addBankOrderLineListItem(bankOrderLine);
+    invoicePayment.setBankOrder(bankOrder);
+
+    bankOrder = bankOrderRepository.save(bankOrder);
+
+    return bankOrder;
+  }
+
+  public int getBankOrderPartnerType(Invoice invoice) {
+
+    if (invoice.getOperationTypeSelect() == InvoiceRepository.OPERATION_TYPE_CLIENT_REFUND
+        || invoice.getOperationTypeSelect() == InvoiceRepository.OPERATION_TYPE_CLIENT_SALE) {
+      return BankOrderRepository.PARTNER_TYPE_CUSTOMER;
+    } else {
+      return BankOrderRepository.PARTNER_TYPE_SUPPLIER;
+    }
+  }
+
+  public BankDetails getSenderBankDetails(Invoice invoice) {
+
+    if (invoice.getBankDetails() != null) {
+      return invoice.getCompanyBankDetails();
+    }
+
+    return invoice.getCompany().getDefaultBankDetails();
+  }
+}

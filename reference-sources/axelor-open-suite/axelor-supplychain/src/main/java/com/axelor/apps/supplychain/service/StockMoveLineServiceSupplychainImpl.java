@@ -1,0 +1,726 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.supplychain.service;
+
+import com.axelor.apps.account.db.InvoiceLine;
+import com.axelor.apps.account.db.repo.AccountingBatchRepository;
+import com.axelor.apps.account.db.repo.InvoiceLineRepository;
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Batch;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Product;
+import com.axelor.apps.base.db.Unit;
+import com.axelor.apps.base.db.repo.ProductRepository;
+import com.axelor.apps.base.service.PriceListService;
+import com.axelor.apps.base.service.ProductCompanyService;
+import com.axelor.apps.base.service.ShippingCoefService;
+import com.axelor.apps.base.service.UnitConversionService;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.apps.base.service.tax.AccountManagementService;
+import com.axelor.apps.purchase.db.PurchaseOrderLine;
+import com.axelor.apps.sale.db.SaleOrderLine;
+import com.axelor.apps.stock.db.StockLocation;
+import com.axelor.apps.stock.db.StockLocationLine;
+import com.axelor.apps.stock.db.StockMove;
+import com.axelor.apps.stock.db.StockMoveLine;
+import com.axelor.apps.stock.db.TrackingNumber;
+import com.axelor.apps.stock.db.TrackingNumberConfiguration;
+import com.axelor.apps.stock.db.repo.StockMoveLineRepository;
+import com.axelor.apps.stock.db.repo.StockMoveRepository;
+import com.axelor.apps.stock.db.repo.TrackingNumberRepository;
+import com.axelor.apps.stock.service.StockLocationLineFetchService;
+import com.axelor.apps.stock.service.StockLocationLineHistoryService;
+import com.axelor.apps.stock.service.StockLocationLineService;
+import com.axelor.apps.stock.service.StockMoveLineServiceImpl;
+import com.axelor.apps.stock.service.StockMoveService;
+import com.axelor.apps.stock.service.StockMoveToolService;
+import com.axelor.apps.stock.service.TrackingNumberCreateService;
+import com.axelor.apps.stock.service.TrackingNumberService;
+import com.axelor.apps.stock.service.WeightedAveragePriceService;
+import com.axelor.apps.stock.service.app.AppStockService;
+import com.axelor.apps.supplychain.db.SupplyChainConfig;
+import com.axelor.apps.supplychain.db.repo.SupplychainBatchRepository;
+import com.axelor.apps.supplychain.service.app.AppSupplychainService;
+import com.axelor.apps.supplychain.service.batch.BatchAccountingCutOffSupplyChain;
+import com.axelor.apps.supplychain.service.config.OutSmGenerationService;
+import com.axelor.apps.supplychain.service.config.SupplyChainConfigService;
+import com.axelor.common.ObjectUtils;
+import com.axelor.i18n.I18n;
+import com.axelor.inject.Beans;
+import com.axelor.studio.db.AppSupplychain;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.inject.persist.Transactional;
+import com.google.inject.servlet.RequestScoped;
+import jakarta.inject.Inject;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@RequestScoped
+public class StockMoveLineServiceSupplychainImpl extends StockMoveLineServiceImpl
+    implements StockMoveLineServiceSupplychain {
+
+  protected AccountManagementService accountManagementService;
+  protected PriceListService priceListService;
+  protected SupplychainBatchRepository supplychainBatchRepo;
+  protected SupplyChainConfigService supplychainConfigService;
+  protected OutSmGenerationService outSmGenerationService;
+  protected InvoiceLineRepository invoiceLineRepository;
+
+  protected AppSupplychainService appSupplychainService;
+
+  @Inject
+  public StockMoveLineServiceSupplychainImpl(
+      TrackingNumberService trackingNumberService,
+      AppBaseService appBaseService,
+      AppStockService appStockService,
+      StockMoveToolService stockMoveToolService,
+      StockMoveLineRepository stockMoveLineRepository,
+      StockLocationLineService stockLocationLineService,
+      UnitConversionService unitConversionService,
+      WeightedAveragePriceService weightedAveragePriceService,
+      TrackingNumberRepository trackingNumberRepo,
+      ShippingCoefService shippingCoefService,
+      AccountManagementService accountManagementService,
+      StockMoveService stockMoveService,
+      PriceListService priceListService,
+      ProductCompanyService productCompanyService,
+      SupplychainBatchRepository supplychainBatchRepo,
+      SupplyChainConfigService supplychainConfigService,
+      OutSmGenerationService outSmGenerationService,
+      StockLocationLineHistoryService stockLocationLineHistoryService,
+      InvoiceLineRepository invoiceLineRepository,
+      AppSupplychainService appSupplychainService,
+      StockLocationLineFetchService stockLocationLineFetchService,
+      TrackingNumberCreateService trackingNumberCreateService,
+      StockMoveRepository stockMoveRepository) {
+    super(
+        trackingNumberService,
+        appBaseService,
+        appStockService,
+        stockMoveToolService,
+        stockMoveLineRepository,
+        stockLocationLineService,
+        unitConversionService,
+        weightedAveragePriceService,
+        trackingNumberRepo,
+        productCompanyService,
+        shippingCoefService,
+        stockLocationLineHistoryService,
+        stockLocationLineFetchService,
+        trackingNumberCreateService,
+        stockMoveService,
+        stockMoveRepository);
+    this.accountManagementService = accountManagementService;
+    this.priceListService = priceListService;
+    this.supplychainBatchRepo = supplychainBatchRepo;
+    this.supplychainConfigService = supplychainConfigService;
+    this.outSmGenerationService = outSmGenerationService;
+    this.invoiceLineRepository = invoiceLineRepository;
+    this.appSupplychainService = appSupplychainService;
+  }
+
+  @Override
+  public StockMoveLine createStockMoveLine(
+      Product product,
+      String productName,
+      String description,
+      BigDecimal quantity,
+      BigDecimal requestedReservedQty,
+      BigDecimal unitPrice,
+      BigDecimal companyUnitPriceUntaxed,
+      BigDecimal companyPurchasePrice,
+      Unit unit,
+      StockMove stockMove,
+      int type,
+      boolean taxed,
+      BigDecimal taxRate,
+      SaleOrderLine saleOrderLine,
+      PurchaseOrderLine purchaseOrderLine,
+      StockLocation fromStockLocation,
+      StockLocation toStockLocation)
+      throws AxelorException {
+    if (product != null) {
+
+      StockMoveLine stockMoveLine =
+          generateStockMoveLineConvertingUnitPrice(
+              product,
+              productName,
+              description,
+              quantity,
+              unitPrice,
+              companyUnitPriceUntaxed,
+              companyPurchasePrice,
+              unit,
+              stockMove,
+              taxed,
+              taxRate,
+              fromStockLocation,
+              toStockLocation);
+      stockMoveLine.setRequestedReservedQty(requestedReservedQty);
+      stockMoveLine.setIsQtyRequested(
+          requestedReservedQty != null && requestedReservedQty.signum() > 0);
+      stockMoveLine.setSaleOrderLine(saleOrderLine);
+      stockMoveLine.setPurchaseOrderLine(purchaseOrderLine);
+      TrackingNumberConfiguration trackingNumberConfiguration =
+          (TrackingNumberConfiguration)
+              productCompanyService.get(
+                  product, "trackingNumberConfiguration", stockMove.getCompany());
+
+      return assignOrGenerateTrackingNumber(
+          stockMoveLine, stockMove, product, trackingNumberConfiguration, type);
+    } else {
+      return this.createStockMoveLine(
+          product,
+          productName,
+          description,
+          quantity,
+          BigDecimal.ZERO,
+          BigDecimal.ZERO,
+          companyUnitPriceUntaxed,
+          BigDecimal.ZERO,
+          unit,
+          stockMove,
+          null,
+          fromStockLocation,
+          toStockLocation);
+    }
+  }
+
+  @Override
+  public StockMoveLine compute(StockMoveLine stockMoveLine, StockMove stockMove)
+      throws AxelorException {
+
+    // the case when stockMove is null is made in super.
+    if (stockMove == null || !appBaseService.isApp("supplychain")) {
+      return super.compute(stockMoveLine, null);
+    }
+
+    return computePriceFromOrder(stockMoveLine, stockMove);
+  }
+
+  protected StockMoveLine computePriceFromOrder(StockMoveLine stockMoveLine, StockMove stockMove)
+      throws AxelorException {
+    if ((ObjectUtils.notEmpty(stockMove.getSaleOrderSet())
+            && stockMoveLine.getSaleOrderLine() != null)
+        || (ObjectUtils.notEmpty(stockMove.getPurchaseOrderSet())
+            && stockMoveLine.getPurchaseOrderLine() != null)) {
+      // the stock move comes from a sale or purchase order, we take the price from the order.
+      stockMoveLine = computeFromOrder(stockMoveLine, stockMove);
+    } else {
+      stockMoveLine = super.compute(stockMoveLine, stockMove);
+    }
+    return stockMoveLine;
+  }
+
+  @Override
+  public StockMoveLine qtyOnChange(StockMoveLine stockMoveLine, StockMove stockMove)
+      throws AxelorException {
+
+    if (stockMove == null || !appBaseService.isApp("supplychain")) {
+      return super.qtyOnChange(stockMoveLine, stockMove);
+    }
+    return computePriceFromOrder(stockMoveLine, stockMove);
+  }
+
+  protected StockMoveLine computeFromOrder(StockMoveLine stockMoveLine, StockMove stockMove)
+      throws AxelorException {
+    BigDecimal unitPriceUntaxed = stockMoveLine.getUnitPriceUntaxed();
+    BigDecimal unitPriceTaxed = stockMoveLine.getUnitPriceTaxed();
+    Unit orderUnit = null;
+    if (ObjectUtils.notEmpty(stockMove.getSaleOrderSet())) {
+      SaleOrderLine saleOrderLine = stockMoveLine.getSaleOrderLine();
+      unitPriceUntaxed = saleOrderLine.getPriceDiscounted();
+      unitPriceTaxed = saleOrderLine.getInTaxPrice();
+      orderUnit = saleOrderLine.getUnit();
+    } else if (ObjectUtils.notEmpty(stockMove.getPurchaseOrderSet())) {
+      PurchaseOrderLine purchaseOrderLine = stockMoveLine.getPurchaseOrderLine();
+      unitPriceUntaxed = purchaseOrderLine.getPriceDiscounted();
+      unitPriceTaxed = purchaseOrderLine.getInTaxPrice();
+
+      if ((stockMove.getTypeSelect() == StockMoveRepository.TYPE_OUTGOING
+              && stockMove.getIsReversion())
+          || (stockMove.getTypeSelect() == StockMoveRepository.TYPE_INCOMING
+              && !stockMove.getIsReversion())) {
+        BigDecimal shippingCoef =
+            shippingCoefService.getShippingCoef(
+                stockMoveLine.getProduct(),
+                stockMove.getPartner(),
+                stockMove.getCompany(),
+                stockMoveLine.getRealQty());
+
+        unitPriceUntaxed = unitPriceUntaxed.multiply(shippingCoef);
+        unitPriceTaxed = unitPriceTaxed.multiply(shippingCoef);
+      }
+      orderUnit = purchaseOrderLine.getUnit();
+    }
+
+    stockMoveLine.setUnitPriceUntaxed(unitPriceUntaxed);
+    stockMoveLine.setUnitPriceTaxed(unitPriceTaxed);
+
+    Unit stockUnit = getStockUnit(stockMoveLine);
+    return convertUnitPrice(stockMoveLine, orderUnit, stockUnit);
+  }
+
+  protected StockMoveLine convertUnitPrice(StockMoveLine stockMoveLine, Unit fromUnit, Unit toUnit)
+      throws AxelorException {
+    // convert unit price, meaning the conversion is reversed : Box of 12 pieces => 12 pieces but
+    // 1/12 the price
+    if (toUnit != null && fromUnit != null) {
+      BigDecimal unitPriceUntaxed =
+          unitConversionService.convert(
+              toUnit,
+              fromUnit,
+              stockMoveLine.getUnitPriceUntaxed(),
+              appBaseService.getNbDecimalDigitForUnitPrice(),
+              null);
+      BigDecimal unitPriceTaxed =
+          unitConversionService.convert(
+              toUnit,
+              fromUnit,
+              stockMoveLine.getUnitPriceTaxed(),
+              appBaseService.getNbDecimalDigitForUnitPrice(),
+              null);
+      stockMoveLine.setUnitPriceUntaxed(unitPriceUntaxed);
+      stockMoveLine.setUnitPriceTaxed(unitPriceTaxed);
+    }
+    return stockMoveLine;
+  }
+
+  @Override
+  public StockMoveLine splitStockMoveLine(
+      StockMoveLine stockMoveLine, BigDecimal qty, TrackingNumber trackingNumber)
+      throws AxelorException {
+
+    StockMoveLine newStockMoveLine = super.splitStockMoveLine(stockMoveLine, qty, trackingNumber);
+
+    if (!appBaseService.isApp("supplychain")) {
+      return newStockMoveLine;
+    }
+    BigDecimal reservedQtyAfterSplit =
+        BigDecimal.ZERO.max(stockMoveLine.getRequestedReservedQty().subtract(qty));
+    BigDecimal reservedQtyInNewLine = stockMoveLine.getRequestedReservedQty().min(qty);
+    stockMoveLine.setRequestedReservedQty(reservedQtyAfterSplit);
+    newStockMoveLine.setRequestedReservedQty(reservedQtyInNewLine);
+    newStockMoveLine.setSaleOrderLine(stockMoveLine.getSaleOrderLine());
+    newStockMoveLine.setPurchaseOrderLine(stockMoveLine.getPurchaseOrderLine());
+    return newStockMoveLine;
+  }
+
+  @Override
+  protected BigDecimal computeAvailableQtyInMoveLineUnit(
+      StockMoveLine stockMoveLine, StockLocationLine stockLocationLine, Unit targetUnit)
+      throws AxelorException {
+    BigDecimal currentQtyInStockMoveLineUnit =
+        super.computeAvailableQtyInMoveLineUnit(stockMoveLine, stockLocationLine, targetUnit);
+    if (!appBaseService.isApp("supplychain")) {
+      return currentQtyInStockMoveLineUnit;
+    }
+    BigDecimal stockLocationReservedQtyInStockMoveLineUnit =
+        convertQtyToMoveLineUnit(
+            stockMoveLine,
+            stockLocationLine.getReservedQty(),
+            stockLocationLine.getUnit(),
+            targetUnit);
+
+    return currentQtyInStockMoveLineUnit
+        .add(stockMoveLine.getReservedQty())
+        .subtract(stockLocationReservedQtyInStockMoveLineUnit);
+  }
+
+  @Override
+  public StockMoveLine getMergedStockMoveLine(List<StockMoveLine> stockMoveLineList)
+      throws AxelorException {
+
+    if (stockMoveLineList == null || stockMoveLineList.isEmpty()) {
+      return null;
+    }
+
+    if (stockMoveLineList.size() == 1) {
+      return stockMoveLineList.get(0);
+    }
+    StockMove stockMove = stockMoveLineList.get(0).getStockMove();
+
+    SaleOrderLine saleOrderLine = stockMoveLineList.get(0).getSaleOrderLine();
+    PurchaseOrderLine purchaseOrderLine = stockMoveLineList.get(0).getPurchaseOrderLine();
+
+    Product product;
+    String productName;
+    String description;
+    BigDecimal quantity = BigDecimal.ZERO;
+    Unit unit;
+
+    if (saleOrderLine != null) {
+      product = saleOrderLine.getProduct();
+      productName = saleOrderLine.getProductName();
+      description = saleOrderLine.getDescription();
+      unit = saleOrderLine.getUnit();
+
+    } else if (purchaseOrderLine != null) {
+      product = purchaseOrderLine.getProduct();
+      productName = purchaseOrderLine.getProductName();
+      description = purchaseOrderLine.getDescription();
+      unit = purchaseOrderLine.getUnit();
+
+    } else {
+      return null; // shouldn't ever happen or you misused this function
+    }
+
+    for (StockMoveLine stockMoveLine : stockMoveLineList) {
+      quantity = quantity.add(stockMoveLine.getRealQty());
+    }
+
+    StockMoveLine generatedStockMoveLine =
+        createStockMoveLine(
+            product,
+            productName,
+            description,
+            quantity,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
+            unit,
+            stockMove,
+            null,
+            null,
+            null);
+
+    generatedStockMoveLine.setSaleOrderLine(saleOrderLine);
+    generatedStockMoveLine.setPurchaseOrderLine(purchaseOrderLine);
+    generatedStockMoveLine.setIsMergedStockMoveLine(true);
+    return generatedStockMoveLine;
+  }
+
+  /**
+   * This implementation copy fields from sale order line and purchase order line if the link
+   * exists.
+   *
+   * @param stockMove
+   * @param stockMoveLine
+   * @param company
+   */
+  @Override
+  public void setProductInfo(StockMove stockMove, StockMoveLine stockMoveLine, Company company)
+      throws AxelorException {
+
+    if (!appBaseService.isApp("supplychain")) {
+      super.setProductInfo(stockMove, stockMoveLine, company);
+      return;
+    }
+
+    Preconditions.checkNotNull(stockMoveLine);
+    Preconditions.checkNotNull(company);
+
+    Product product = stockMoveLine.getProduct();
+
+    if (product == null) {
+      return;
+    }
+    super.setProductInfo(stockMove, stockMoveLine, company);
+
+    SaleOrderLine saleOrderLine = stockMoveLine.getSaleOrderLine();
+    PurchaseOrderLine purchaseOrderLine = stockMoveLine.getPurchaseOrderLine();
+
+    if (saleOrderLine != null) {
+      setProductInfoFromSaleOrder(stockMoveLine, saleOrderLine);
+    }
+    if (purchaseOrderLine != null) {
+      setProductInfoFromPurchaseOrder(stockMoveLine, purchaseOrderLine);
+    }
+  }
+
+  protected void setProductInfoFromSaleOrder(
+      StockMoveLine stockMoveLine, SaleOrderLine saleOrderLine) {
+
+    stockMoveLine.setUnit(saleOrderLine.getUnit());
+    stockMoveLine.setProductName(saleOrderLine.getProductName());
+    if (Strings.isNullOrEmpty(stockMoveLine.getDescription())) {
+      stockMoveLine.setDescription(saleOrderLine.getDescription());
+    }
+    stockMoveLine.setQty(saleOrderLine.getQty());
+  }
+
+  protected void setProductInfoFromPurchaseOrder(
+      StockMoveLine stockMoveLine, PurchaseOrderLine purchaseOrderLine) {
+
+    stockMoveLine.setUnit(purchaseOrderLine.getUnit());
+    stockMoveLine.setProductName(purchaseOrderLine.getProductName());
+    if (Strings.isNullOrEmpty(stockMoveLine.getDescription())) {
+      stockMoveLine.setDescription(purchaseOrderLine.getDescription());
+    }
+    stockMoveLine.setQty(purchaseOrderLine.getQty());
+  }
+
+  @Override
+  public boolean isAvailableProduct(StockMoveLine stockMoveLine) throws AxelorException {
+    if (stockMoveLine.getProduct() == null
+        || (stockMoveLine.getProduct() != null && !stockMoveLine.getProduct().getStockManaged())) {
+      return true;
+    }
+    updateAvailableQty(stockMoveLine, stockMoveLine.getFromStockLocation());
+    BigDecimal availableQty = stockMoveLine.getAvailableQty();
+    TrackingNumberConfiguration trackingNumberConfiguration =
+        (TrackingNumberConfiguration)
+            productCompanyService.get(
+                stockMoveLine.getProduct(),
+                "trackingNumberConfiguration",
+                Optional.ofNullable(stockMoveLine.getStockMove())
+                    .map(StockMove::getCompany)
+                    .orElse(null));
+
+    if (trackingNumberConfiguration != null && stockMoveLine.getTrackingNumber() == null) {
+      availableQty = stockMoveLine.getAvailableQtyForProduct();
+    }
+    BigDecimal realQty = stockMoveLine.getRealQty();
+    return availableQty.compareTo(realQty) >= 0;
+  }
+
+  @Override
+  public void setInvoiceStatus(StockMoveLine stockMoveLine) {
+    if (stockMoveLine.getQtyInvoiced().compareTo(BigDecimal.ZERO) == 0) {
+      stockMoveLine.setAvailableStatus(I18n.get("Not invoiced"));
+      stockMoveLine.setAvailableStatusSelect(3);
+    } else if (stockMoveLine.getQtyInvoiced().compareTo(stockMoveLine.getRealQty()) < 0) {
+      stockMoveLine.setAvailableStatus(I18n.get("Partially invoiced"));
+      stockMoveLine.setAvailableStatusSelect(4);
+    } else if (stockMoveLine.getQtyInvoiced().compareTo(stockMoveLine.getRealQty()) == 0) {
+      stockMoveLine.setAvailableStatus(I18n.get("Invoiced"));
+      stockMoveLine.setAvailableStatusSelect(1);
+    }
+  }
+
+  @Override
+  public boolean isAllocatedStockMoveLine(StockMoveLine stockMoveLine) {
+    return stockMoveLine.getReservedQty().compareTo(BigDecimal.ZERO) > 0
+        || stockMoveLine.getRequestedReservedQty().compareTo(BigDecimal.ZERO) > 0;
+  }
+
+  @Override
+  public BigDecimal getAmountNotInvoiced(
+      StockMoveLine stockMoveLine, boolean isPurchase, boolean ati, boolean recoveredTax)
+      throws AxelorException {
+    return this.getAmountNotInvoiced(
+        stockMoveLine,
+        stockMoveLine.getPurchaseOrderLine(),
+        stockMoveLine.getSaleOrderLine(),
+        isPurchase,
+        ati,
+        recoveredTax);
+  }
+
+  @Override
+  public BigDecimal getAmountNotInvoiced(
+      StockMoveLine stockMoveLine,
+      PurchaseOrderLine purchaseOrderLine,
+      SaleOrderLine saleOrderLine,
+      boolean isPurchase,
+      boolean ati,
+      boolean recoveredTax)
+      throws AxelorException {
+    BigDecimal amountInCurrency = null;
+    BigDecimal totalQty = null;
+    BigDecimal notInvoicedQty = null;
+
+    if (isPurchase && purchaseOrderLine != null) {
+      totalQty = purchaseOrderLine.getQty();
+
+      notInvoicedQty =
+          unitConversionService.convert(
+              stockMoveLine.getUnit(),
+              purchaseOrderLine.getUnit(),
+              stockMoveLine.getRealQty().subtract(stockMoveLine.getQtyInvoiced()),
+              stockMoveLine.getRealQty().scale(),
+              purchaseOrderLine.getProduct());
+
+      if (ati && !recoveredTax) {
+        amountInCurrency = purchaseOrderLine.getInTaxTotal();
+      } else {
+        amountInCurrency = purchaseOrderLine.getExTaxTotal();
+      }
+    } else if (!isPurchase && saleOrderLine != null) {
+      totalQty = saleOrderLine.getQty();
+
+      notInvoicedQty =
+          unitConversionService.convert(
+              stockMoveLine.getUnit(),
+              saleOrderLine.getUnit(),
+              stockMoveLine.getRealQty().subtract(stockMoveLine.getQtyInvoiced()),
+              stockMoveLine.getRealQty().scale(),
+              saleOrderLine.getProduct());
+      if (ati) {
+        amountInCurrency = saleOrderLine.getInTaxTotal();
+      } else {
+        amountInCurrency = saleOrderLine.getExTaxTotal();
+      }
+    }
+
+    if (totalQty == null || BigDecimal.ZERO.compareTo(totalQty) == 0) {
+      return null;
+    }
+
+    BigDecimal qtyRate = notInvoicedQty.divide(totalQty, 10, RoundingMode.HALF_UP);
+    return amountInCurrency.multiply(qtyRate).setScale(2, RoundingMode.HALF_UP);
+  }
+
+  @Override
+  public Batch validateCutOffBatch(List<Long> recordIdList, Long batchId) {
+    BatchAccountingCutOffSupplyChain batchAccountingCutOff =
+        Beans.get(BatchAccountingCutOffSupplyChain.class);
+
+    batchAccountingCutOff.setRecordIdList(recordIdList);
+    batchAccountingCutOff.run(Beans.get(AccountingBatchRepository.class).find(batchId));
+
+    return batchAccountingCutOff.getBatch();
+  }
+
+  protected String getProductTypeFilter(StockMoveLine stockMoveLine, StockMove stockMove)
+      throws AxelorException {
+    List<String> domainFilerList = new ArrayList<>();
+    domainFilerList.add(getFilterForStorables(stockMoveLine, stockMove));
+    domainFilerList.add(getFilterForServices(stockMove));
+    domainFilerList.removeIf(String::isEmpty);
+
+    if (ObjectUtils.isEmpty(domainFilerList)) {
+      return " AND self.productTypeSelect IN ('')";
+    }
+
+    return " AND " + domainFilerList.stream().collect(Collectors.joining(" OR ", "(", ")"));
+  }
+
+  @Override
+  protected String getFilterForStorables(StockMoveLine stockMoveLine, StockMove stockMove)
+      throws AxelorException {
+    String checkQtyFilterStr = super.getFilterForStorables(stockMoveLine, stockMove);
+
+    SupplyChainConfig supplyChainConfig =
+        supplychainConfigService.getSupplyChainConfig(stockMove.getCompany());
+    String storableFilter = "";
+    final boolean isOutMove = stockMove.getTypeSelect() == StockMoveRepository.TYPE_OUTGOING;
+    final boolean isInMove = stockMove.getTypeSelect() == StockMoveRepository.TYPE_INCOMING;
+
+    if ((isOutMove && outSmGenerationService.isGeneratedForStorable(supplyChainConfig))
+        || (isInMove && supplyChainConfig.getHasInSmForStorableProduct())
+        || stockMove.getTypeSelect() == StockMoveRepository.TYPE_INTERNAL) {
+      storableFilter =
+          " self.productTypeSelect = '" + ProductRepository.PRODUCT_TYPE_STORABLE + "'";
+      return "(" + storableFilter + checkQtyFilterStr + ")";
+    }
+    return "";
+  }
+
+  protected String getFilterForServices(StockMove stockMove) throws AxelorException {
+    SupplyChainConfig supplyChainConfig =
+        supplychainConfigService.getSupplyChainConfig(stockMove.getCompany());
+    final boolean isOutMove = stockMove.getTypeSelect() == StockMoveRepository.TYPE_OUTGOING;
+    final boolean isInMove = stockMove.getTypeSelect() == StockMoveRepository.TYPE_INCOMING;
+    if ((isOutMove && outSmGenerationService.isGeneratedForServices(supplyChainConfig))
+        || (isInMove && supplyChainConfig.getHasInSmForNonStorableProduct())
+        || stockMove.getTypeSelect() == StockMoveRepository.TYPE_INTERNAL) {
+      return " self.productTypeSelect = '" + ProductRepository.PRODUCT_TYPE_SERVICE + "'";
+    }
+    return "";
+  }
+
+  @Override
+  public List<InvoiceLine> getInvoiceLines(StockMoveLine stockMoveLine) {
+    Objects.requireNonNull(stockMoveLine);
+    if (stockMoveLine.getId() != null) {
+      return invoiceLineRepository
+          .all()
+          .filter("self.stockMoveLine = :stockMoveLine")
+          .bind("stockMoveLine", stockMoveLine)
+          .fetch();
+    }
+    return new ArrayList<>();
+  }
+
+  @Override
+  public void fillRealQuantities(StockMoveLine stockMoveLine, StockMove stockMove, BigDecimal qty) {
+
+    AppSupplychain appSupplychain = appSupplychainService.getAppSupplychain();
+
+    if (stockMove != null) {
+
+      if ((stockMove.getTypeSelect() == StockMoveRepository.TYPE_OUTGOING
+              && appSupplychain.getAutoFillDeliveryRealQty())
+          || (stockMove.getTypeSelect() == StockMoveRepository.TYPE_INCOMING
+              && appSupplychain.getAutoFillReceiptRealQty())
+          || (stockMove.getTypeSelect() == StockMoveRepository.TYPE_INTERNAL)) {
+        stockMoveLine.setRealQty(qty);
+        stockMoveLine.setQtyRemainingToPackage(qty.setScale(3, RoundingMode.HALF_UP));
+        stockMoveLine.setTotalNetMass(qty.multiply(stockMoveLine.getNetMass()));
+      } else {
+        stockMoveLine.setRealQty(BigDecimal.ZERO);
+        stockMoveLine.setQtyRemainingToPackage(BigDecimal.ZERO);
+        stockMoveLine.setTotalNetMass(BigDecimal.ZERO);
+      }
+    } else {
+      super.fillRealQuantities(stockMoveLine, stockMove, qty);
+    }
+  }
+
+  @Override
+  @Transactional(rollbackOn = {Exception.class})
+  protected void fillOriginTrackingNumber(StockMoveLine stockMoveLine) {
+    super.fillOriginTrackingNumber(stockMoveLine);
+
+    if (appBaseService.isApp("supplychain")) {
+      TrackingNumber trackingNumber = stockMoveLine.getTrackingNumber();
+      if (trackingNumber != null) {
+        if (stockMoveLine.getSaleOrderLine() != null) {
+
+          trackingNumber.setOriginMoveTypeSelect(TrackingNumberRepository.ORIGIN_MOVE_TYPE_SALE);
+          trackingNumber.setOriginSaleOrderLine(stockMoveLine.getSaleOrderLine());
+        } else if (stockMoveLine.getPurchaseOrderLine() != null) {
+
+          trackingNumber.setOriginMoveTypeSelect(
+              TrackingNumberRepository.ORIGIN_MOVE_TYPE_PURCHASE);
+          trackingNumber.setOriginPurchaseOrderLine(stockMoveLine.getPurchaseOrderLine());
+        }
+
+        trackingNumberRepo.save(trackingNumber);
+      }
+    }
+  }
+
+  @Override
+  public StockMoveLine createStockMoveTitleLine(
+      StockMove stockMove, SaleOrderLine saleOrderLine, PurchaseOrderLine purchaseOrderLine) {
+    String productName = null;
+    if (saleOrderLine != null) {
+      productName = saleOrderLine.getProductName();
+    } else if (purchaseOrderLine != null) {
+      productName = purchaseOrderLine.getProductName();
+    }
+    StockMoveLine stockMoveLine =
+        createStockMoveLine(productName, StockMoveLineRepository.TYPE_TITLE, stockMove);
+    stockMoveLine.setSaleOrderLine(saleOrderLine);
+    stockMoveLine.setPurchaseOrderLine(purchaseOrderLine);
+    if (saleOrderLine != null && saleOrderLine.getLevelIndicator() != null) {
+      stockMoveLine.setLevelIndicator(saleOrderLine.getLevelIndicator());
+    }
+    return stockMoveLine;
+  }
+}

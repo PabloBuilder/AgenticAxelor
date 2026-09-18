@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <chart onInit="action.quality.chart.set.date" name="chart.quality.control.points"
+    title="Control Points">
+    <search-fields>
+      <field type="date" name="fromDateT" title="From Date" x-required="true"/>
+      <field type="date" name="toDateT" title="To Date" x-required="true"/>
+    </search-fields>
+    <dataset type="sql">
+  			<![CDATA[
+	    	SELECT
+				COUNT(self.id) AS _passed,
+		    (CASE WHEN(translation.message_value = '') THEN
+		        _meta._select_title
+		    ELSE
+				translation.message_value
+			END)
+				AS _status
+			FROM
+				quality_control_point AS self
+
+			JOIN
+				(SELECT
+					cast(_item.value as int) AS _select_value,
+				    _item.title AS _select_title
+				FROM
+					meta_select AS _selection
+				JOIN
+					meta_select_item AS _item
+					ON _selection.name = 'quality.control.points.status.select'
+					AND _item.select_id = _selection.id
+				) AS _meta
+			ON
+				_meta._select_value = self.status_select
+		    JOIN
+		         meta_translation as translation
+		    ON
+		         translation.message_key = _meta._select_title AND translation.language = :_language
+			WHERE
+				DATE(self.created_on) BETWEEN DATE(:fromDateT) AND DATE(:toDateT)
+			GROUP BY
+				_status
+			ORDER BY
+			   _passed ASC
+    		]]>
+    </dataset>
+    <category key="_status" type="text" title="Status"/>
+    <series key="_passed" type="bar"/>
+  </chart>
+
+  <chart onInit="action.quality.chart.set.date" name="chart.quality.controls.total.numbers"
+    title="Number of quality control by team">
+    <search-fields>
+      <field type="date" name="fromDateT" title="From Date" x-required="true"/>
+      <field type="date" name="toDateT" title="To Date" x-required="true"/>
+    </search-fields>
+    <dataset type="jpql">
+			<![CDATA[
+		   	SELECT
+				COUNT(*) AS _controls,
+ 				self.team.name AS _team
+    		FROM
+				QualityControl self
+			WHERE
+				DATE(self.createdOn) BETWEEN DATE(:fromDateT) AND DATE(:toDateT)
+			GROUP BY
+				self.team.name
+			ORDER BY
+				self.team.name
+			]]>
+    </dataset>
+    <category key="_team" type="text"/>
+    <series key="_controls" type="bar"/>
+  </chart>
+
+  <chart name="chart.quality.alerts.total.numbers" title="Number of quality alerts by team"
+    onInit="action.quality.chart.set.date">
+    <search-fields>
+      <field name="fromDateT" title="From Date" type="date" x-required="true"/>
+      <field name="toDateT" title="To Date" type="date" x-required="true"/>
+    </search-fields>
+    <dataset type="jpql">
+  			<![CDATA[
+    		SELECT
+				COUNT(*) AS _alerts,
+ 				self.team.name AS _team
+    		FROM
+				QualityAlert self
+			WHERE
+				DATE(self.createdOn) BETWEEN DATE(:fromDateT) AND DATE(:toDateT)
+			GROUP BY
+				self.team.name
+			ORDER BY
+				self.team.name
+   			]]>
+    </dataset>
+    <category key="_team" type="text"/>
+    <series key="_alerts" type="bar"/>
+  </chart>
+
+  <chart onInit="action.quality.chart.set.date"
+    name="chart.quality.alerts.solved.total.numbers" title="Number of solved quality alerts by team">
+    <search-fields>
+      <field type="date" name="fromDateT" title="From Date" x-required="true"/>
+      <field type="date" name="toDateT" title="To Date" x-required="true"/>
+    </search-fields>
+    <dataset type="jpql">
+			<![CDATA[
+		    SELECT
+				COUNT(*) AS _alerts,
+ 				self.team.name AS _team
+    		FROM
+				QualityAlert self
+			WHERE
+				DATE(self.createdOn) BETWEEN DATE(:fromDateT) AND DATE(:toDateT)
+			AND
+				self.statusSelect = 4
+			GROUP BY
+				self.team.name
+			ORDER BY
+				self.team.name
+			]]>
+    </dataset>
+    <category key="_team" type="text"/>
+    <series key="_alerts" type="bar"/>
+  </chart>
+
+  <action-record model="com.axelor.apps.quality.db.ControlPoint"
+    name="action.quality.chart.set.date">
+    <field name="toDateT" expr="eval: __config__.date"/>
+    <field name="fromDateT" expr="eval:__config__.date.withDayOfMonth(1).withMonth(1)"/>
+  </action-record>
+
+  <chart name="chart.quality.improvements.costs.distributions.per.decision"
+    title="Distribution of costs per decision">
+    <dataset type="sql"><![CDATA[
+		SELECT self.decision AS decision,SUM(self.totalCost) AS total_cost FROM
+		(
+			SELECT _qi_decision.name AS decision,SUM(_qi_resolution_decision.total_cost) AS totalCost
+			FROM quality_qi_resolution_decision AS _qi_resolution_decision
+			LEFT JOIN quality_qi_decision _qi_decision ON _qi_decision.id = _qi_resolution_decision.qi_decision
+			LEFT JOIN quality_qi_resolution _qi_resolution ON _qi_resolution.id = _qi_resolution_decision.qi_resolution
+			LEFT JOIN quality_quality_improvement _quality_improvement ON _quality_improvement.qi_resolution = _qi_resolution.id
+			WHERE _quality_improvement.id = :id
+			GROUP BY _qi_decision.name
+			UNION ALL
+			SELECT _qi_decision.name AS decision,SUM(_qi_task.total_cost) AS totalCost
+			FROM ical_event AS _qi_task
+			LEFT JOIN quality_qi_decision _qi_decision ON _qi_decision.id = _qi_task.qi_decision
+			LEFT JOIN quality_qi_analysis _qi_analysis ON _qi_analysis.id = _qi_task.qi_analysis
+			LEFT JOIN quality_quality_improvement _quality_improvement ON _quality_improvement.qi_analysis = _qi_analysis.id
+			WHERE _quality_improvement.id = :id
+			GROUP BY _qi_decision.name
+		) AS self
+		GROUP BY self.decision
+	]]></dataset>
+    <category key="decision" type="text"/>
+    <series key="total_cost" type="pie"/>
+  </chart>
+
+  <custom name="quality.improvements.costs.lists.per.decision"
+    title="Costs list per decision" css="report-box">
+    <dataset type="sql"><![CDATA[
+		SELECT self.decision AS decision,SUM(self.fixedAmount) AS fixed_amount,SUM(self.directCost) AS direct_cost,SUM(self.totalCost) AS total_cost FROM
+		(
+			SELECT _qi_decision.name AS decision,SUM(_qi_resolution_decision.fixed_amount) AS fixedAmount,SUM(_qi_resolution_decision.direct_cost) AS directCost,SUM(_qi_resolution_decision.total_cost) AS totalCost
+			FROM quality_qi_resolution_decision AS _qi_resolution_decision
+			LEFT JOIN quality_qi_decision _qi_decision ON _qi_decision.id = _qi_resolution_decision.qi_decision
+			LEFT JOIN quality_qi_resolution _qi_resolution ON _qi_resolution.id = _qi_resolution_decision.qi_resolution
+			LEFT JOIN quality_quality_improvement _quality_improvement ON _quality_improvement.qi_resolution = _qi_resolution.id
+			WHERE _quality_improvement.id = :id
+			GROUP BY _qi_decision.name
+			UNION ALL
+			SELECT _qi_decision.name AS decision,SUM(_qi_task.fixed_amount) AS fixedAmount,SUM(_qi_task.direct_cost) AS directCost,SUM(_qi_task.total_cost) AS totalCost
+			FROM ical_event AS _qi_task
+			LEFT JOIN quality_qi_decision _qi_decision ON _qi_decision.id = _qi_task.qi_decision
+			LEFT JOIN quality_qi_analysis _qi_analysis ON _qi_analysis.id = _qi_task.qi_analysis
+			LEFT JOIN quality_quality_improvement _quality_improvement ON _quality_improvement.qi_analysis = _qi_analysis.id
+			WHERE _quality_improvement.id = :id
+			GROUP BY _qi_decision.name
+		) AS self
+		GROUP BY self.decision
+    ]]></dataset>
+    <template><![CDATA[
+  		<report-table data='data' columns='decision,fixed_amount,direct_cost,total_cost' sums='fixed_amount,direct_cost,total_cost'/>
+    ]]></template>
+  </custom>
+
+</object-views>

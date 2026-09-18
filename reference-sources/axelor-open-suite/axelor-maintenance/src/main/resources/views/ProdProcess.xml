@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="maintenance-prod-process-grid" title="Maintenance process"
+    model="com.axelor.apps.production.db.ProdProcess">
+    <toolbar>
+      <button name="printBtn" hideIf="true" onClick=""/>
+    </toolbar>
+    <field name="name"/>
+    <field name="company"/>
+    <field name="workshopStockLocation"/>
+    <field name="code" x-bind="{{code|unaccent|uppercase}}"/>
+    <field name="machineType"/>
+    <field name="statusSelect" widget="single-select"/>
+  </grid>
+
+  <form name="maintenance-prod-process-form" title="Maintenance process"
+    model="com.axelor.apps.production.db.ProdProcess" width="large"
+    onLoad="action-prod-process-record-count-number-of-phases"
+    onSave="action-prod-process-method-validate-prod-process"
+    onNew="action-maintenance-prod-process-group-onnew">
+    <toolbar>
+      <button name="printBtn" title="Print" icon="printer"
+        onClick="save,action-production-process-print"/>
+      <button if="__config__.app.getApp('production')?.manageProdProcessVersion"
+        name="newVersionBtn" title="Generate new version"
+        onClick="action-production-process-check-other-version,action-production-process-generate-new-version"/>
+    </toolbar>
+    <panel name="mainPanel">
+      <field name="statusSelect" showTitle="false" readonly="false" colSpan="12"
+        widget="NavSelect"/>
+      <panel name="namePanel" colSpan="8" stacked="true">
+        <field name="fullName" showTitle="false" hidden="true" showIf="$readonly()"
+          css="label-bold bold large"/>
+        <field name="name" hidden="true" showIf="!$readonly()" css="label-bold bold large"/>
+      </panel>
+      <field name="$numberOfPhases" showTitle="false" readonly="true"
+        showIf="$numberOfPhases > 0" colSpan="4" type="integer">
+        <viewer depends="$numberOfPhases"><![CDATA[
+					<>
+                    	<Box d="flex" justifyContent="flex-end">
+                    		<Badge style={{ backgroundColor: "#2185D0" }}>
+                    			{_t('Number of phases')} <Badge style={{ backgroundColor: "#23C6C8", fontSize: "12px" }}>{$fmt('$numberOfPhases')}</Badge>
+                    		</Badge>
+                    	</Box>
+					</>
+    ]]></viewer>
+      </field>
+      <field name="code" x-bind="{{code|unaccent|uppercase}}"/>
+      <field name="machineType" form-view="machine-type-form" grid-view="machine-type-grid"
+        readonlyIf="machine != null" requiredIf="machine == null"/>
+      <field name="machine" colSpan="6" form-view="maintenance-machine-form"
+        grid-view="machine-grid" domain="self.machineType = :machineType OR :machineType IS NULL"
+        onChange="action-maintenance-prod-process-record-machine-onchange"/>
+      <field name="company" widget="SuggestBox" canEdit="false" form-view="company-form"
+        grid-view="company-grid"/>
+      <field if="__config__.app.getApp('production')?.getManageWorkshop()"
+        name="workshopStockLocation" canEdit="false"
+        domain="self.usableOnProduction = True AND self.company = :company and self.typeSelect = 1 and self.isWorkshop = true"/>
+      <field name="typeSelect" hidden="true"/>
+      <field name="isEnabledForAllProducts" hidden="true"/>
+    </panel>
+    <panel-tabs>
+      <panel-related name="prodProcessLineListPanel" title="Phases" colSpan="12"
+        height="15" field="prodProcessLineList" form-view="prod-process-line-form"
+        grid-view="prod-process-line-grid"
+        onChange="action-prod-process-record-count-number-of-phases"/>
+      <panel name="detailsPanel" title="Details">
+        <field name="stockLocation" colSpan="4" canEdit="false"
+          domain="self.usableOnProduction = True AND self.company = :company and self.typeSelect != 3"
+          form-view="stock-location-form" grid-view="stock-location-grid"/>
+        <field name="stockMoveRealizeOrderSelect" colSpan="4"/>
+        <field name="isConsProOnOperation" colSpan="4"/>
+        <panel name="outsourcePanel" title="Outsourcing" colSpan="12"
+          if="__config__.app.getApp('production')?.getManageOutsourcing()">
+          <field name="outsourcing" colSpan="4"/>
+          <field name="outsourcable" colSpan="4"/>
+          <field name="prodProcessLinesOutsourcable" colSpan="4" showIf="outsourcable"/>
+          <field name="subcontractor" colSpan="4" showIf="outsourcing"
+            form-view="partner-form" grid-view="partner-grid" domain="self.isSubcontractor = true"/>
+          <field name="generatePurchaseOrderOnMoPlanning" colSpan="4" showIf="outsourcing"/>
+          <field name="generatedPurchaseOrderProductSet" colSpan="8"
+            showIf="outsourcing &amp;&amp; generatePurchaseOrderOnMoPlanning" widget="TagSelect"
+            form-view="product-form" grid-view="product-grid"/>
+        </panel>
+        <field name="operationContinuity" colSpan="4"/>
+      </panel>
+      <panel-dashlet name="viewBillOfMaterialsPanel" title="Bills of material"
+        action="action-prod-process-view-bill-of-materials"/>
+    </panel-tabs>
+    <panel name="versionManagementPanel" title="Version management" hidden="true"
+      showIf="versionNumber > 1">
+      <field name="versionNumber" colSpan="3"/>
+      <field name="originalProdProcess" readonly="true" colSpan="3"
+        form-view="maintenance-prod-process-form" grid-view="prod-process-grid"/>
+    </panel>
+    <panel name="actionPanel" sidebar="true">
+      <button onClick="save,action-prod-process-method-set-validate-status"
+        name="validateBtn" title="Validate" showIf="statusSelect == 1"/>
+      <button onClick="save,action-prod-process-method-set-applicable-status"
+        name="makeItApplicableBtn" title="Make it applicable" showIf="statusSelect == 2"/>
+      <button onClick="save,action-prod-process-method-set-obsolete-status"
+        name="makeItObsoleteBtn" title="Make it obsolete" showIf="statusSelect == 3"/>
+      <button onClick="save,action-prod-process-method-set-draft-status"
+        name="backToDraftBtn" title="Back to draft" showIf="statusSelect > 1"/>
+    </panel>
+    <panel-mail name="mailPanel">
+      <mail-messages limit="4"/>
+      <mail-followers/>
+    </panel-mail>
+  </form>
+
+  <action-group name="action-maintenance-prod-process-group-onnew">
+    <action name="action-prod-process-group-on-new"/>
+    <action name="action-maintenance-prod-process-attrs-set-default"/>
+    <action name="action-maintenance-prod-process-default-stock-location-record"/>
+  </action-group>
+
+  <action-attrs name="action-maintenance-prod-process-attrs-set-default">
+    <attribute name="value" for="typeSelect"
+      expr="eval: __repo__(ManufOrder).TYPE_MAINTENANCE"/>
+    <attribute name="value" for="isEnabledForAllProducts" expr="eval: true"/>
+  </action-attrs>
+
+  <action-record name="action-maintenance-prod-process-default-stock-location-record"
+    model="com.axelor.apps.production.db.ProdProcess">
+    <field name="stockLocation"
+      expr="eval: __repo__(StockConfig).all().filter('self.company = ?', company).fetchOne()?.maintenanceComponentsStockLocation"/>
+  </action-record>
+
+  <!-- Override the default onNew for ProdProcessLine: for maintenance prod processes, use the parent
+    prodProcess.stockLocation instead of productionVirtualStockLocation -->
+  <action-group name="action-prod-process-line-group-onnew"
+    id="maintenance-action-prod-process-line-group-onnew">
+    <action name="action-prod-process-line-record-default"/>
+    <action name="action-prod-process-line-attrs-default"/>
+    <action name="action-prod-process-line-attrs-outsourcing"/>
+    <action name="action-prod-process-line-attrs-hide-safety-panel"/>
+    <action name="action-maintenance-prod-process-line-record-default-stock-location"
+      if="__parent__?.typeSelect == 3"/>
+  </action-group>
+
+  <action-record
+    name="action-maintenance-prod-process-line-record-default-stock-location"
+    model="com.axelor.apps.production.db.ProdProcessLine">
+    <field name="stockLocation" expr="eval: __parent__?.stockLocation"/>
+  </action-record>
+
+  <action-record name="action-maintenance-prod-process-record-machine-onchange"
+    model="com.axelor.apps.production.db.ProdProcess">
+    <field name="machineType" expr="eval: machine?.machineType" if="machine != null"/>
+  </action-record>
+
+  <!-- Skip prod process validation for maintenance prod processes -->
+  <action-group name="action-prod-process-method-validate-prod-process"
+    id="maintenance-action-prod-process-method-validate-prod-process">
+    <action name="action-maintenance-prod-process-method-validate-prod-process"
+      if="typeSelect != 3"/>
+  </action-group>
+
+  <action-method name="action-maintenance-prod-process-method-validate-prod-process">
+    <call class="com.axelor.apps.production.web.ProdProcessController"
+      method="validateProdProcess"/>
+  </action-method>
+
+  <action-method name="action-production-process-print">
+    <call class="com.axelor.apps.maintenance.web.ProdProcessController" method="print"/>
+  </action-method>
+
+</object-views>

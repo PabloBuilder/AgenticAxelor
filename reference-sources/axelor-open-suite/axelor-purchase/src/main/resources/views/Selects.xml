@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+
+  <!-- Nomenclature : * name : "interfaceName" + "fieldName" + ".select" -->
+
+  <selection name="purchase.purchase.order.status.select">
+    <option value="1" color="blue">Draft</option>
+    <option value="2" color="orange">Requested</option>
+    <option value="3" color="green">Validated</option>
+    <option value="4" color="teal">Finished</option>
+    <option value="5" color="red">Canceled</option>
+  </selection>
+
+  <selection name="purchase.order.receipt.state">
+    <option value="1">Not received</option>
+    <option value="2">Partially received</option>
+    <option value="3">Received</option>
+  </selection>
+
+  <selection name="purchase.request.status.select">
+    <option value="1" color="blue">Draft</option>
+    <option value="2" color="orange">Requested</option>
+    <option value="3" color="green">Accepted</option>
+    <option value="4" color="purple">Purchased</option>
+    <option value="5" color="red">Refused</option>
+    <option value="6" color="grey">Canceled</option>
+  </selection>
+
+  <selection name="base.blocking.select" id="purchase.blocking.select">
+    <option value="6">Purchase blocking</option>
+  </selection>
+
+  <selection name="sequence.generic.code.select"
+    id="purchase.sequence.generic.code.select">
+    <option value="purchaseOrder">Purchase order</option>
+    <option value="PurchaseRequest">Purchase request</option>
+    <option value="CallTender">Call for tender</option>
+  </selection>
+
+  <selection name="abc.analysis.type.select" id="purchase.abc.analysis.type.select">
+    <option value="com.axelor.apps.purchase.service.ABCAnalysisServicePurchaseImpl">Purchase</option>
+  </selection>
+
+  <selection name="purchase.purchase.order.type.select">
+    <option value="1" color="blue">Standard</option>
+  </selection>
+
+  <selection name="purchase.call.tender.need.type.select">
+    <option value="1">Manual</option>
+    <option value="2">MRP</option>
+  </selection>
+
+
+  <selection name="purchase.call.tender.offer.status.select">
+    <option value="1" color="blue">Draft</option>
+    <option value="2" color="orange">Sent</option>
+    <option value="3" color="green">Replied</option>
+    <option value="4" color="teal">Selected</option>
+    <option value="5" color="red">Rejected</option>
+  </selection>
+
+  <selection name="purchase.tender.report.config.report.type.select">
+    <option value="1">Product attributes by supplier</option>
+    <option value="2">Suppliers' respond by product</option>
+  </selection>
+
+  <selection name="message.related.to.select" id="purchase.message.related.to.select">
+    <option value="com.axelor.apps.purchase.db.PurchaseOrder" data-grid="purchase-order-grid"
+      data-form="purchase-order-form">Purchase order</option>
+  </selection>
+
+  <selection name="purchase.call.tender.attr.field.type.select">
+    <option value="string">String</option>
+    <option value="integer">Integer</option>
+    <option value="decimal">Decimal</option>
+    <option value="boolean">Boolean</option>
+    <option value="date">Date</option>
+    <option value="datetime">DateTime</option>
+  </selection>
+
+</object-views>

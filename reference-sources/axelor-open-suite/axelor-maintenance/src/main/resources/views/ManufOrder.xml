@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="maintenance-manuf-order-grid" title="Maintenance orders"
+    model="com.axelor.apps.production.db.ManufOrder" orderBy="-manufOrderSeq">
+    <toolbar>
+      <button name="printBtn" title="Print" icon="printer"
+        onClick="action-manuf-order-method-print"/>
+      <button name="planBtn" title="Plan" onClick="action-manuf-order-method-plan"/>
+    </toolbar>
+    <hilite color="danger" if="prioritySelect == 4"/>
+    <hilite color="warning" if="prioritySelect == 3"/>
+    <hilite color="primary" if="prioritySelect == 2"/>
+    <hilite color="info" if="prioritySelect == 1"/>
+    <field name="prioritySelect" hidden="true"/>
+    <field name="manufOrderSeq"/>
+    <field name="company" form-view="company-form" grid-view="company-grid"/>
+    <field name="workshopStockLocation"
+      if="__config__.app.getApp('production')?.getManageWorkshop()"/>
+    <field name="machineType"/>
+    <field name="billOfMaterial" grid-view="bill-of-material-grid"
+      form-view="maintenance-bill-of-material-form"/>
+    <field name="prodProcess" title="Maintenance process" grid-view="prod-process-grid"
+      form-view="maintenance-prod-process-form"/>
+    <field name="plannedStartDateT"/>
+    <field name="plannedEndDateT"/>
+    <field name="realStartDateT"/>
+    <field name="realEndDateT"/>
+    <field name="statusSelect" widget="single-select"/>
+    <button name="planBtn" icon="calendar" onClick="action-manuf-order-method-quick-plan"
+      readonlyIf="statusSelect >= 3"/>
+    <button name="startBtn" icon="play-fill"
+      onClick="action-manuf-order-method-start-or-resume"
+      readonlyIf="statusSelect != 3 &amp;&amp; statusSelect != 5"/>
+    <button name="pauseBtn" icon="pause-fill" onClick="action-manuf-order-method-pause"
+      readonlyIf="statusSelect != 4"/>
+    <button name="finishBtn" icon="power" onClick="action-manuf-order-group-finish"
+      readonlyIf="statusSelect != 4"/>
+    <button name="cancelBtn" icon="x-circle-fill" onClick="action-manuf-order-view-cancel"
+      readonlyIf="statusSelect == 2"/>
+    <button name="printBtn" title="Print" icon="printer"
+      onClick="action-maintenance-manuf-order-group-print-report"/>
+  </grid>
+
+  <form name="maintenance-manuf-order-form" title="Maintenance order"
+    model="com.axelor.apps.production.db.ManufOrder" width="large"
+    onLoad="action-maintenance-manuf-order-group-onload"
+    onNew="action-maintenance-manuf-order-group-onnew">
+    <toolbar>
+      <button name="printBtn" hideIf="true" onClick=""/>
+    </toolbar>
+    <menubar>
+      <menu name="manufOrderReportsMenu" title="Reports" showTitle="true" icon="files">
+        <item name="printItem" title="Print" showIf="statusSelect > 1"
+          action="save,action-manuf-order-method-print"/>
+        <item name="printProductionProcessItem" title="Print Production Process"
+          action="save,action-production-process-method-print"/>
+      </menu>
+    </menubar>
+    <panel name="mainPanel">
+      <panel name="detailsPanel" colSpan="8">
+        <field name="manufOrderSeq" readonly="true" colSpan="2" css="bold"/>
+        <field name="prioritySelect" readonlyIf="statusSelect == 6" colSpan="2"
+          widget="SingleSelect"/>
+        <field name="company" readonlyIf="statusSelect > 1" colSpan="2" widget="SuggestBox"
+          canEdit="false" onChange="action-manuf-order-record-empty-workshop"
+          form-view="company-form" grid-view="company-grid"/>
+        <field if="__config__.app.getApp('production')?.getManageWorkshop()"
+          name="workshopStockLocation" readonlyIf="statusSelect > 1" colSpan="2" canEdit="false"
+          onChange="action-manuf-order-record-workshop-onchange"
+          domain="self.company = :company and self.typeSelect = 1 and self.isWorkshop = true"
+          required="true" form-view="stock-location-form" grid-view="stock-location-grid"/>
+        <field name="$viewerIsOutsourcing" showTitle="false" readonly="true"
+          showIf="$readonly()" depends="prodProcess.outsourcing" colSpan="2">
+          <viewer><![CDATA[
+			<>
+				<Box d="flex" justifyContent="flex-end">
+					{prodProcess.outsourcing && <Badge style={{ backgroundColor: "#E0A83C" }}>{_t('Outsourced')}</Badge>}
+				</Box>
+			</>
+      ]]></viewer>
+        </field>
+        <field name="$viewerIsPermanent" showTitle="false"
+          showIf="typeSelect == 2 &amp;&amp; $readonly()" colSpan="2">
+          <viewer depends="typeSelect">
+            <![CDATA[<><Badge style={{ backgroundColor: "green" }}>{_t('Permanent')}</Badge></>]]>
+          </viewer>
+        </field>
+        <field name="statusSelect" showTitle="false" readonly="true" colSpan="12"
+          widget="NavSelect"/>
+        <field name="billOfMaterial" readonlyIf="statusSelect > 1" colSpan="3" canEdit="false"
+          onChange="action-maintenance-maunf-order-group-onchange"
+          onSelect="action-maintenance-manuf-order-attrs-filter-bom" required="true"
+          form-view="maintenance-bill-of-material-form" grid-view="bill-of-material-grid"/>
+        <field name="prodProcess" title="Maintenance process" readonlyIf="statusSelect > 1"
+          colSpan="3" canEdit="false" onChange="action-manuf-order-group-prod-process-onchange"
+          onSelect="action-maintenance-order-attrs-filter-prodProcess"
+          form-view="maintenance-prod-process-form" grid-view="prod-process-grid"/>
+        <field name="outsourcing" colSpan="3"
+          hideIf="!prodProcess.outsourcing &amp;&amp; !prodProcess.outsourcable" readonly="true"
+          onChange="action-production-attrs-hide-purchaseOrder"/>
+        <field name="outsourcingPartner" colSpan="3" showIf="outsourcing"
+          domain="self.isSubcontractor = true"/>
+        <field name="machineType" colSpan="3" required="true" form-view="machine-type-form"
+          grid-view="machine-type-grid"/>
+        <field name="machine" colSpan="3" domain="self.machineType = :machineType"
+          required="true" form-view="maintenance-machine-form" grid-view="machine-grid"/>
+        <field name="unit" readonly="true" form-view="unit-form" grid-view="unit-grid"
+          hidden="true"/>
+        <field name="product.economicManufOrderQty" colSpan="3" hidden="true"/>
+        <field name="clientPartner" canEdit="false"
+          onChange="action-manuf-order-atts-sale-order-onchange-client-partner"
+          domain="self.isCustomer=true AND :company member of self.companySet"
+          form-view="partner-form" grid-view="partner-grid" hidden="true" colSpan="6"/>
+        <field name="saleOrderSet" widget="Tags" canEdit="false"
+          onSelect="action-manuf-order-attrs-sale-order-onselect" form-view="sale-order-form"
+          grid-view="sale-order-grid" hidden="true" colSpan="6"/>
+        <field name="manufOrderMergeResult" showIf="manufOrderMergeResult" canNew="false"
+          canView="true" canEdit="false" form-view="maintenance-manuf-order-form"
+          grid-view="manuf-order-grid"/>
+        <field name="purchaseOrder" showIf="false" canSelect="false" canEdit="false"
+          form-view="purchase-order-form" grid-view="purchase-order-grid"/>
+        <field name="isConsProOnOperation" hidden="true" showIf="false"/>
+        <button name="preFillOperationsBtn" title="Pre-fill operations"
+          hideIf="statusSelect > 1  || operationOrderList.length > 0" colSpan="4"
+          onClick="save,action-manuf-order-method-pre-fill-operations,action-manuf-order-method-update-lines-outsourced"/>
+        <field name="prodProcess.outsourcing" hidden="true"/>
+        <field name="prodProcess.outsourcable" hidden="true"/>
+        <field name="product.isModel" hidden="true"/>
+        <field name="typeSelect" hidden="true"/>
+      </panel>
+      <panel name="actionsPanel" title="Actions" colSpan="4">
+        <button name="planBtn" title="Plan" showIf="statusSelect == 1 || statusSelect == 2"
+          colSpan="12" icon="calendar"
+          onClick="save,action-manuf-order-method-plan,action-manuf-order-method-update-lines-outsourced"/>
+        <button name="startBtn" title="Start" showIf="statusSelect == 3" colSpan="12"
+          icon="play-fill" onClick="save,action-manuf-order-method-start"/>
+        <button name="pauseBtn" title="Pause" showIf="statusSelect == 4" colSpan="12"
+          icon="pause-fill" onClick="save,action-manuf-order-method-pause"/>
+        <button name="resumeBtn" title="Resume" showIf="statusSelect == 5" colSpan="12"
+          icon="forward-fill" onClick="save,action-manuf-order-method-resume"/>
+        <button name="finishBtn" title="Finish" showIf="statusSelect == 4" colSpan="12"
+          icon="power" onClick="save,action-manuf-order-group-finish"/>
+        <button name="consumeBtn" title="Consume in stock moves" showIf="statusSelect == 4"
+          colSpan="12" icon="check"
+          onClick="save,action-maintenance-manuf-order-method-consume-stock-move"/>
+        <button name="finishPartBtn" title="Partial Finish" showIf="false" colSpan="12"
+          icon="power" onClick="save, action-manuf-order-method-part-finish"/>
+        <button name="cancelBtn" title="Cancel" showIf="statusSelect != 2" colSpan="12"
+          icon="x-circle-fill" onClick="save,action-manuf-order-view-cancel"/>
+        <button name="declareOutsourcedDelieveryBtn" title="Outsource declaration"
+          hidden="true"
+          showIf="(outsourcing || $areLinesOutsourced) &amp;&amp; statusSelect &gt;= 2" colSpan="12"
+          onClick="action-manuf-order-view-declare-delivery"/>
+      </panel>
+    </panel>
+    <panel-tabs name="mainPanelTab" colSpan="4">
+      <panel-related name="operationOrderListPanel" title="Maintenance operations"
+        readonlyIf="statusSelect == 6" colSpan="12" height="15" field="operationOrderList"
+        form-view="operation-order-form" grid-view="operation-order-grid" canNew="false"
+        onChange="action-manuf-order-method-update-lines-outsourced"/>
+      <panel name="datesPanel" title="Dates" readonlyIf="statusSelect == 6">
+        <panel name="plannedDatesPanel" title="Planned dates">
+          <field name="plannedStartDateT" title="Start date"
+            onChange="action-manuf-order-method-update-planned-dates"/>
+          <field name="plannedEndDateT" title="End date"
+            onChange="action-manuf-order-validate-planned-end-date"/>
+          <field name="$totalPlannedDuration" title="Total Planned Duration" readonly="true"
+            type="long" widget="duration" x-big="true" x-seconds="true"/>
+          <field name="$totalLeadTimeDuration" title="Total Lead Duration" readonly="true"
+            type="long" widget="duration" x-big="true" x-seconds="true"/>
+          <field name="cancelReason" hidden="true" form-view="cancel-reason-form"
+            grid-view="cancel-reason-grid"/>
+          <field name="cancelReasonStr" title="Cancel Reason" hidden="true" readonly="true"
+            showIf="cancelReason != null &amp;&amp; cancelReasonStr != null" colSpan="12">
+            <viewer><![CDATA[<><Box color="danger">{cancelReasonStr}</Box></>]]></viewer>
+          </field>
+        </panel>
+        <panel name="realDatesPanel" title="Real dates" showIf="statusSelect > 3">
+          <field name="realStartDateT" title="Start date"/>
+          <field name="realEndDateT" title="End date"/>
+          <field name="$totalRealDuration" title="Total Real Duration" readonly="true"
+            type="long" widget="duration" x-big="true" x-seconds="true"/>
+        </panel>
+      </panel>
+      <panel name="stockMovesPanel" title="Stock moves"
+        showIf="!isConsProOnOperation &amp;&amp; statusSelect &gt;= 3">
+        <panel name="stockMoveListPanel" title="Moves In" readonly="true" colSpan="12">
+          <field name="inStockMoveList" form-view="stock-move-form"
+            grid-view="in-stock-move-manuf-order-grid" hideIf="isConsProOnOperation" colSpan="12"/>
+        </panel>
+      </panel>
+      <panel name="consumedProductsPanel" title="Consumed products"
+        showIf="!isConsProOnOperation &amp;&amp; statusSelect &gt;= 3">
+        <button name="updatePlannedQtyBtn"
+          title="Update planned quantities (Components and FP)"
+          showIf="isConsProOnOperation &amp;&amp; statusSelect != 6 &amp;&amp; typeSelect != 2"
+          colSpan="12" css="btn-custom"
+          onClick="save,action-manuf-order-update-planned-qty-popup-form-view"/>
+        <panel-dashlet name="operationOrderToConsumeProductPanel" readonly="true"
+          showIf="isConsProOnOperation" colSpan="12"
+          action="action-manuf-order-view-operation-order-to-consume-product"/>
+        <button name="updateRealQtyBtn" title="Update real quantities (Components and FP)"
+          showIf="isConsProOnOperation &amp;&amp; statusSelect != 6 &amp;&amp; typeSelect != 2"
+          colSpan="12" css="btn-custom"
+          onClick="save,action-manuf-order-update-real-qty-popup-form-view"/>
+        <panel-dashlet name="operationOrderConsumedProductPanel" readonly="true"
+          showIf="isConsProOnOperation" colSpan="12"
+          action="action-manuf-order-view-operation-order-consumed-product"/>
+        <panel if="__config__.app.getApp('supplychain')?.manageStockReservation"
+          name="allocationToolsPanel" showIf="$contains([3,4,5], statusSelect)" colSpan="12">
+          <button name="allocateAllItem" title="Allocate all" colSpan="3"
+            onClick="save,action-manuf-order-method-allocate-all"/>
+          <button name="deallocateAllItem" title="Deallocate all" colSpan="3"
+            onClick="save,action-manuf-order-method-deallocate-all"/>
+          <button name="reserveAllItem" title="Reserve all" colSpan="3"
+            onClick="save,action-manuf-order-method-reserve-all"/>
+          <button name="cancelReservationItem" title="Cancel reservation" colSpan="3"
+            onClick="save,action-manuf-order-method-cancel-reservation"/>
+        </panel>
+        <panel-related name="toConsumeProdProductListPanel"
+          field="toConsumeProdProductList" readonly="true" colSpan="12"
+          grid-view="prod-product-consume-manuf-order-grid" form-view="prod-product-form"
+          orderBy="product.code" hideIf="isConsProOnOperation"/>
+        <panel-related name="consumedStockMoveLineListPanel"
+          field="consumedStockMoveLineList"
+          onChange="action-manuf-order-group-on-change-consumed-stock-move-line"
+          readonlyIf="statusSelect == 6" colSpan="12" form-view="stock-move-line-production-form"
+          grid-view="stock-move-line-consumed-production-grid" hideIf="isConsProOnOperation"/>
+        <panel-related name="diffStockMoveLineListPanel"
+          field="diffConsumeProdProductList" readonly="true" colSpan="12"
+          grid-view="prod-product-diff-manuf-order-grid" form-view="prod-product-form"
+          hideIf="isConsProOnOperation"/>
+        <panel-dashlet name="operationOrderDiffConsumeProductPanel" readonly="true"
+          showIf="isConsProOnOperation" colSpan="12"
+          action="action-manuf-order-view-operation-order-diff-consume-product"/>
+      </panel>
+      <panel-related name="productionOrderSetPanel" readonly="true" colSpan="12"
+        height="15" field="productionOrderSet" form-view="production-order-form"
+        grid-view="production-order-grid" hidden="true"/>
+      <panel-dashlet name="mergedManufOrderDashlet" title="Merged MO" readonly="true"
+        colSpan="12" action="action-manuf-order-view-merged-manuf-orders" hidden="true"/>
+      <panel name="costPanel" title="Cost" showIf="statusSelect &gt; 3">
+        <button name="computeCostPriceBtn" title="Compute cost price"
+          onClick="save,action-maintenance-manuf-order-method-compute-cost-price"/>
+        <field name="costPrice" readonly="true"/>
+        <field name="costSheetList" colSpan="12" readonly="true"
+          form-view="cost-sheet-bill-of-material-form" grid-view="cost-sheet-bill-of-material-grid"/>
+      </panel>
+      <panel name="outsourcingPanel" title="Outsourcing"
+        showIf="outsourcing || $areLinesOutsourced">
+        <panel-related field="purchaseOrderSet" colSpan="12"/>
+        <panel-related field="outsourcingStockMoveList" colSpan="12"
+          title="Outgoing outsource stock move"/>
+      </panel>
+      <panel name="qualityPanel" title="Quality" if="__config__.app.isApp('quality')">
+        <button name="addControlEntryBtn" title="Add a control entry"
+          onClick="save,action-manuf-order-view-add-control-entry" colOffset="6"/>
+        <panel-dashlet name="controlEntryDashlet"
+          action="action-manuf-order-view-control-entry" colSpan="12"/>
+      </panel>
+      <panel name="notePanel" title="Note">
+        <field name="note" showTitle="false" colSpan="12"/>
+        <panel name="moCommentFromSaleOrderPanel" title="MO's comment from sale order"
+          colSpan="12" hidden="true">
+          <field name="moCommentFromSaleOrder" showTitle="false" colSpan="12" widget="Html"/>
+        </panel>
+        <panel name="moCommentFromSaleOrderLinePanel"
+          title="MO's comment from sale order line" colSpan="12" hidden="true">
+          <field name="moCommentFromSaleOrderLine" showTitle="false" colSpan="12"
+            widget="Html"/>
+        </panel>
+      </panel>
+      <panel if="__config__.app.getApp('production')?.getManageResidualProductOnBom()"
+        name="residualProductsPanel" title="Residual products"
+        showIf="billOfMaterial != null &amp;&amp; billOfMaterial.prodResidualProductList.length > 0">
+        <field name="billOfMaterial.prodResidualProductList" title="Residual products"
+          colSpan="12" form-view="prod-residual-product-form" grid-view="prod-residual-product-grid"/>
+      </panel>
+    </panel-tabs>
+    <panel-mail name="mailPanel">
+      <mail-messages limit="4"/>
+      <mail-followers/>
+    </panel-mail>
+  </form>
+
+  <form id="maintenance-manuf-order-form" name="manuf-order-form" title="Manufacturing order"
+    model="com.axelor.apps.production.db.ManufOrder" extension="true">
+    <extend target="//field[@name='billOfMaterial']">
+      <attribute name="domain"
+        value="self.defineSubBillOfMaterial = true AND self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation) AND self.typeSelect = 1"/>
+    </extend>
+  </form>
+
+  <action-group name="action-maintenance-manuf-order-group-onnew">
+    <action name="action-manuf-order-group-onnew"/>
+    <action name="action-maintenance-manuf-order-attrs-set-default"/>
+    <action name="action-maintenance-manuf-order-attrs-set-attributes"
+      if="_parent?._model == 'com.axelor.apps.maintenance.db.MaintenanceRequest'"/>
+  </action-group>
+
+  <action-group name="action-maintenance-manuf-order-group-onload">
+    <action name="action-manuf-order-group-onload"/>
+    <action name="action-maintenance-manuf-order-attrs-set-attributes"
+      if="_parent?._model == 'com.axelor.apps.maintenance.db.MaintenanceRequest'"/>
+  </action-group>
+
+  <action-group name="action-maintenance-maunf-order-group-onchange">
+    <action name="action-maintenance-manuf-order-record-on-change-bill-of-material"/>
+    <action name="action-manuf-order-attrs-isConsProOnOperation"/>
+    <action name="action-manuf-order-record-isConsProOnOperation"/>
+    <action name="action-manuf-order-record-update-qty-from-prod-process"/>
+    <action name="action-production-attrs-set-outsourcing-value"/>
+    <action name="action-production-attrs-hide-purchaseOrder"/>
+    <action name="action-manuf-order-reset"/>
+    <action name="action-manuf-order-attrs-set-unit" if="billOfMaterial != null"/>
+  </action-group>
+
+  <action-record
+    name="action-maintenance-manuf-order-record-on-change-bill-of-material"
+    model="com.axelor.apps.production.db.ManufOrder">
+    <field name="machineType" expr="eval:billOfMaterial.machineType"
+      if="billOfMaterial != null"/>
+    <field name="prodProcess" expr="eval:billOfMaterial.prodProcess"
+      if="billOfMaterial != null"/>
+  </action-record>
+
+  <action-attrs name="action-maintenance-order-attrs-filter-prodProcess">
+    <attribute name="domain" for="prodProcess"
+      expr="eval: &quot; (self.id = ${billOfMaterial?.prodProcess?.id} OR self.machineType.id = ${billOfMaterial?.machineType?.id}) AND self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation) AND self.typeSelect = ${__repo__(ManufOrder).TYPE_MAINTENANCE} &quot;"
+      if="prodProcess != null &amp;&amp; billOfMaterial != null"/>
+    <attribute name="domain" for="prodProcess"
+      expr="eval: &quot; self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation) AND self.typeSelect = ${__repo__(ManufOrder).TYPE_MAINTENANCE} &quot;"
+      if="billOfMaterial == null &amp;&amp; !_parent"/>
+    <attribute name="domain" for="prodProcess"
+      expr="eval: &quot; self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation) AND self.typeSelect = ${__repo__(ManufOrder).TYPE_MAINTENANCE} AND self.machineType = :machineType &quot;"
+      if="billOfMaterial == null &amp;&amp; _parent"/>
+  </action-attrs>
+
+  <action-attrs name="action-maintenance-manuf-order-attrs-filter-bom">
+    <attribute name="domain" for="billOfMaterial"
+      expr="eval: &quot;(self.defineSubBillOfMaterial = true AND self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation)) AND self.typeSelect = ${__repo__(ManufOrder).TYPE_MAINTENANCE} AND self.machineType = :machineType&quot;"
+      if="_parent"/>
+    <attribute name="domain" for="billOfMaterial"
+      expr="eval: &quot;(self.defineSubBillOfMaterial = true AND self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation)) AND self.typeSelect = ${__repo__(ManufOrder).TYPE_MAINTENANCE}&quot;"
+      if="_maintenance &amp;&amp; !_parent"/>
+  </action-attrs>
+
+  <action-attrs name="action-maintenance-manuf-order-attrs-set-default">
+    <attribute name="value" for="typeSelect"
+      expr="eval: __repo__(ManufOrder).TYPE_MAINTENANCE"/>
+    <attribute name="value" for="typeSelect"
+      expr="eval: __repo__(ManufOrder).TYPE_MAINTENANCE"
+      if="_parent?._model == 'com.axelor.apps.maintenance.db.MaintenanceRequest'"/>
+    <attribute name="value" for="qty" expr="eval: 0" if="_maintenance"/>
+    <attribute name="value" for="machine" expr="eval: _parent?.machine"
+      if="_parent?._model == 'com.axelor.apps.maintenance.db.MaintenanceRequest'"/>
+    <attribute name="value" for="plannedStartDateT"
+      expr="eval: _parent?.doneOn != null ? _parent?.doneOn : _parent?.expectedDate"
+      if="_parent?._model == 'com.axelor.apps.maintenance.db.MaintenanceRequest'"/>
+  </action-attrs>
+
+  <action-attrs name="action-maintenance-manuf-order-attrs-set-attributes">
+    <attribute name="readonly" for="machine" expr="eval: true"/>
+    <attribute name="readonly" for="machineType" expr="eval: true"/>
+    <attribute name="value" for="machineType" expr="eval: machine?.machineType"
+      if="!machineType"/>
+  </action-attrs>
+
+  <action-method name="action-manuf-order-method-print">
+    <call class="com.axelor.apps.maintenance.web.ManufOrderController" method="print"/>
+  </action-method>
+
+  <action-method name="action-maintenance-manuf-order-method-consume-stock-move">
+    <call class="com.axelor.apps.maintenance.web.ManufOrderController"
+      method="consumeInStockMoves"/>
+  </action-method>
+
+  <action-method name="action-maintenance-manuf-order-method-compute-cost-price">
+    <call class="com.axelor.apps.production.web.ManufOrderController" method="computeCostPrice"/>
+  </action-method>
+
+  <action-attrs name="action-manuf-order-attrs-filter-prodProcess"
+    id="maintenance-action-manuf-order-attrs-filter-prodProcess">
+    <attribute name="domain" for="prodProcess"
+      expr="eval: &quot; (self.id = ${billOfMaterial?.prodProcess?.id} OR self.product.id = ${billOfMaterial?.product?.id}) AND self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation) AND self.typeSelect = ${__repo__(ManufOrder).TYPE_PRODUCTION} &quot;"
+      if="prodProcess != null &amp;&amp; billOfMaterial != null"/>
+    <attribute name="domain" for="prodProcess"
+      expr="eval: &quot; self.statusSelect = 3 AND ((:workshopStockLocation IS NULL AND self.workshopStockLocation IS NULL) OR self.workshopStockLocation = :workshopStockLocation) AND self.typeSelect = ${__repo__(ManufOrder).TYPE_PRODUCTION} &quot;"
+      if="billOfMaterial == null"/>
+  </action-attrs>
+
+</object-views>

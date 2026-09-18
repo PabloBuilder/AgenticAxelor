@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="sale" package="com.axelor.apps.sale.db"/>
+
+  <entity name="SaleOrderLine"
+    implements="com.axelor.apps.base.interfaces.PricedOrderLine,com.axelor.apps.base.interfaces.Currenciable,com.axelor.apps.sale.interfaces.MarginLine,com.axelor.apps.base.interfaces.ShippableOrderLine,com.axelor.apps.base.interfaces.GlobalDiscounterLine">
+
+    <string name="fullName" namecolumn="true">
+	  	<![CDATA[
+	  		String fullName = "";
+	  		if(saleOrder != null && saleOrder.getSaleOrderSeq() != null){
+	  			fullName += saleOrder.getSaleOrderSeq();
+	  		}
+	  		if(productName != null)  {
+	  			fullName += "-";
+	  			if(productName.length() > 100)  {
+	  				fullName += productName.substring(1, 100);
+	  			}
+	  			else  {  fullName += productName;  }
+	  		}
+	  		return fullName;
+	  	]]>
+    </string>
+    <many-to-one name="saleOrder" ref="com.axelor.apps.sale.db.SaleOrder"
+      title="Sale order"/>
+    <integer name="sequence" title="Seq."/>
+    <many-to-one name="product" ref="com.axelor.apps.base.db.Product" title="Product"/>
+    <decimal name="qty" title="Qty" default="1" precision="20" scale="10"/>
+    <decimal name="oldQty" hidden="true" precision="20" scale="10"/>
+    <boolean name="isToPrintLineSubTotal" title="Print subtotal / line"/>
+    <string name="productName" title="Displayed Product name" required="true"/>
+    <decimal name="price" title="Unit price W.T." precision="20" scale="10"/>
+    <decimal name="inTaxPrice" title="Unit price A.T.I." precision="20" scale="10"/>
+    <decimal name="priceDiscounted" title="Unit price discounted" precision="30" scale="20"/>
+    <string name="pricingScaleLogs" title="Price calculation details" large="true"
+      readonly="true"/>
+
+    <many-to-many name="taxLineSet" ref="com.axelor.apps.account.db.TaxLine"
+      title="Taxes"/>
+    <many-to-one name="taxEquiv" ref="com.axelor.apps.account.db.TaxEquiv"
+      title="Tax Equiv"/>
+    <many-to-one name="vatExemptionReason"
+      ref="com.axelor.apps.account.db.VatExemptionReason" title="VAT exemption reason"/>
+    <decimal name="exTaxTotal" title="Total W.T." precision="20" scale="3" readonly="true"/>
+    <decimal name="inTaxTotal" title="Total A.T.I." precision="20" scale="3" readonly="true"/>
+
+    <string name="description" title="Description" large="true"/>
+    <many-to-one name="unit" ref="com.axelor.apps.base.db.Unit" title="Unit"/>
+
+    <many-to-one name="supplierPartner" ref="com.axelor.apps.base.db.Partner"
+      title="Supplier"/>
+    <decimal name="discountAmount" title="Discount amount" precision="30" scale="20"/>
+    <integer name="discountTypeSelect" title="Discount type"
+      selection="base.price.list.line.amount.type.select" default="0"/>
+
+    <date name="estimatedShippingDate" title="Estimated shipping date"/>
+    <date name="desiredDeliveryDate" title="Desired delivery date"/>
+    <date name="estimatedDeliveryDate" title="Estimated delivery date"/>
+    <decimal name="deliveredQty" title="Delivered quantity" precision="20" scale="10"/>
+    <many-to-one name="deliveryAddress" ref="com.axelor.apps.base.db.Address"
+      title="Delivery address"/>
+    <string name="deliveryAddressStr" title="Delivery address" large="true" multiline="true"/>
+
+    <!-- Versioning -->
+    <integer name="versionNumber" title="Version Number" readonly="true" default="1"/>
+    <datetime name="versionDateT" title="Version date" readonly="true"/>
+    <many-to-one name="oldVersionSaleOrder" ref="com.axelor.apps.sale.db.SaleOrder"/>
+
+    <!-- Complementary Products -->
+    <boolean name="isComplementaryProductsUnhandledYet" hidden="true"/>
+    <boolean name="isComplementaryPartnerProductsHandled" hidden="true"/>
+    <one-to-many name="selectedComplementaryProductList"
+      ref="com.axelor.apps.sale.db.ComplementaryProductSelected" title="Complementary products"
+      mappedBy="saleOrderLine"/>
+    <string name="manualId"/>
+    <string name="parentId"/>
+
+    <one-to-many name="complementarySaleOrderLineList"
+      ref="com.axelor.apps.sale.db.SaleOrderLine" title="Complementary lines"
+      mappedBy="mainSaleOrderLine"/>
+    <many-to-one name="mainSaleOrderLine" ref="com.axelor.apps.sale.db.SaleOrderLine"/>
+
+    <!-- Margins -->
+    <decimal name="subTotalCostPrice" title="SubTotal cost price" precision="20" scale="3"/>
+    <decimal name="manualSubTotalCostPrice" hidden="true" precision="20" scale="3"/>
+    <boolean name="isSubTotalCostPriceManuallyEdited" hidden="true"/>
+    <decimal name="subTotalGrossMargin" title="Sub Total gross profit" precision="20"
+      scale="3"/>
+    <decimal name="subMarginRate" title="Sub margin rate"/>
+    <decimal name="subTotalMarkup" title="Sub Total markup"/>
+
+    <!-- Champ technique non affiché, utilisé pour les reportings -->
+    <decimal name="companyExTaxTotal" title="Total W.T. in company currency" hidden="true"
+      precision="20" scale="3" readonly="true"/>
+    <decimal name="companyCostPrice" title="Unit cost price in company currency"
+      hidden="true" precision="20" scale="3" readonly="true"/>
+    <decimal name="companyInTaxTotal" title="Total A.T.I. in company currency" hidden="true"
+      precision="20" scale="3" readonly="true"/>
+    <decimal name="companyCostTotal" title="Total cost in company currency" hidden="true"
+      precision="20" scale="3" readonly="true"/>
+    <integer name="typeSelect" title="Type" selection="line.type.select"/>
+    <integer name="typeSelectNormal" title="Type select normal">
+      <![CDATA[
+        return SaleOrderLineRepository.TYPE_NORMAL;
+	  ]]>
+    </integer>
+
+    <boolean name="isShowTotal" title="Show Total"/>
+    <boolean name="isHideUnitAmounts" title="Hide Unit Amounts"/>
+
+    <boolean name="enableFreezeFields" transient="true" title="Freeze fields"/>
+
+    <boolean name="discountsNeedReview" readonly="true"/>
+
+    <decimal name="discountDerogation" title="Discount derogation (%)" min="0" max="100"/>
+
+    <string name="lineProductionComment" title="Line production commentary" large="true"/>
+    <one-to-many name="subSaleOrderLineList" title="Sale order line list"
+      ref="com.axelor.apps.sale.db.SaleOrderLine" mappedBy="parentSaleOrderLine"/>
+    <many-to-one name="parentSaleOrderLine" ref="com.axelor.apps.sale.db.SaleOrderLine"
+      title="Parent sale order line"/>
+    <many-to-one name="mainSaleOrder" ref="com.axelor.apps.sale.db.SaleOrder"
+      title="Main sale order"/>
+    <string name="levelIndicator" title="Level"/>
+
+    <many-to-one name="currency" transient="true" ref="com.axelor.apps.base.db.Currency">
+      <![CDATA[
+      return saleOrder != null ? saleOrder.getCurrency() : null;
+	    ]]>
+    </many-to-one>
+    <many-to-one name="companyCurrency" transient="true"
+      ref="com.axelor.apps.base.db.Currency">
+      <![CDATA[
+      return saleOrder != null ? saleOrder.getCompanyCurrency() : null;
+	    ]]>
+    </many-to-one>
+
+    <string name="productTypeIconSelect"
+      selection="sale.sale.order.line.product.sub.type.icon.select"/>
+
+    <many-to-one name="configurator" ref="com.axelor.apps.sale.db.Configurator"
+      title="Configurator"/>
+
+    <decimal name="orderedQty" title="Ordered qty" default="0" precision="20" scale="10"/>
+
+    <finder-method name="findAllBySaleOrder" using="saleOrder" all="true"/>
+
+    <extra-imports>
+      import com.axelor.apps.sale.db.repo.SaleOrderLineRepository;
+    </extra-imports>
+
+    <extra-code>
+		<![CDATA[
+			// TYPE SELECT
+			public static final int TYPE_NORMAL = 0;
+			public static final int TYPE_TITLE = 1;
+            public static final int TYPE_START_OF_PACK = 2;
+            public static final int TYPE_END_OF_PACK = 3;
+
+            public static final String SALE_ORDER_LINE_PRODUCT_TYPE_SERVICE = "SALE_ORDER_LINE_PRODUCT_TYPE_SERVICE";
+            public static final String SALE_ORDER_LINE_PRODUCT_TYPE_FINISHED_PRODUCT = "SALE_ORDER_LINE_PRODUCT_TYPE_FINISHED_PRODUCT";
+            public static final String SALE_ORDER_LINE_PRODUCT_TYPE_SEMI_FINISH_PRODUCT = "SALE_ORDER_LINE_PRODUCT_TYPE_SEMI_FINISH_PRODUCT";
+            public static final String SALE_ORDER_LINE_PRODUCT_TYPE_COMPONENT = "SALE_ORDER_LINE_PRODUCT_TYPE_COMPONENT";
+
+	  	]]>
+    </extra-code>
+
+    <entity-listener class="com.axelor.apps.sale.db.repo.SaleOrderLineListener"/>
+
+  </entity>
+
+  <sequence name="sale.order.line.idSeq" initial="1" increment="1" padding="10"/>
+
+</domain-models>

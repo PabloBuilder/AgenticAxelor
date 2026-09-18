@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="address-grid" title="Address list" model="com.axelor.apps.base.db.Address">
+    <toolbar>
+      <button name="checkDuplicateBtn" title="Check Duplicate"
+        onClick="action-base-method-show-duplicate"/>
+    </toolbar>
+    <field name="fullName"/>
+    <button name="mapBtn" icon="geo-alt-fill" onClick="action-base-address-method-view-map"/>
+    <button name="directionsBtn" icon="near_me"
+      onClick="action-base-address-method-view-direction"/>
+  </grid>
+
+  <form name="address-form" title="Address" model="com.axelor.apps.base.db.Address"
+    width="large" onLoad="action-group-base-address-onload"
+    onSave="action-group-base-address-onsave" onNew="action-group-base-address-onnnew"
+    onCopy="action-group-base-address-onload">
+    <panel-include view="incl-address-main-panel-form"/>
+    <panel name="addressTypePanel">
+      <field name="isInvoicingAddr" title="Invoicing address"
+        showIf="$popup() &amp;&amp; id == null" type="boolean"/>
+      <field name="isDeliveryAddr" title="Delivery address"
+        showIf="$popup() &amp;&amp; id == null" type="boolean"/>
+      <field name="isDefault" title="Default" showIf="$popup() &amp;&amp; id == null"
+        type="boolean"/>
+    </panel>
+
+    <panel sidebar="true" name="actionsPanel" title="Actions" colSpan="12" showIf="id">
+      <panel name="mapBtnPanel" colSpan="12">
+        <button-group hideIf="$popup()" readonlyIf="!id" colSpan="12">
+          <button name="mapBtn" title="View map" icon="geo-alt-fill"
+            onClick="action-base-address-method-view-map"/>
+          <button name="directionsBtn" title="Get direction" icon="near_me"
+            onClick="action-base-address-method-view-direction"/>
+        </button-group>
+        <spacer name="btnGrpSpacer" colSpan="12"/>
+        <button-group showIf="$popup()" readonlyIf="!id" colSpan="12">
+          <button name="mapBtn" title="View map" icon="geo-alt-fill"
+            onClick="action-base-address-method-view-map,close"/>
+          <button name="directionsBtn" title="Get direction" icon="near_me"
+            onClick="action-base-address-method-view-direction,close"/>
+        </button-group>
+      </panel>
+      <field name="isUsed" hidden="true" type="boolean"/>
+      <field name="isValidLatLong" hidden="true"/>
+      <field name="formattedFullName" readonly="true" colSpan="12" height="4"/>
+
+      <panel if="__config__.app.getApp('base')?.getHasQasValidation()"
+        name="qasCertificationPanel" title="QAS certification" colSpan="12">
+        <field name="certifiedOk" colSpan="4"/>
+        <panel name="actionsPanel" colSpan="4">
+          <button name="validateBtn" title="Validate"
+            onClick="com.axelor.apps.base.web.AddressController:validate,save"/>
+          <button name="selectBtn" title="Choose"
+            onClick="com.axelor.apps.base.web.AddressController:select,save"/>
+        </panel>
+        <panel-related name="pickListPanel" title="Pick list" colSpan="12"
+          field="pickList" grid-view="pick-list-entry-grid" form="pick-list-entry-form"/>
+      </panel>
+
+    </panel>
+  </form>
+
+  <form name="incl-address-main-panel-form" title="Address"
+    model="com.axelor.apps.base.db.Address" onNew="action-group-base-address-onnnew"
+    onLoad="action-group-base-address-onload" onSave="action-group-base-address-onsave">
+    <panel name="mainPanel" title="Address details" colSpan="12">
+      <field name="country" colSpan="12" canEdit="false"
+        onChange="action-group-base-address-country-change" required="true" form-view="country-form"
+        grid-view="country-grid"/>
+      <panel name="countryHiddenPanel" hideIf="country == null" colSpan="12">
+        <field name="subDepartment" colSpan="12" x-bind="{{subDepartment|uppercase}}"/>
+        <field name="room" x-bind="{{room|uppercase}}" colSpan="12"/>
+        <field name="floor" x-bind="{{floor|uppercase}}" colSpan="12"/>
+        <field name="buildingNumber" onChange="action-address-record-change-streetName"
+          x-bind="{{buildingNumber|uppercase}}" colSpan="12"/>
+        <field name="street" canNew="true" colSpan="12"
+          onChange="action-address-record-change-streetName"
+          onSelect="action-address-attrs-update-domain-street" form-view="street-form"
+          grid-view="street-grid"/>
+        <field name="streetName" colSpan="12" x-bind="{{streetName|uppercase}}"/>
+        <field name="postBox" colSpan="12" x-bind="{{postBox|uppercase}}"/>
+        <field name="buildingName" colSpan="12" x-bind="{{buildingName|uppercase}}"/>
+        <field name="townName" colSpan="12" x-bind="{{townName|uppercase}}"/>
+        <field name="townLocationName" colSpan="12" x-bind="{{townLocationName|uppercase}}"/>
+        <field name="districtName" colSpan="12" x-bind="{{districtName|uppercase}}"/>
+        <field name="countrySubDivision" colSpan="12"
+          x-bind="{{countrySubDivision|uppercase}}"/>
+        <field name="city" colSpan="12" canNew="true" canEdit="false"
+          onChange="action-address-change-city" onSelect="action-address-attrs-update-domain-city"
+          form-view="city-form" grid-view="city-grid"/>
+        <field name="zip" colSpan="12" onChange="action-address-method-autocomplete-address"/>
+      </panel>
+    </panel>
+  </form>
+
+  <action-group name="action-group-base-address-onsave">
+    <action name="action-base-address-set-address-used"/>
+    <action name="action-base-address-check-address-used"/>
+    <action name="save"/>
+    <action name="action-base-address-method-create-partner-address"/>
+    <action name="action-base-address-method-update-lat-long"/>
+  </action-group>
+
+  <action-group name="action-group-base-address-onnnew">
+    <action name="default-address-record"/>
+    <action name="action-base-address-get-address-fields"/>
+  </action-group>
+
+  <action-group name="action-group-base-address-onload">
+    <action name="action-base-address-get-address-fields"/>
+  </action-group>
+
+  <action-group name="action-group-base-address-country-change">
+    <action name="action-address-record-clear-fields"/>
+    <action name="action-base-address-get-address-fields"/>
+  </action-group>
+
+  <action-method name="action-base-address-get-address-fields">
+    <call class="com.axelor.apps.base.web.AddressController" method="getAddressMetaField"/>
+  </action-method>
+
+  <action-record name="default-address-record" model="com.axelor.apps.base.db.Address">
+    <field name="country" expr="eval: __user__?.activeCompany?.address?.country"
+      if="__user__?.activeCompany?.address"/>
+    <field name="country" expr="eval: __user__?.localization?.country"
+      if="!__user__?.activeCompany?.address"/>
+  </action-record>
+
+  <action-record name="action-address-change-city"
+    model="com.axelor.apps.base.db.Address">
+    <field name="country" expr="eval: city?.country" if="city"/>
+    <field name="zip" expr="eval: city?.zip" if="city?.zip"/>
+    <field name="street" expr="eval: null"/>
+    <field name="townName" expr="eval: city?.name"/>
+  </action-record>
+
+  <action-record name="action-base-address-set-address-used"
+    model="com.axelor.apps.base.db.Address">
+    <field name="isUsed"
+      expr="call:com.axelor.apps.base.service.address.AddressService:checkAddressUsed(id)"/>
+  </action-record>
+
+  <action-validate name="action-base-address-check-address-used">
+    <alert
+      message="Be aware that the address is already in use on other documents, do you still want to modify it ?"
+      if="isUsed == true"/>
+  </action-validate>
+
+  <action-method name="action-base-address-method-view-map">
+    <call class="com.axelor.apps.base.web.AddressController" method="viewMap"/>
+  </action-method>
+
+  <action-method name="action-base-address-method-view-direction">
+    <call class="com.axelor.apps.base.web.AddressController" method="viewDirection"/>
+  </action-method>
+
+  <action-method name="action-base-address-method-update-lat-long">
+    <call class="com.axelor.apps.base.web.AddressController" method="updateLatLong"/>
+  </action-method>
+
+  <action-method name="action-base-address-method-create-partner-address">
+    <call class="com.axelor.apps.base.web.AddressController" method="createPartnerAddress"/>
+  </action-method>
+
+  <action-attrs name="action-address-attrs-update-domain-city">
+    <attribute name="domain" if="country &amp;&amp; zip" for="city"
+      expr="eval: &quot;self.country = :country AND self.zip LIKE '${zip + '%'}'&quot;"/>
+    <attribute name="domain" if="country &amp;&amp; !zip" for="city"
+      expr="eval: &quot;self.country = :country&quot;"/>
+    <attribute name="domain" if="!country &amp;&amp; zip" for="city"
+      expr="eval: &quot;self.zip LIKE '${zip + '%'}'&quot;"/>
+    <attribute name="domain" if="!country &amp;&amp; !zip" for="city" expr="eval: null"/>
+  </action-attrs>
+
+  <action-attrs name="action-address-attrs-update-domain-street">
+    <attribute name="domain" for="street" if="country &amp;&amp; zip"
+      expr="eval: &quot;self.city.id IN (SELECT id FROM City WHERE zip LIKE '${zip + '%'}' AND country.id = ${country.id})&quot;"/>
+    <attribute name="domain" for="street" if="!country &amp;&amp; zip"
+      expr="eval: &quot;self.city.id IN (SELECT id FROM City WHERE zip LIKE '${zip + '%'}')&quot;"/>
+    <attribute name="domain" for="street" if="country &amp;&amp; !zip"
+      expr="eval: &quot;self.city.id IN (SELECT id FROM City WHERE country.id = ${country.id})&quot;"/>
+    <attribute name="domain" for="street" if="!country &amp;&amp; !zip" expr="eval: null"/>
+  </action-attrs>
+
+  <action-record name="action-address-record-clear-fields"
+    model="com.axelor.apps.base.db.Address">
+    <field name="city" expr="eval: null"/>
+    <field name="zip" expr="eval: null"/>
+    <field name="postBox" expr="eval: null"/>
+    <field name="streetName" expr="eval: null"/>
+    <field name="street" expr="eval: null"/>
+    <field name="buildingNumber" expr="eval: null"/>
+    <field name="room" expr="eval: null"/>
+    <field name="floor" expr="eval: null"/>
+    <field name="subDepartment" expr="eval: null"/>
+    <field name="buildingName" expr="eval: null"/>
+    <field name="townName" expr="eval: null"/>
+    <field name="townLocationName" expr="eval: null"/>
+    <field name="districtName" expr="eval: null"/>
+    <field name="countrySubDivision" expr="eval: null"/>
+  </action-record>
+
+  <action-method name="action-address-method-autocomplete-address">
+    <call class="com.axelor.apps.base.web.AddressController" method="autocompleteAddress"/>
+  </action-method>
+
+  <action-record name="action-address-record-change-streetName"
+    model="com.axelor.apps.base.db.Address">
+    <field name="streetName" expr="eval: buildingNumber + ' ' + street?.name"
+      if="buildingNumber &amp;&amp; street"/>
+    <field name="streetName" expr="eval: street?.name" if="!buildingNumber &amp;&amp; street"/>
+    <field name="streetName" expr="eval: null" if="!street"/>
+    <field name="city" expr="eval: street.city" if="street"/>
+    <field name="zip" expr="eval: street.city.zip" if="street"/>
+    <field name="country" expr="eval: street.city.country" if="street"/>
+  </action-record>
+
+  <search-filters name="address-filters" model="com.axelor.apps.base.db.Address"
+    title="Address filters">
+    <field name="buildingNumber" hidden="true"
+      if="!__config__.app.getApp('base')?.getStoreStreets()"/>
+    <field name="street" hidden="true" if="!__config__.app.getApp('base')?.getStoreStreets()"/>
+    <field name="streetName" hidden="true"
+      if="__config__.app.getApp('base')?.getStoreStreets()"/>
+    <field name="certifiedOk" hidden="true"
+      if="!__config__.app.getApp('base')?.getHasQasValidation()"/>
+    <field name="pickList" hidden="true"
+      if="!__config__.app.getApp('base')?.getHasQasValidation()"/>
+  </search-filters>
+</object-views>

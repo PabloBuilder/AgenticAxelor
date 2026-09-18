@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <form name="product-form" title="Product" id="purchase-product-form"
+    model="com.axelor.apps.base.db.Product" extension="true">
+    <extend target="//panel[@name='purchaseCostsPanel']">
+      <insert position="inside">
+        <panel-dashlet name="orderHistoryPanel" title="Order history"
+          action="action-product-view-show-purchase-order-line-history" colSpan="12"
+          showIf="purchasable"/>
+      </insert>
+    </extend>
+    <extend target="//panel[@name='attrsPanel']/field[@name='attrs']">
+      <insert position="before">
+        <field name="callTenderAttrConfig" colSpan="6" domain="self.displayInProduct = true"
+          if="__config__.app.getApp('purchase')?.manageCallForTender"
+          onChange="action-call-tender-attr-config-method-fill-defaults"/>
+      </insert>
+    </extend>
+  </form>
+
+  <action-view name="action-product-view-show-purchase-order-line-history"
+    title="Order history" model="com.axelor.apps.purchase.db.PurchaseOrderLine">
+    <view type="grid" name="purchase-order-line-history-grid"/>
+    <view type="form" name="purchase-order-line-form"/>
+    <domain>self.product.id = :id AND self.purchaseOrder.orderDate &lt;= :__date__ AND
+      self.purchaseOrder.statusSelect IN (3,4)</domain>
+  </action-view>
+
+  <action-attrs name="action-product-attrs-readonly-purchasable">
+    <attribute name="readonly" for="purchasable" expr="eval:true"/>
+  </action-attrs>
+
+  <action-method name="action-product-method-supplier-catalog-coeff">
+    <call class="com.axelor.apps.purchase.web.PurchaseProductController"
+      method="fillShippingCoeff"/>
+  </action-method>
+
+</object-views>

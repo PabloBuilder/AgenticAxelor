@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="base" package="com.axelor.apps.base.db"/>
+
+  <entity name="Product">
+    <decimal name="avgPrice" readonly="true" precision="20" scale="10" title="Average Price"/>
+    <many-to-one name="trackingNumberConfiguration"
+      ref="com.axelor.apps.stock.db.TrackingNumberConfiguration" title="Tracking Nbr. Config."
+      massUpdate="true"/>
+    <many-to-one name="customsCodeNomenclature"
+      ref="com.axelor.apps.stock.db.CustomsCodeNomenclature" title="Customs code" massUpdate="true"/>
+    <boolean name="controlOnReceipt" title="Control on Receipt" massUpdate="true"/>
+    <boolean name="usedInDEB" title="Used in DEB/DES" massUpdate="true"/>
+    <many-to-one name="countryOfOrigin" ref="com.axelor.apps.base.db.Country"
+      title="Country of origin" massUpdate="true"/>
+    <boolean name="stockManaged" default="true" massUpdate="true"/>
+
+    <decimal name="metricMass" title="Metric weight" default="0" min="0" precision="20"
+      scale="10"/>
+    <decimal name="productDensity" title="Final product density" precision="20" scale="10"/>
+
+    <one-to-many name="defaultStockLocationBySite"
+      ref="com.axelor.apps.stock.db.DefaultStockLocationBySite"
+      title="Default stock location by site" mappedBy="product"/>
+
+    <track on="UPDATE">
+      <field name="trackingNumberConfiguration"/>
+    </track>
+  </entity>
+
+</domain-models>

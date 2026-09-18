@@ -1,0 +1,260 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.production.service;
+
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Product;
+import com.axelor.apps.base.db.Unit;
+import com.axelor.apps.base.db.repo.CompanyRepository;
+import com.axelor.apps.base.db.repo.ProductRepository;
+import com.axelor.apps.base.service.ProductCompanyService;
+import com.axelor.apps.base.service.UnitConversionService;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.apps.production.service.app.AppProductionService;
+import com.axelor.apps.production.service.manuforder.ManufOrderService;
+import com.axelor.apps.stock.db.StockLocation;
+import com.axelor.apps.stock.db.StockMove;
+import com.axelor.apps.stock.db.StockMoveLine;
+import com.axelor.apps.stock.db.TrackingNumberConfiguration;
+import com.axelor.apps.stock.db.repo.StockLocationLineRepository;
+import com.axelor.apps.stock.db.repo.StockLocationRepository;
+import com.axelor.apps.stock.db.repo.StockMoveLineRepository;
+import com.axelor.apps.stock.service.StockLocationLineFetchService;
+import com.axelor.apps.stock.service.StockLocationService;
+import com.axelor.apps.stock.utils.StockLocationUtilsService;
+import com.axelor.apps.supplychain.service.ProductStockLocationServiceImpl;
+import com.axelor.apps.supplychain.service.app.AppSupplychainService;
+import com.axelor.apps.supplychain.utils.StockLocationUtilsServiceSupplychain;
+import jakarta.inject.Inject;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public class ProductionProductStockLocationServiceImpl extends ProductStockLocationServiceImpl {
+
+  protected AppProductionService appProductionService;
+  protected ManufOrderService manufOrderService;
+  protected StockMoveLineRepository stockMoveLineRepository;
+
+  protected ProductCompanyService productCompanyService;
+
+  @Inject
+  public ProductionProductStockLocationServiceImpl(
+      UnitConversionService unitConversionService,
+      AppSupplychainService appSupplychainService,
+      ProductRepository productRepository,
+      CompanyRepository companyRepository,
+      StockLocationRepository stockLocationRepository,
+      StockLocationService stockLocationService,
+      StockLocationUtilsServiceSupplychain stockLocationUtilsServiceSupplychain,
+      StockLocationLineFetchService stockLocationLineFetchService,
+      StockLocationLineRepository stockLocationLineRepository,
+      StockLocationUtilsService stockLocationUtilsService,
+      AppProductionService appProductionService,
+      ManufOrderService manufOrderService,
+      StockMoveLineRepository stockMoveLineRepository,
+      AppBaseService appBaseService,
+      ProductCompanyService productCompanyService) {
+    super(
+        unitConversionService,
+        appSupplychainService,
+        productRepository,
+        companyRepository,
+        stockLocationRepository,
+        stockLocationService,
+        stockLocationUtilsServiceSupplychain,
+        stockLocationLineFetchService,
+        stockLocationLineRepository,
+        appBaseService,
+        stockLocationUtilsService);
+    this.appProductionService = appProductionService;
+    this.manufOrderService = manufOrderService;
+    this.stockMoveLineRepository = stockMoveLineRepository;
+    this.productCompanyService = productCompanyService;
+  }
+
+  @Override
+  public Map<String, Object> computeIndicators(Long productId, Long companyId, Long stockLocationId)
+      throws AxelorException {
+    Map<String, Object> map = super.computeIndicators(productId, companyId, stockLocationId);
+    Product product = productRepository.find(productId);
+    Company company = companyRepository.find(companyId);
+    StockLocation stockLocation = stockLocationRepository.find(stockLocationId);
+    int scale = appBaseService.getNbDecimalDigitForQty();
+    BigDecimal consumeManufOrderQty =
+        this.getConsumeManufOrderQty(product, company, stockLocation)
+            .setScale(scale, RoundingMode.HALF_UP);
+    BigDecimal realQty =
+        (BigDecimal)
+            map.getOrDefault("$realQty", BigDecimal.ZERO.setScale(scale, RoundingMode.HALF_UP));
+    map.put(
+        "$buildingQty",
+        this.getBuildingQty(product, company, stockLocation).setScale(scale, RoundingMode.HALF_UP));
+    map.put("$consumeManufOrderQty", consumeManufOrderQty);
+    map.put(
+        "$missingManufOrderQty",
+        BigDecimal.ZERO
+            .max(consumeManufOrderQty.subtract(realQty))
+            .setScale(scale, RoundingMode.HALF_UP));
+    return map;
+  }
+
+  protected BigDecimal getBuildingQty(Product product, Company company, StockLocation stockLocation)
+      throws AxelorException {
+    if (product == null || product.getUnit() == null) {
+      return BigDecimal.ZERO;
+    }
+    Long companyId = 0L;
+    Long stockLocationId = 0L;
+    if (company != null) {
+      companyId = company.getId();
+      if (stockLocation != null) {
+        stockLocationId = stockLocation.getId();
+      }
+    }
+
+    String query =
+        manufOrderService.getBuildingQtyForAProduct(product.getId(), companyId, stockLocationId);
+    List<StockMoveLine> stockMoveLineList = stockMoveLineRepository.all().filter(query).fetch();
+
+    BigDecimal sumBuildingQty = BigDecimal.ZERO;
+    if (!stockMoveLineList.isEmpty()) {
+
+      Unit unitConversion = product.getUnit();
+      for (StockMoveLine stockMoveLine : stockMoveLineList) {
+        BigDecimal productBuildingQty = stockMoveLine.getRealQty();
+        unitConversionService.convert(
+            stockMoveLine.getUnit(),
+            unitConversion,
+            productBuildingQty,
+            productBuildingQty.scale(),
+            product);
+        sumBuildingQty = sumBuildingQty.add(productBuildingQty);
+      }
+    }
+    return sumBuildingQty;
+  }
+
+  protected BigDecimal getConsumeManufOrderQty(
+      Product product, Company company, StockLocation stockLocation) throws AxelorException {
+    if (product == null || product.getUnit() == null) {
+      return BigDecimal.ZERO;
+    }
+    Long companyId = 0L;
+    Long stockLocationId = 0L;
+    if (company != null) {
+      companyId = company.getId();
+      if (stockLocation != null) {
+        stockLocationId = stockLocation.getId();
+      }
+    }
+    String query =
+        manufOrderService.getConsumeAndMissingQtyForAProduct(
+            product.getId(), companyId, stockLocationId);
+    List<StockMoveLine> stockMoveLineList = stockMoveLineRepository.all().filter(query).fetch();
+
+    BigDecimal sumConsumeManufOrderQty = BigDecimal.ZERO;
+    if (!stockMoveLineList.isEmpty()) {
+      Unit unitConversion = product.getUnit();
+      for (StockMoveLine stockMoveLine : stockMoveLineList) {
+        BigDecimal productConsumeManufOrderQty = stockMoveLine.getRealQty();
+        productConsumeManufOrderQty =
+            unitConversionService.convert(
+                stockMoveLine.getUnit(),
+                unitConversion,
+                productConsumeManufOrderQty,
+                productConsumeManufOrderQty.scale(),
+                product);
+        sumConsumeManufOrderQty = sumConsumeManufOrderQty.add(productConsumeManufOrderQty);
+      }
+    }
+    return sumConsumeManufOrderQty;
+  }
+
+  protected BigDecimal getMissingManufOrderQty(
+      Product product, Company company, StockLocation stockLocation) throws AxelorException {
+    if (product == null || product.getUnit() == null) {
+      return BigDecimal.ZERO;
+    }
+    Long companyId = 0L;
+    Long stockLocationId = 0L;
+    if (company != null) {
+      companyId = company.getId();
+      if (stockLocation != null) {
+        stockLocationId = stockLocation.getId();
+      }
+    }
+    String query =
+        manufOrderService.getConsumeAndMissingQtyForAProduct(
+            product.getId(), companyId, stockLocationId);
+    List<StockMoveLine> stockMoveLineList = stockMoveLineRepository.all().filter(query).fetch();
+
+    BigDecimal sumMissingManufOrderQty = BigDecimal.ZERO;
+    if (!stockMoveLineList.isEmpty()) {
+      Unit unitConversion = product.getUnit();
+      for (StockMoveLine stockMoveLine : stockMoveLineList) {
+        BigDecimal productMissingManufOrderQty = getMissingQtyOfStockMoveLine(stockMoveLine);
+        unitConversionService.convert(
+            stockMoveLine.getUnit(),
+            unitConversion,
+            productMissingManufOrderQty,
+            productMissingManufOrderQty.scale(),
+            product);
+        sumMissingManufOrderQty = sumMissingManufOrderQty.add(productMissingManufOrderQty);
+      }
+    }
+    return sumMissingManufOrderQty;
+  }
+
+  protected BigDecimal getMissingQtyOfStockMoveLine(StockMoveLine stockMoveLine)
+      throws AxelorException {
+    if (stockMoveLine.getProduct() != null) {
+      BigDecimal availableQty = stockMoveLine.getAvailableQty();
+      BigDecimal availableQtyForProduct = stockMoveLine.getAvailableQtyForProduct();
+      BigDecimal realQty = stockMoveLine.getRealQty();
+
+      if (availableQty.compareTo(realQty) >= 0 || !stockMoveLine.getProduct().getStockManaged()) {
+        return BigDecimal.ZERO;
+      } else if (availableQtyForProduct.compareTo(realQty) >= 0) {
+        return BigDecimal.ZERO;
+      } else if (availableQty.compareTo(realQty) < 0
+          && availableQtyForProduct.compareTo(realQty) < 0) {
+
+        TrackingNumberConfiguration trackingNumberConfiguration =
+            (TrackingNumberConfiguration)
+                productCompanyService.get(
+                    stockMoveLine.getProduct(),
+                    "trackingNumberConfiguration",
+                    Optional.ofNullable(stockMoveLine.getStockMove())
+                        .map(StockMove::getCompany)
+                        .orElse(null));
+
+        if (trackingNumberConfiguration != null) {
+          return availableQtyForProduct.subtract(realQty);
+        } else {
+          return availableQty.subtract(realQty);
+        }
+      }
+    }
+    return BigDecimal.ZERO;
+  }
+}

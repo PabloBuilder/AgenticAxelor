@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="tax-equiv-grid" title="Taxes equivalences"
+    model="com.axelor.apps.account.db.TaxEquiv">
+    <field name="fromTaxSet" form-view="tax-form" grid-view="tax-grid" widget="Tags"/>
+    <field name="toTaxSet" form-view="tax-form" grid-view="tax-grid" widget="Tags"/>
+    <field name="reverseCharge" width="125px"/>
+  </grid>
+
+  <form name="tax-equiv-form" title="Tax equivalence"
+    model="com.axelor.apps.account.db.TaxEquiv">
+    <panel name="mainPanel">
+      <field name="fromTaxSet" form-view="tax-form" grid-view="tax-grid" required="true"
+        widget="Tags"/>
+      <field name="toTaxSet" form-view="tax-form" grid-view="tax-grid" required="true"
+        widget="Tags" readonlyIf="reverseCharge"
+        onChange="action-tax-equiv-record-reset-reverse-charge-tax-set"/>
+      <field name="reverseCharge"
+        onChange="action-tax-equiv-record-reset-reverse-charge-tax-set"/>
+      <field name="reverseChargeTaxSet" form-view="tax-form" grid-view="tax-grid"
+        showIf="reverseCharge" requiredIf="reverseCharge"
+        onSelect="action-tax-equiv-attrs-reverse-charge-tax-domain" widget="Tags"/>
+      <field name="vatExemptionReason" form-view="vat-exemption-reason-form"
+        grid-view="vat-exemption-reason-grid"/>
+      <field name="specificNote" colSpan="12" showIf="specificNote"/>
+    </panel>
+  </form>
+
+  <action-record name="action-tax-equiv-record-reset-reverse-charge-tax-set"
+    model="com.axelor.apps.account.db.TaxEquiv">
+    <field name="reverseChargeTaxSet" expr="eval: null"/>
+  </action-record>
+
+  <action-attrs name="action-tax-equiv-attrs-reverse-charge-tax-domain">
+    <attribute name="domain" for="reverseChargeTaxSet" if="reverseCharge"
+      expr="call: com.axelor.apps.base.service.tax.TaxEquivService:getTaxDomain(__this__)"/>
+    <attribute name="domain" for="reverseChargeTaxSet" expr="eval: null"
+      if="!reverseCharge"/>
+  </action-attrs>
+
+</object-views>

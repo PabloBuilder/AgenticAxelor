@@ -1,0 +1,20 @@
+plugins {
+	id 'com.axelor.app'
+}
+
+apply from: "../version.gradle"
+
+apply {
+	version = openSuiteVersion
+}
+
+axelor {
+	title "Axelor Client Portal"
+	description "Axelor Client Portal Module"
+}
+
+dependencies {
+	api project(":modules:axelor-supplychain")
+	api project(":modules:axelor-helpdesk")
+	api project(":modules:axelor-project")
+}

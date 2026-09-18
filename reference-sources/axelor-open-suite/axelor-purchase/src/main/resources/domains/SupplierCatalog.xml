@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="purchase" package="com.axelor.apps.purchase.db"/>
+
+  <entity name="SupplierCatalog">
+
+    <many-to-one name="product" ref="com.axelor.apps.base.db.Product" title="Product"
+      required="true"/>
+    <many-to-one name="supplierPartner" ref="com.axelor.apps.base.db.Partner"
+      required="true" title="Supplier"/>
+    <string name="productSupplierName" title="Product name on catalog"/>
+    <string name="productSupplierCode" title="Product code on catalog"/>
+    <decimal name="price" title="Unit price" precision="20" scale="10" min="0"
+      nullable="true"/>
+    <many-to-one name="unit" ref="com.axelor.apps.base.db.Unit" title="Unit"/>
+    <date name="updateDate" title="Last update"/>
+    <string name="description" title="Description" large="true"/>
+    <decimal name="calculatedPrice" title="Calculated price/Qty"/>
+    <one-to-many name="shippingCoefList" mappedBy="supplierCatalog"
+      title="Shipping Coefficients" ref="com.axelor.apps.base.db.ShippingCoef"/>
+    <one-to-many name="productMultipleQtyList"
+      ref="com.axelor.apps.base.db.ProductMultipleQty" title="Multiple quantities"
+      mappedBy="supplierCatalog" orderBy="multipleQty"/>
+    <boolean name="isTakeProductMultipleQty" title="Take product multiple qty"/>
+    <decimal name="minQty" title="Quantity min" precision="20" scale="10" min="0"/>
+    <decimal name="maxQty" title="Quantity max" precision="20" scale="10" min="0"/>
+    <boolean name="isTakingProductPurchasePrice" title="Take product purchase price"
+      default="false"/>
+  </entity>
+
+</domain-models>

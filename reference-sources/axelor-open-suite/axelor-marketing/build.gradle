@@ -1,0 +1,21 @@
+plugins {
+	id 'com.axelor.app'
+}
+
+apply from: "../libs.gradle"
+apply from: "../version.gradle"
+
+apply {
+	version = openSuiteVersion
+}
+
+axelor {
+	title "Axelor Marketing"
+	description "Axelor Marketing Module"
+}
+
+dependencies {
+	api project(":modules:axelor-crm")
+
+	implementation libs.lutung
+}

@@ -1,0 +1,405 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.base.service.user;
+
+import com.axelor.app.AppSettings;
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Address;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Partner;
+import com.axelor.apps.base.db.TradingName;
+import com.axelor.apps.base.db.repo.PartnerRepository;
+import com.axelor.apps.base.db.repo.TraceBackRepository;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.apps.base.service.theme.MetaThemeFetchService;
+import com.axelor.auth.AuthService;
+import com.axelor.auth.AuthUtils;
+import com.axelor.auth.db.Group;
+import com.axelor.auth.db.Permission;
+import com.axelor.auth.db.Role;
+import com.axelor.auth.db.User;
+import com.axelor.auth.db.repo.UserRepository;
+import com.axelor.i18n.I18n;
+import com.axelor.inject.Beans;
+import com.axelor.message.db.Template;
+import com.axelor.message.service.TemplateMessageService;
+import com.axelor.meta.MetaFiles;
+import com.axelor.meta.db.MetaFile;
+import com.axelor.meta.db.MetaPermission;
+import com.axelor.meta.db.MetaPermissionRule;
+import com.axelor.studio.db.AppBase;
+import com.axelor.team.db.Team;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Pattern;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.math3.exception.TooManyIterationsException;
+
+public class UserServiceImpl implements UserService {
+
+  protected UserRepository userRepo;
+  protected MetaFiles metaFiles;
+  protected MetaThemeFetchService metaThemeFetchService;
+
+  public static final String DEFAULT_LOCALIZATION_CODE = "en_GB";
+
+  protected static final String PATTERN_ACCESS_RESTRICTION =
+      "(((?=.*[a-z])(?=.*[A-Z])(?=.*\\d))|((?=.*[a-z])(?=.*[A-Z])(?=.*\\W))|((?=.*[a-z])(?=.*\\d)(?=.*\\W))|((?=.*[A-Z])(?=.*\\d)(?=.*\\W))).{8,}";
+  // Regex used only to generate policy-compliant random passwords. Password validation at
+  // change-time is handled by the platform password policies (AOP 8.2+), configured through
+  // user.password.pattern.value. Falls back to the historical AOS complexity requirement.
+  protected static final Pattern PATTERN =
+      Pattern.compile(
+          MoreObjects.firstNonNull(
+              AppSettings.get().get("user.password.pattern.value"), PATTERN_ACCESS_RESTRICTION));
+
+  protected static final String GEN_CHARS =
+      "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+  protected static final Pair<Integer, Integer> GEN_BOUNDS = Pair.of(12, 22);
+  protected static final int GEN_LOOP_LIMIT = 1000;
+  protected static final SecureRandom random = new SecureRandom();
+
+  @Inject
+  public UserServiceImpl(
+      UserRepository userRepo, MetaFiles metaFiles, MetaThemeFetchService metaThemeFetchService) {
+    this.userRepo = userRepo;
+    this.metaFiles = metaFiles;
+    this.metaThemeFetchService = metaThemeFetchService;
+  }
+
+  @Override
+  public User getUser() {
+    User user = null;
+    try {
+      user = AuthUtils.getUser();
+    } catch (Exception ex) {
+    }
+    if (user == null) {
+      user = userRepo.findByCode("admin");
+    }
+    return user;
+  }
+
+  @Override
+  public Long getUserId() {
+
+    final User user = this.getUser();
+
+    if (user == null) {
+      return null;
+    }
+
+    return user.getId();
+  }
+
+  @Override
+  public Company getUserActiveCompany() {
+
+    User user = getUser();
+
+    if (user == null) {
+      return null;
+    }
+
+    return user.getActiveCompany();
+  }
+
+  @Override
+  public Long getUserActiveCompanyId() {
+
+    final Company company = this.getUserActiveCompany();
+
+    if (company == null) {
+      return null;
+    }
+
+    return company.getId();
+  }
+
+  @Override
+  public MetaFile getUserActiveCompanyLogo(String mode) {
+    User user = AuthUtils.getUser();
+    Company company = user != null ? this.getUserActiveCompany() : null;
+
+    if (company == null) {
+      return null;
+    }
+    MetaFile logo =
+        switch (metaThemeFetchService.getCurrentThemeLogoMode(user)) {
+          case DARK -> company.getDarkLogo();
+          case LIGHT -> company.getLightLogo();
+          case NONE -> company.getLogo();
+        };
+    return Optional.ofNullable(logo).orElse(company.getLogo());
+  }
+
+  @Override
+  public String getUserActiveCompanyLogoLink(String mode) {
+    MetaFile logo = getUserActiveCompanyLogo(mode);
+
+    if (logo == null) {
+      return null;
+    }
+
+    return metaFiles.getDownloadLink(logo, getUserActiveCompany());
+  }
+
+  @Override
+  public Optional<Address> getUserActiveCompanyAddress() {
+    Company company = getUserActiveCompany();
+
+    if (company != null) {
+      return Optional.ofNullable(company.getAddress());
+    }
+
+    return Optional.empty();
+  }
+
+  @Override
+  public Team getUserActiveTeam() {
+
+    final User user = getUser();
+
+    if (user == null) {
+      return null;
+    }
+
+    return user.getActiveTeam();
+  }
+
+  @Override
+  public Long getUserActiveTeamId() {
+
+    final Team team = this.getUserActiveTeam();
+
+    if (team == null) {
+      return null;
+    }
+
+    return team.getId();
+  }
+
+  @Override
+  public Partner getUserPartner() {
+
+    final User user = getUser();
+
+    if (user == null) {
+      return null;
+    }
+
+    return user.getPartner();
+  }
+
+  @Override
+  @Transactional
+  public void createPartner(User user) {
+    Partner partner = new Partner();
+    partner.setPartnerTypeSelect(2);
+    partner.setIsContact(true);
+    partner.setName(user.getName());
+    partner.setFullName(user.getName());
+    partner.setTeam(user.getActiveTeam());
+    partner.setUser(user);
+    Beans.get(PartnerRepository.class).save(partner);
+
+    user.setPartner(partner);
+    userRepo.save(user);
+  }
+
+  @Override
+  public String getLocalizationCode() {
+    User user = getUser();
+    if (user != null && user.getLocalization() != null) {
+      var code = user.getLocalization().getCode();
+      if (!Strings.isNullOrEmpty(code)) {
+        return code;
+      }
+    }
+    return DEFAULT_LOCALIZATION_CODE;
+  }
+
+  @Override
+  public boolean matchPasswordPattern(CharSequence password) {
+    return PATTERN.matcher(password).matches();
+  }
+
+  @Override
+  @Transactional(rollbackOn = {Exception.class})
+  public void processChangedPassword(User user)
+      throws AxelorException, ClassNotFoundException, IOException {
+    Preconditions.checkNotNull(user, I18n.get("User cannot be null."));
+
+    try {
+      if (!user.getSendEmailUponPasswordChange()) {
+        return;
+      }
+
+      AppBase appBase = Beans.get(AppBaseService.class).getAppBase();
+      Template template = appBase.getPasswordChangedTemplate();
+
+      if (template == null) {
+        throw new AxelorException(
+            appBase,
+            TraceBackRepository.CATEGORY_NO_VALUE,
+            I18n.get("Template for changed password is missing."));
+      }
+
+      TemplateMessageService templateMessageService = Beans.get(TemplateMessageService.class);
+      templateMessageService.generateAndSendMessage(user, template);
+
+    } finally {
+      user.setTransientPassword(null);
+      // One-shot: reset the opt-in so a later self-initiated change (e.g. the forced change at
+      // next login after a batch reset) does not re-send the freshly chosen password by email.
+      user.setSendEmailUponPasswordChange(false);
+    }
+  }
+
+  @Override
+  public CharSequence generateRandomPassword() {
+    for (int genLoopIndex = 0; genLoopIndex < GEN_LOOP_LIMIT; ++genLoopIndex) {
+      int len = random.ints(GEN_BOUNDS.getLeft(), GEN_BOUNDS.getRight()).findFirst().getAsInt();
+      StringBuilder sb = new StringBuilder(len);
+
+      for (int i = 0; i < len; ++i) {
+        sb.append(GEN_CHARS.charAt(random.nextInt(GEN_CHARS.length())));
+      }
+
+      String result = sb.toString();
+
+      if (matchPasswordPattern(result)) {
+        return result;
+      }
+    }
+
+    throw new TooManyIterationsException(GEN_LOOP_LIMIT);
+  }
+
+  @Override
+  @Transactional(rollbackOn = {Exception.class})
+  public void generateRandomPasswordForUser(User user) {
+    AuthService authService = Beans.get(AuthService.class);
+    String password = this.generateRandomPassword().toString();
+    // Keep the plain password in a transient field so the notification email
+    // (sent from the repository save hook) can include it, then store it encrypted.
+    user.setTransientPassword(password);
+    user.setPassword(authService.encrypt(password));
+    user.setPasswordUpdatedOn(Beans.get(AppBaseService.class).getTodayDateTime().toLocalDateTime());
+  }
+
+  @Override
+  @Transactional(rollbackOn = {Exception.class})
+  public void setUserPartner(Partner partner, User user) {
+    user.setPartner(partner);
+    userRepo.save(user);
+  }
+
+  @Override
+  public TradingName getTradingName() {
+    final User user = getUser();
+
+    if (user == null) {
+      return null;
+    }
+
+    return user.getTradingName();
+  }
+
+  @Override
+  public List<Permission> getPermissions(User user) {
+    List<Permission> permissionList = new ArrayList<>();
+    Optional.ofNullable(user.getPermissions()).ifPresent(permissionList::addAll);
+    Optional.ofNullable(user.getGroup())
+        .map(Group::getPermissions)
+        .ifPresent(permissionList::addAll);
+    Optional.ofNullable(user.getRoles())
+        .map(UserServiceImpl::getPermissions)
+        .ifPresent(permissionList::addAll);
+    Optional.ofNullable(user.getGroup())
+        .map(Group::getRoles)
+        .map(UserServiceImpl::getPermissions)
+        .ifPresent(permissionList::addAll);
+    return permissionList;
+  }
+
+  private static List<Permission> getPermissions(Set<Role> roles) {
+    return roles.stream().map(Role::getPermissions).flatMap(Set::stream).toList();
+  }
+
+  @Override
+  public List<MetaPermissionRule> getMetaPermissionRules(User user) {
+    List<MetaPermissionRule> metaPermissionRuleList = new ArrayList<>();
+    Optional.ofNullable(user.getMetaPermissions())
+        .ifPresent(
+            metaPermissions ->
+                metaPermissionRuleList.addAll(getMetaPermissionRules(metaPermissions)));
+    Optional.ofNullable(user.getGroup())
+        .map(Group::getMetaPermissions)
+        .ifPresent(
+            metaPermissions ->
+                metaPermissionRuleList.addAll(getMetaPermissionRules(metaPermissions)));
+    Optional.ofNullable(user.getRoles())
+        .map(UserServiceImpl::getMetaPermissions)
+        .ifPresent(
+            metaPermissions ->
+                metaPermissionRuleList.addAll(getMetaPermissionRules(metaPermissions)));
+    Optional.ofNullable(user.getGroup())
+        .map(Group::getRoles)
+        .map(UserServiceImpl::getMetaPermissions)
+        .ifPresent(
+            metaPermissions ->
+                metaPermissionRuleList.addAll(getMetaPermissionRules(metaPermissions)));
+    return metaPermissionRuleList;
+  }
+
+  protected static List<MetaPermission> getMetaPermissions(Set<Role> roles) {
+    return roles.stream().map(Role::getMetaPermissions).flatMap(Set::stream).toList();
+  }
+
+  protected static List<MetaPermissionRule> getMetaPermissionRules(
+      Collection<MetaPermission> metaPermissions) {
+    return metaPermissions.stream().map(MetaPermission::getRules).flatMap(List::stream).toList();
+  }
+
+  @Override
+  @Transactional(rollbackOn = Exception.class)
+  public void setActiveCompany(User user, Company company) {
+    user.setActiveCompany(company);
+    user.setTradingName(null);
+    userRepo.save(user);
+  }
+
+  @Override
+  @Transactional(rollbackOn = Exception.class)
+  public void setTradingName(User user, TradingName tradingName) {
+    user.setTradingName(tradingName);
+    userRepo.save(user);
+  }
+}

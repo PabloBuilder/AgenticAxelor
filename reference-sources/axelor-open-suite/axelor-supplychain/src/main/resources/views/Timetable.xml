@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="timetable-grid" title="Timetables"
+    model="com.axelor.apps.supplychain.db.Timetable" orderBy="estimatedDate" editable="true">
+    <field name="estimatedDate" readonlyIf="invoiced" required="true"/>
+    <field name="title" readonlyIf="invoiced"/>
+    <field name="amount" readonlyIf="invoiced" required="true"
+      onChange="action-timetable-group-on-amount-change"
+      x-scale="saleOrder.currency.numberOfDecimals"/>
+    <field name="percentage" readonlyIf="invoiced" required="true"
+      onChange="action-timetable-method-percentage-onchange"/>
+    <field name="comments" readonlyIf="invoiced" width="300%"/>
+    <field name="invoiced" readonly="true"/>
+    <button name="generateInvoiceBtn" readonlyIf="!id || invoiced" help="Generate Invoice"
+      icon="credit-card-fill" onClick="save, action-timetable-method-generate-invoice"
+      if="__config__.app.isApp('invoice') &amp;&amp; __config__.app.getApp('supplychain')?.getAllowTimetableInvoicing()"/>
+    <field name="invoice" width="120" hidden="true"/>
+    <field name="saleOrder.currency.numberOfDecimals" hidden="true"/>
+  </grid>
+
+  <form name="timetable-form" title="Timetable"
+    model="com.axelor.apps.supplychain.db.Timetable">
+    <panel name="mainPanel" readonlyIf="invoiced">
+      <field name="estimatedDate" colSpan="4"/>
+      <field name="$viewerInvoiced" showTitle="false" readonly="true"
+        showIf="invoiced == true" colSpan="8">
+        <viewer><![CDATA[
+				<>
+					<Box d="flex" justifyContent="flex-end">
+						<Badge bg="info">{_t('Invoiced')}</Badge>
+					</Box>
+				</>
+				]]></viewer>
+      </field>
+      <field name="title" colSpan="12"/>
+      <field name="amount" colSpan="4" required="true"
+        onChange="action-timetable-group-on-amount-change"
+        x-scale="saleOrder.currency.numberOfDecimals"/>
+      <field name="percentage" colSpan="4" required="true"
+        onChange="action-timetable-method-percentage-onchange"/>
+      <button name="generateInvoiceBtn" colOffset="9" colSpan="3" title="Generate Invoice"
+        onClick="save, action-timetable-method-generate-invoice"
+        if="__config__.app.isApp('invoice') &amp;&amp; __config__.app.getApp('supplychain')?.getAllowTimetableInvoicing()"
+        showIf="invoice == null"/>
+      <field name="invoice" hideIf="!invoice"/>
+      <field name="comments" colSpan="12"/>
+      <field name="invoiced" hidden="true"/>
+      <field name="saleOrder.currency.numberOfDecimals" hidden="true"/>
+    </panel>
+  </form>
+
+  <!-- Partial invoicing for purchase doesn't exist yet, so here's a temporary second grid and form view
+    that just remove the invoice button -->
+  <grid name="timetable-grid-purchase" title="Timetables"
+    model="com.axelor.apps.supplychain.db.Timetable" orderBy="estimatedDate" editable="true">
+    <field name="estimatedDate" readonlyIf="invoiced" required="true"/>
+    <field name="title" readonlyIf="invoiced"/>
+    <field name="amount" readonlyIf="invoiced" required="true"
+      onChange="action-timetable-group-on-amount-change"
+      x-scale="purchaseOrder.currency.numberOfDecimals"/>
+    <field name="percentage" readonlyIf="invoiced" required="true"
+      onChange="action-timetable-method-percentage-onchange"/>
+    <field name="comments" readonlyIf="invoiced" width="300%"/>
+    <field name="invoiced" readonly="true"/>
+    <button name="generateInvoiceBtn" readonlyIf="!id || invoiced" help="Generate Invoice"
+      icon="credit-card-fill"
+      onClick="save, action-timetable-method-generate-invoice, action-timetable-attrs-readonly"
+      if="__config__.app.isApp('invoice') &amp;&amp; __config__.app.getApp('supplychain')?.getAllowTimetableInvoicing()"/>
+    <field name="invoice" width="120" hidden="true"/>
+    <field name="purchaseOrder.currency.numberOfDecimals" hidden="true"/>
+  </grid>
+
+  <form name="timetable-form-purchase" title="Timetable"
+    model="com.axelor.apps.supplychain.db.Timetable">
+    <panel name="mainPanel" readonlyIf="invoiced">
+      <field name="estimatedDate" colSpan="4"/>
+      <field name="$viewerInvoiced" showTitle="false" readonly="true"
+        showIf="invoiced == true" colSpan="8">
+        <viewer><![CDATA[
+				<>
+					<Box d="flex" justifyContent="flex-end">
+						<Badge bg="info">{_t('Invoiced')}</Badge>
+					</Box>
+				</>
+				]]></viewer>
+      </field>
+      <field name="title" colSpan="12"/>
+      <field name="amount" colSpan="4" required="true"
+        onChange="action-timetable-group-on-amount-change"
+        x-scale="saleOrder.currency.numberOfDecimals"/>
+      <field name="percentage" colSpan="4" required="true"
+        onChange="action-timetable-method-percentage-onchange"/>
+      <field name="invoiced" hideIf="!invoice"/>
+      <field name="comments" colSpan="12"/>
+      <field name="saleOrder.currency.numberOfDecimals" hidden="true"/>
+    </panel>
+  </form>
+
+  <action-group name="action-timetable-group-on-amount-change">
+    <action name="action-timetable-record-on-amount-change"
+      if="__parent__ != null &amp;&amp; (__parent__._model == 'com.axelor.apps.sale.db.SaleOrder' || __parent__._model == 'com.axelor.apps.purchase.db.PurchaseOrder')"/>
+  </action-group>
+
+  <action-record name="action-timetable-record-on-amount-change"
+    model="com.axelor.apps.supplychain.db.Timetable">
+    <field name="percentage"
+      expr="eval: (__parent__.exTaxTotal != null &amp;&amp; __parent__.exTaxTotal &gt; 0) ? amount * 100 / __parent__.exTaxTotal : 0"
+      if="!__parent__.inAti"/>
+    <field name="percentage"
+      expr="eval: (__parent__.inTaxTotal != null &amp;&amp; __parent__.inTaxTotal &gt; 0) ? amount * 100 / __parent__.inTaxTotal : 0"
+      if="__parent__.inAti"/>
+  </action-record>
+
+  <action-method name="action-timetable-method-generate-invoice">
+    <call class="com.axelor.apps.supplychain.web.TimetableController" method="generateInvoice"/>
+  </action-method>
+
+  <action-method name="action-timetable-method-percentage-onchange">
+    <call class="com.axelor.apps.supplychain.web.TimetableController"
+      method="percentageOnChange"/>
+  </action-method>
+
+</object-views>

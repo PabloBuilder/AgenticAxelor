@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<object-views xmlns="http://axelor.com/xml/ns/object-views"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/object-views https://axelor.com/xml/ns/object-views/object-views_8.2.xsd">
+
+  <grid name="bank-details-grid" title="Bank details"
+    model="com.axelor.apps.base.db.BankDetails">
+    <toolbar>
+      <button name="checkDuplicateBtn" title="Check Duplicate"
+        onClick="action-general-check-duplicate-records"/>
+    </toolbar>
+    <hilite if="!active" background="warning"/>
+    <field name="ownerName"/>
+    <field name="bankAddress"/>
+    <field name="iban"/>
+    <field name="bank.code"/>
+    <field name="active"/>
+  </grid>
+
+  <form onSave="action-validate-bank-details-bbanKey"
+    onNew="action-group-account-bank-details-form-onnew" name="bank-details-form"
+    title="Bank details" onLoad="action-group-account-bank-details-form-onload"
+    model="com.axelor.apps.base.db.BankDetails" width="large">
+    <panel name="ownerPanel" title="Owner">
+      <panel name="ownerInfoPanel" colSpan="12">
+        <spacer colSpan="10"/>
+        <field name="$activeLabel" showIf="$readonly()" showTitle="false" colSpan="2">
+          <viewer depends="active">
+            <![CDATA[<><Badge bg={active ? "success" : "danger"}>{active ? _t('Active') : _t('Inactive')}</Badge></>]]>
+          </viewer>
+        </field>
+        <field name="partner" onChange="action-bank-details-group-partner-onchange"
+          domain="self.isContact = false" form-view="partner-form" grid-view="partner-grid"
+          colSpan="10"/>
+        <field name="active" widget="boolean-radio" colSpan="2" showTitle="false"
+          showIf="!$readonly()" x-true-text="Active" x-false-text="Inactive"/>
+        <field name="ownerName" colSpan="12"/>
+        <field name="company" hidden="true"/>
+      </panel>
+    </panel>
+    <panel name="currencyPanel">
+      <field name="label"/>
+      <field name="currency"/>
+      <field name="bankAccount" showIf="company != null"
+        domain="self.statusSelect = 1 AND self.company = :company AND self.accountType.technicalTypeSelect = 'cash'"
+        if="__config__.app.isApp('account')" if-module="axelor-account"/>
+      <field name="journal" showIf="company != null"
+        domain="self.company = :company AND self.statusSelect = 1" if-module="axelor-account"
+        if="__config__.app.isApp('account')"/>
+      <field name="code" x-bind="{{code|uppercase}}" hidden="true"/>
+    </panel>
+    <panel name="ibanPanel" title="IBAN / BBAN">
+      <field name="bank.bankDetailsTypeSelect" readonly="true"/>
+      <panel name="ibanPanel">
+        <field name="iban" readonlyIf="bank IS null"
+          onChange="action-group-account-bankdetails-iban-onchange" colSpan="12"/>
+        <static name="invalidIbanText" hidden="true" colSpan="12">
+	        <![CDATA[<><Badge bg="warning">Invalid IBAN</Badge></>]]>
+        </static>
+      </panel>
+      <field name="bank" canNew="true" form-view="bank-form"
+        onChange="action-group-bank-details-bank-onchange"/>
+      <field name="bankAddress" showIf="bank" grid-view="bank-address-grid"
+        onSelect="action-attrs-account-bankdetails-bank-set-address-domain" canNew="true"
+        form-view="bank-address-form"/>
+      <field name="ibanBic" readonly="true" x-bind="{{iban + ' ' + bank.code}}"/>
+    </panel>
+    <panel name="bbanPanel" title="BBAN" hideIf="bank.country.alpha2Code != 'FR'">
+      <field name="bankCode" colSpan="3"/>
+      <field name="sortCode" colSpan="3"/>
+      <field name="accountNbr" colSpan="3"/>
+      <field name="bbanKey" colSpan="3"/>
+      <field name="bank.country.alpha2Code" hidden="true"/>
+      <field name="fullName" hidden="true"/>
+    </panel>
+    <panel-related name="bankCardPanel" title="Bank cards" field="bankCardList"
+      colSpan="12" form-view="bank-card-form-from-bank-details" grid-view="bank-card-grid"/>
+    <panel name="specificNotesPanel" title="Specific notes" colSpan="12"
+      if-module="axelor-account">
+      <field name="specificNoteOnInvoice" widget="html" colSpan="12"/>
+    </panel>
+    <panel-mail name="mailPanel">
+      <mail-messages limit="4"/>
+      <mail-followers/>
+    </panel-mail>
+  </form>
+
+  <cards name="bank-details-cards" model="com.axelor.apps.base.db.BankDetails"
+    title="Bank details" width="410px" canNew="false">
+    <toolbar>
+      <button name="checkDuplicateBtn" title="Check Duplicate"
+        onClick="action-general-check-duplicate-records"/>
+    </toolbar>
+    <field name="iban"/>
+    <field name="bank.code"/>
+    <field name="bank.bankName"/>
+    <field name="company.name"/>
+    <field name="balance" if-module="axelor-bank-payment"
+      if="__config__.app.isApp('bank-payment')"/>
+    <field name="balanceUpdatedDate" if-module="axelor-bank-payment"
+      if="__config__.app.isApp('bank-payment')"/>
+    <field name="active"/>
+    <template><![CDATA[
+		<>
+		<Box d="grid" gridTemplateColumns="auto auto">
+		   <Box>
+		      <strong>{iban}</strong> <Box/>
+		      <strong>{_t('BIC (Bank Identifier)')}</strong> : {bank.code} <Box/>
+		      <strong>{_t('Bank Name')}</strong> : {bank.bankName}
+		   </Box>
+		</Box>
+		<Box d="grid" gridTemplateColumns="45% 55%" mt={4}>
+			<Box>
+			    {company && <Badge style={{ backgroundColor: "#2185D0" }}>{company.name}</Badge>}
+			    {!active && <Badge m={1} bg="danger">{_t('Inactive')}</Badge>}
+			</Box>
+			<Box ms={4}>
+			{balanceUpdatedDate &&
+			(
+			     <Button variant="outline-dark" onClick={$action("action-bank-details-view-show-bank-statement-lines")} w={100}>
+				     <Box d="grid" gridTemplateColumns="40% 60%" textAlign="start">
+					     <Box justifyContent="flex-start" ms={1} fontSize={4}>
+	         				<Icon icon="balance"/>
+	        			</Box>
+	        			<Box>
+	        				<Box as="strong" fontSize={6}>{$fmt('balance')}</Box>
+	          				<Box style={{ fontSize: "smaller" }}>{$fmt('balanceUpdatedDate')}</Box>
+	        			</Box>
+	        		</Box>
+			     </Button>
+		     )}
+		     </Box>
+		</Box>
+		</>
+		]]>
+    </template>
+  </cards>
+
+  <tree name="bank-details-tree" title="Bank details tree">
+    <column name="company" type="string"/>
+    <column name="bankDetails" type="string"/>
+    <column name="active" type="boolean"/>
+
+    <node model="com.axelor.apps.base.db.Company" onClick="action-company-form-view">
+      <field name="name" as="company"/>
+    </node>
+
+    <node model="com.axelor.apps.base.db.BankDetails" onClick="action-bank-details-form-view"
+      parent="company">
+      <field name="fullName" as="bankDetails"/>
+      <field name="active" as="active"/>
+    </node>
+  </tree>
+
+  <action-view name="action-bank-details-form-view"
+    model="com.axelor.apps.base.db.BankDetails" title="Bank details">
+    <view name="bank-details-grid" type="grid"/>
+    <view name="bank-details-form" type="form"/>
+    <context name="_showRecord" expr="eval: id"/>
+  </action-view>
+
+  <action-group name="action-group-account-bankdetails-iban-onchange">
+    <action name="action-method_bank-details-validate-iban"/>
+  </action-group>
+
+  <action-group name="action-group-bank-details-bank-onchange">
+    <action name="action-attrs-account-bankdetails-bank-empty-address"/>
+  </action-group>
+
+  <action-group name="action-bank-details-group-partner-onchange">
+    <action name="action-set-owner-name"/>
+    <action name="action-bank-details-record-set-default-partner-bank-details"/>
+    <action name="action-bank-details-attrs-specific-notes"/>
+  </action-group>
+
+  <action-group name="action-group-account-bank-details-form-onnew">
+    <action name="action-method_bank-details-validate-iban"/>
+    <action name="action-bank-details-record-set-company"
+      if="__parent__?._model == 'com.axelor.apps.base.db.Company'"/>
+    <action name="action-set-default-partner"/>
+    <action name="action-bank-details-record-set-default-partner-bank-details"/>
+    <action name="action-bank-details-attrs-code"/>
+    <action name="action-bank-details-record-set-partner-and-currency"
+      if="__parent__?._model == 'com.axelor.apps.base.db.Company'"/>
+  </action-group>
+
+  <action-group name="action-group-account-bank-details-form-onload">
+    <action name="action-method_bank-details-validate-iban"/>
+    <action name="action-bank-details-attrs-code"/>
+    <action name="action-bank-details-attrs-specific-notes"/>
+    <action name="action-group-bank-details-set-balance-onload"
+      if="company &amp;&amp; balanceUpdatedDate"/>
+  </action-group>
+
+  <action-method name="action-method_bank-details-validate-iban">
+    <call class="com.axelor.apps.base.web.BankDetailsController" method="validateIban"/>
+  </action-method>
+
+  <action-record name="action-set-owner-name"
+    model="com.axelor.apps.base.db.BankDetails">
+    <field name="ownerName"
+      expr="eval:partner != null ? ((partner.name != null ? partner.name : '') + ' ' + (partner.firstName != null ? partner.firstName: ''))  : ''"/>
+  </action-record>
+
+  <action-record name="action-set-default-partner"
+    model="com.axelor.apps.base.db.BankDetails">
+    <field name="partner" expr="eval:__parent__"
+      if="__parent__ != null &amp;&amp; __parent__.get('_model') == 'com.axelor.apps.base.db.Partner'"/>
+    <field name="ownerName"
+      if="__parent__ != null &amp;&amp; __parent__.get('_model') == 'com.axelor.apps.base.db.Partner'"
+      expr="eval:__parent__ != null ? (__parent__.name != null ? __parent__.name : '') + ' ' + (__parent__.firstName != null ? __parent__.firstName : '') : ''"/>
+  </action-record>
+
+  <action-record name="action-bank-details-record-set-default-partner-bank-details"
+    model="com.axelor.apps.base.db.BankDetails">
+    <field name="isDefault"
+      if="__parent__ != null &amp;&amp; __parent__.get('_model') == 'com.axelor.apps.base.db.Partner'"
+      expr="eval: !__parent__?.bankDetailsList?.find{it.isDefault}"/>
+    <field name="isDefault" if="partner != null &amp;&amp; __parent__ == null"
+      expr="eval: !partner?.bankDetailsList?.find{it.isDefault}"/>
+  </action-record>
+
+  <action-record name="action-bank-details-record-set-partner-and-currency"
+    model="com.axelor.apps.base.db.BankDetails">
+    <field name="partner" expr="eval:__parent__?.partner"/>
+    <field name="currency" expr="eval:__parent__?.currency"/>
+  </action-record>
+
+  <action-record name="action-bank-details-record-set-company"
+    model="com.axelor.apps.base.db.BankDetails">
+    <field name="company" expr="eval: __parent__"/>
+  </action-record>
+
+  <action-validate name="action-validate-bank-details-bbanKey">
+    <error message="Incorrect BBAN Key"
+      if="(bank?.country?.alpha2Code == 'FR') &amp;&amp; (bankCode == null || sortCode == null  || accountNbr == null || bbanKey == null || ( bank.bankDetailsTypeSelect == 1 &amp;&amp; ( 97 - ( ( 89 * Long.parseLong( bankCode ) + 15 * Long.parseLong( sortCode ) + 3 * Long.parseLong( accountNbr.replaceAll('[ajAJ]','1').replaceAll('[bksBKS]','2').replaceAll('[cltCLT]','3').replaceAll('[dmuDMU]','4').replaceAll('[envENV]','5').replaceAll('[fowFOW]','6').replaceAll('[gpxGPX]','7').replaceAll('[hqyHQY]','8').replaceAll('[irzIRZ]','9') ) ) % 97 )  != Long.parseLong( bbanKey ))))"/>
+  </action-validate>
+
+  <action-attrs name="action-attrs-account-bankdetails-bank-empty-address">
+    <attribute for="bankAddress" name="value" expr="eval: null"/>
+  </action-attrs>
+
+  <action-attrs name="action-attrs-account-bankdetails-bank-set-address-domain">
+    <attribute for="bankAddress" name="domain" expr="eval: &quot; self.id IN (0) &quot;"/>
+    <attribute for="bankAddress" name="domain"
+      if="bank &amp;&amp; !bank.bankAddressList.isEmpty()"
+      expr="eval: &quot; self.id IN (${bank.bankAddressList.collect{it.id}.join(',')}) &quot;"/>
+  </action-attrs>
+
+  <action-attrs name="action-bank-details-attrs-code">
+    <attribute name="hidden" for="code"
+      expr="eval: __parent__.getContextClass() != Company" if="__parent__"/>
+  </action-attrs>
+
+  <action-attrs name="action-bank-details-attrs-specific-notes">
+    <attribute name="hidden" for="specificNotesPanel"
+      expr="eval: !partner?.isFactor &amp;&amp; !__parent__?.getContextClass().equals('Company')"
+      if="__config__.app.isApp('account')"/>
+  </action-attrs>
+
+  <action-method name="action-bank-details-method-set-iban-information">
+    <call class="com.axelor.apps.base.web.BankDetailsController" method="setIbanInfo"/>
+  </action-method>
+
+  <search-filters name="bank-detail-filters"
+    model="com.axelor.apps.base.db.BankDetails" title="Bank detail filters">
+    <field name="balance" hidden="true" if="!__config__.app.isApp('bank-payment')"/>
+    <field name="balanceUpdatedDate" hidden="true" if="!__config__.app.isApp('bank-payment')"/>
+  </search-filters>
+
+</object-views>

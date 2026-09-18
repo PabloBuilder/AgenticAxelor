@@ -1,0 +1,100 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.contract.batch;
+
+import com.axelor.apps.account.db.Invoice;
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Batch;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.apps.contract.db.Contract;
+import com.axelor.apps.contract.db.repo.AbstractContractRepository;
+import com.axelor.apps.contract.db.repo.ContractRepository;
+import com.axelor.apps.contract.service.ContractInvoicingService;
+import com.axelor.apps.contract.service.ContractService;
+import com.axelor.db.Query;
+import jakarta.inject.Inject;
+
+public class BatchContractFactoryInvoicing extends BatchContractFactory {
+
+  protected Batch batch;
+
+  @Inject
+  public BatchContractFactoryInvoicing(
+      ContractRepository repository,
+      ContractService service,
+      ContractInvoicingService invoicingService,
+      AppBaseService baseService) {
+    super(repository, service, invoicingService, baseService);
+  }
+
+  @Override
+  public Query<Contract> prepare(Batch batch) {
+    this.batch = batch;
+    Integer targetTypeSelect = batch.getContractBatch().getTargetTypeSelect();
+    Query<Contract> query =
+        repository
+            .all()
+            .filter(this.prepareFilter(true, targetTypeSelect))
+            .bind("date", batch.getContractBatch().getInvoicingDate())
+            .bind("batch", batch)
+            .bind("statusSelect", AbstractContractRepository.CLOSED_CONTRACT);
+    if (targetTypeSelect != null && targetTypeSelect != 0) {
+      query.bind("targetTypeSelect", targetTypeSelect);
+    }
+    return query;
+  }
+
+  @Override
+  public void process(Contract contract) throws AxelorException {
+    Invoice invoice = invoicingService.invoicingContract(contract);
+    if (invoice != null && batch != null) {
+      invoice.addBatchSetItem(batch);
+    }
+  }
+
+  /**
+   * To prepare filter that is to be used while running batch, set considerBatch = true
+   *
+   * <p>OR
+   *
+   * <p>To display contracts that would be treated by the batch, set considerBatch = false
+   *
+   * @param considerBatch
+   * @param targetTypeSelect the Type set on the contract batch, or null if not set
+   * @return
+   */
+  public String prepareFilter(boolean considerBatch, Integer targetTypeSelect) {
+    StringBuilder filter = new StringBuilder();
+    filter.append(
+        "self.isInvoicingManagement = TRUE "
+            + "AND self.currentContractVersion.automaticInvoicing = TRUE "
+            + "AND self.invoicingDate <= :date "
+            + "AND self.statusSelect != :statusSelect ");
+
+    if (targetTypeSelect != null && targetTypeSelect != 0) {
+      filter.append("AND self.targetTypeSelect = :targetTypeSelect ");
+    }
+
+    if (considerBatch) {
+      filter.append("AND :batch NOT MEMBER of self.batchSet");
+    }
+
+    return filter.toString();
+  }
+}

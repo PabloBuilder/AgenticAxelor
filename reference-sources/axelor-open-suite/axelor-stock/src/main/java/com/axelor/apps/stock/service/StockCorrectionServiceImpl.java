@@ -1,0 +1,451 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.stock.service;
+
+import com.axelor.apps.base.AxelorException;
+import com.axelor.apps.base.db.Company;
+import com.axelor.apps.base.db.Product;
+import com.axelor.apps.base.db.repo.TraceBackRepository;
+import com.axelor.apps.base.service.ProductCompanyService;
+import com.axelor.apps.base.service.app.AppBaseService;
+import com.axelor.apps.stock.db.InventoryLine;
+import com.axelor.apps.stock.db.StockCorrection;
+import com.axelor.apps.stock.db.StockCorrectionReason;
+import com.axelor.apps.stock.db.StockLocation;
+import com.axelor.apps.stock.db.StockLocationLine;
+import com.axelor.apps.stock.db.StockMove;
+import com.axelor.apps.stock.db.StockMoveLine;
+import com.axelor.apps.stock.db.TrackingNumber;
+import com.axelor.apps.stock.db.TrackingNumberConfiguration;
+import com.axelor.apps.stock.db.repo.InventoryLineRepository;
+import com.axelor.apps.stock.db.repo.StockCorrectionRepository;
+import com.axelor.apps.stock.db.repo.StockLocationRepository;
+import com.axelor.apps.stock.db.repo.StockMoveRepository;
+import com.axelor.apps.stock.exception.StockExceptionMessage;
+import com.axelor.apps.stock.service.config.StockConfigService;
+import com.axelor.apps.stock.utils.JpaModelHelper;
+import com.axelor.i18n.I18n;
+import com.google.inject.persist.Transactional;
+import jakarta.inject.Inject;
+import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class StockCorrectionServiceImpl implements StockCorrectionService {
+
+  protected StockConfigService stockConfigService;
+  protected ProductCompanyService productCompanyService;
+  protected StockLocationLineService stockLocationLineService;
+  protected AppBaseService baseService;
+  protected StockMoveService stockMoveService;
+  protected StockMoveLineService stockMoveLineService;
+  protected StockCorrectionRepository stockCorrectionRepository;
+  protected StockLocationLineFetchService stockLocationLineFetchService;
+  protected InventoryLineRepository inventoryLineRepository;
+  protected StockLocationService stockLocationService;
+
+  @Inject
+  public StockCorrectionServiceImpl(
+      StockConfigService stockConfigService,
+      ProductCompanyService productCompanyService,
+      StockLocationLineService stockLocationLineService,
+      AppBaseService baseService,
+      StockMoveService stockMoveService,
+      StockMoveLineService stockMoveLineService,
+      StockCorrectionRepository stockCorrectionRepository,
+      StockLocationLineFetchService stockLocationLineFetchService,
+      InventoryLineRepository inventoryLineRepository,
+      StockLocationService stockLocationService) {
+    this.stockConfigService = stockConfigService;
+    this.productCompanyService = productCompanyService;
+    this.stockLocationLineService = stockLocationLineService;
+    this.baseService = baseService;
+    this.stockMoveService = stockMoveService;
+    this.stockMoveLineService = stockMoveLineService;
+    this.stockCorrectionRepository = stockCorrectionRepository;
+    this.stockLocationLineFetchService = stockLocationLineFetchService;
+    this.inventoryLineRepository = inventoryLineRepository;
+    this.stockLocationService = stockLocationService;
+  }
+
+  @Override
+  public Map<String, Object> fillDefaultValues(StockLocationLine stockLocationLine) {
+
+    Map<String, Object> stockCorrectionInformation = new HashMap<>();
+
+    stockCorrectionInformation.put(
+        "stockLocation",
+        stockLocationLine.getStockLocation() != null
+            ? stockLocationLine.getStockLocation()
+            : stockLocationLine.getDetailsStockLocation());
+    stockCorrectionInformation.put("product", stockLocationLine.getProduct());
+    stockCorrectionInformation.put("trackingNumber", stockLocationLine.getTrackingNumber());
+    getDefaultQtys(stockLocationLine, stockCorrectionInformation);
+
+    return stockCorrectionInformation;
+  }
+
+  @Override
+  public Map<String, Object> fillDeafultQtys(StockCorrection stockCorrection) {
+
+    Map<String, Object> stockCorrectionQtys = new HashMap<>();
+
+    StockLocationLine stockLocationLine = getProductStockLocationLine(stockCorrection);
+
+    if (stockLocationLine != null) {
+      getDefaultQtys(stockLocationLine, stockCorrectionQtys);
+    } else {
+      stockCorrectionQtys.put("realQty", BigDecimal.ZERO);
+      stockCorrectionQtys.put("baseQty", BigDecimal.ZERO);
+    }
+    return stockCorrectionQtys;
+  }
+
+  protected StockLocationLine getProductStockLocationLine(StockCorrection stockCorrection) {
+    if (stockCorrection.getProduct() == null) {
+      return null;
+    }
+    StockLocationLine stockLocationLine;
+    if (stockCorrection.getTrackingNumber() == null) {
+      stockLocationLine =
+          stockLocationLineFetchService.getStockLocationLine(
+              stockCorrection.getStockLocation(), stockCorrection.getProduct());
+    } else {
+      stockLocationLine =
+          stockLocationLineFetchService.getDetailLocationLine(
+              stockCorrection.getStockLocation(),
+              stockCorrection.getProduct(),
+              stockCorrection.getTrackingNumber());
+    }
+    return stockLocationLine;
+  }
+
+  @Override
+  @Transactional(rollbackOn = {Exception.class})
+  public boolean validate(StockCorrection stockCorrection) throws AxelorException {
+    if (stockCorrection.getStatusSelect() == null
+        || stockCorrection.getStatusSelect() != StockCorrectionRepository.STATUS_DRAFT) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_INCONSISTENCY,
+          I18n.get(StockExceptionMessage.STOCK_CORRECTION_VALIDATE_WRONG_STATUS));
+    }
+
+    checkOngoingInventory(stockCorrection);
+
+    StockMove stockMove = generateStockMove(stockCorrection);
+    if (stockMove != null) {
+      stockCorrection = stockCorrectionRepository.find(stockCorrection.getId());
+      stockCorrection.setStatusSelect(StockCorrectionRepository.STATUS_VALIDATED);
+      stockCorrection.setValidationDateT(baseService.getTodayDateTime().toLocalDateTime());
+      stockCorrectionRepository.save(stockCorrection);
+      return true;
+    }
+    return false;
+  }
+
+  public StockMove generateStockMove(StockCorrection stockCorrection) throws AxelorException {
+    StockLocation toStockLocation = stockCorrection.getStockLocation();
+    Company company = toStockLocation.getCompany();
+    StockLocation fromStockLocation =
+        stockConfigService.getInventoryVirtualStockLocation(
+            stockConfigService.getStockConfig(company));
+
+    Product product = stockCorrection.getProduct();
+    TrackingNumber trackingNumber = stockCorrection.getTrackingNumber();
+    final boolean presentInStockLocation = isPresentInStockLocation(stockCorrection, product);
+    StockLocationLine stockLocationLine =
+        getStockLocationLine(stockCorrection, toStockLocation, product);
+
+    BigDecimal realQty = stockCorrection.getRealQty();
+    BigDecimal currentQty =
+        stockLocationLine != null ? stockLocationLine.getCurrentQty() : BigDecimal.ZERO;
+    BigDecimal diff = realQty.subtract(currentQty);
+
+    BigDecimal productCostPrice =
+        (BigDecimal) productCompanyService.get(product, "costPrice", company);
+    BigDecimal avgPrice = getAvgPrice(company, product, presentInStockLocation, stockLocationLine);
+
+    StockLocation computedFromStockLocation;
+    StockLocation computedToStockLocation;
+
+    if (diff.compareTo(BigDecimal.ZERO) == 0) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_INCONSISTENCY,
+          I18n.get(StockExceptionMessage.STOCK_CORRECTION_2));
+    } else if (diff.compareTo(BigDecimal.ZERO) > 0) {
+      computedFromStockLocation = fromStockLocation;
+      computedToStockLocation = toStockLocation;
+
+    } else {
+      computedFromStockLocation = toStockLocation;
+      computedToStockLocation = fromStockLocation;
+    }
+
+    StockMove stockMove =
+        getStockMove(stockCorrection, company, computedFromStockLocation, computedToStockLocation);
+
+    createStockMoveLine(
+        stockCorrection,
+        product,
+        trackingNumber,
+        stockLocationLine,
+        diff,
+        productCostPrice,
+        avgPrice,
+        computedFromStockLocation,
+        computedToStockLocation,
+        stockMove);
+
+    stockMoveService.plan(stockMove);
+    stockMoveService.copyQtyToRealQty(JpaModelHelper.ensureManaged(stockMove));
+    stockMoveService.realize(JpaModelHelper.ensureManaged(stockMove), false);
+
+    return stockMove;
+  }
+
+  protected void createStockMoveLine(
+      StockCorrection stockCorrection,
+      Product product,
+      TrackingNumber trackingNumber,
+      StockLocationLine stockLocationLine,
+      BigDecimal diff,
+      BigDecimal productCostPrice,
+      BigDecimal avgPrice,
+      StockLocation computedFromStockLocation,
+      StockLocation computedToStockLocation,
+      StockMove stockMove)
+      throws AxelorException {
+    StockMoveLine stockMoveLine =
+        stockMoveLineService.createStockMoveLine(
+            product,
+            product.getName(),
+            product.getDescription(),
+            diff.abs(),
+            productCostPrice,
+            avgPrice,
+            product.getUnit(),
+            stockMove,
+            StockMoveLineService.TYPE_NULL,
+            false,
+            BigDecimal.ZERO,
+            computedFromStockLocation,
+            computedToStockLocation);
+
+    if (stockMoveLine == null) {
+      throw new AxelorException(
+          stockCorrection,
+          TraceBackRepository.CATEGORY_CONFIGURATION_ERROR,
+          I18n.get(StockExceptionMessage.STOCK_CORRECTION_1));
+    }
+    stockMove.addStockMoveLineListItem(stockMoveLine);
+    if (trackingNumber != null && stockMoveLine.getTrackingNumber() == null) {
+      stockMoveLine.setTrackingNumber(trackingNumber);
+    }
+  }
+
+  protected StockMove getStockMove(
+      StockCorrection stockCorrection,
+      Company company,
+      StockLocation computedFromStockLocation,
+      StockLocation computedToStockLocation)
+      throws AxelorException {
+    StockMove stockMove =
+        stockMoveService.createStockMove(
+            null,
+            null,
+            company,
+            computedFromStockLocation,
+            computedToStockLocation,
+            null,
+            null,
+            null,
+            StockMoveRepository.TYPE_INTERNAL);
+
+    stockMove.setStockCorrection(stockCorrection);
+    stockMove.setStockCorrectionReason(stockCorrection.getStockCorrectionReason());
+    return stockMove;
+  }
+
+  protected StockLocationLine getStockLocationLine(
+      StockCorrection stockCorrection, StockLocation toStockLocation, Product product) {
+    StockLocationLine stockLocationLine;
+    if (stockCorrection.getTrackingNumber() == null) {
+      stockLocationLine =
+          stockLocationLineService.getOrCreateStockLocationLine(
+              stockCorrection.getStockLocation(), stockCorrection.getProduct());
+    } else {
+      stockLocationLine =
+          stockLocationLineService.getOrCreateDetailLocationLine(
+              stockCorrection.getStockLocation(),
+              stockCorrection.getProduct(),
+              stockCorrection.getTrackingNumber());
+    }
+    if (stockLocationLine == null) {
+      stockLocationLine =
+          stockLocationLineService.getOrCreateStockLocationLine(toStockLocation, product);
+    }
+    return stockLocationLine;
+  }
+
+  @Override
+  public void getDefaultQtys(
+      StockLocationLine stockLocationLine, Map<String, Object> stockCorrectionQtys) {
+    stockCorrectionQtys.put("baseQty", stockLocationLine.getCurrentQty());
+    stockCorrectionQtys.put("realQty", stockLocationLine.getCurrentQty());
+  }
+
+  @Override
+  @Transactional
+  public StockCorrection generateStockCorrection(
+      StockLocation stockLocation,
+      Product product,
+      TrackingNumber trackingNumber,
+      BigDecimal realQty,
+      StockCorrectionReason reason,
+      String comments)
+      throws AxelorException {
+
+    StockCorrection stockCorrection = new StockCorrection();
+    setNewStockCorrectionInformation(
+        stockLocation, product, trackingNumber, realQty, reason, stockCorrection, comments);
+    this.stockCorrectionRepository.save(stockCorrection);
+
+    return stockCorrection;
+  }
+
+  protected void setNewStockCorrectionInformation(
+      StockLocation stockLocation,
+      Product product,
+      TrackingNumber trackingNumber,
+      BigDecimal realQty,
+      StockCorrectionReason reason,
+      StockCorrection stockCorrection,
+      String comments)
+      throws AxelorException {
+    stockCorrection.setStatusSelect(StockCorrectionRepository.STATUS_DRAFT);
+    stockCorrection.setStockLocation(stockLocation);
+    stockCorrection.setProduct(product);
+    TrackingNumberConfiguration trackingNumberConfiguration =
+        (TrackingNumberConfiguration)
+            productCompanyService.get(
+                product, "trackingNumberConfiguration", stockLocation.getCompany());
+    if (trackingNumberConfiguration != null && trackingNumber != null) {
+      stockCorrection.setTrackingNumber(trackingNumber);
+    }
+    stockCorrection.setRealQty(realQty);
+    stockCorrection.setStockCorrectionReason(reason);
+
+    stockCorrection.setBaseQty(getProductBaseQty(stockCorrection));
+    stockCorrection.setComments(comments);
+  }
+
+  protected BigDecimal getProductBaseQty(StockCorrection stockCorrection) {
+    StockLocationLine stockLocationLine = getProductStockLocationLine(stockCorrection);
+    return stockLocationLine != null ? stockLocationLine.getCurrentQty() : BigDecimal.ZERO;
+  }
+
+  @Override
+  @Transactional
+  public void updateCorrectionQtys(StockCorrection stockCorrection, BigDecimal realQty) {
+    if (stockCorrection.getStatusSelect() != StockCorrectionRepository.STATUS_VALIDATED) {
+      stockCorrection.setRealQty(realQty);
+      this.stockCorrectionRepository.save(stockCorrection);
+    }
+  }
+
+  @Override
+  @Transactional
+  public void updateReason(StockCorrection stockCorrection, StockCorrectionReason reason) {
+    if (stockCorrection.getStatusSelect() != StockCorrectionRepository.STATUS_VALIDATED) {
+      stockCorrection.setStockCorrectionReason(reason);
+      this.stockCorrectionRepository.save(stockCorrection);
+    }
+  }
+
+  @Override
+  @Transactional(rollbackOn = {Exception.class})
+  public void updateComments(StockCorrection stockCorrection, String comments) {
+    if (stockCorrection.getStatusSelect() != StockCorrectionRepository.STATUS_VALIDATED) {
+      stockCorrection.setComments(comments);
+      stockCorrectionRepository.save(stockCorrection);
+    }
+  }
+
+  protected BigDecimal getAvgPrice(
+      Company company,
+      Product product,
+      boolean presentInStockLocation,
+      StockLocationLine stockLocationLine)
+      throws AxelorException {
+    BigDecimal avgPrice =
+        stockLocationLine != null ? stockLocationLine.getAvgPrice() : BigDecimal.ZERO;
+    if (!presentInStockLocation && avgPrice.compareTo(BigDecimal.ZERO) == 0) {
+      avgPrice = (BigDecimal) productCompanyService.get(product, "avgPrice", company);
+    }
+    return avgPrice;
+  }
+
+  protected boolean isPresentInStockLocation(StockCorrection stockCorrection, Product product) {
+    StockLocation stockLocation = stockCorrection.getStockLocation();
+    TrackingNumber trackingNumber = stockCorrection.getTrackingNumber();
+    if (trackingNumber == null) {
+      return stockLocationLineFetchService.getStockLocationLine(stockLocation, product) != null;
+    }
+    return stockLocationLineFetchService.getDetailLocationLine(
+            stockLocation, product, trackingNumber)
+        != null;
+  }
+
+  protected void checkOngoingInventory(StockCorrection stockCorrection) throws AxelorException {
+    StockLocation stockLocation = stockCorrection.getStockLocation();
+    Product product = stockCorrection.getProduct();
+
+    if (stockLocation == null
+        || product == null
+        || stockLocation.getTypeSelect() == StockLocationRepository.TYPE_VIRTUAL) {
+      return;
+    }
+    Set<Long> stockLocationIds = new HashSet<>();
+    stockLocationIds.add(stockLocation.getId());
+    Set<Long> locationIds =
+        stockLocationService.getLocationAndAllParentLocationsIdsOrderedFromTheClosestToTheFurthest(
+            stockLocation);
+    if (locationIds != null) {
+      stockLocationIds.addAll(locationIds);
+    }
+    InventoryLine inventoryLine =
+        inventoryLineRepository
+            .all()
+            .filter(
+                "self.inventory.isStockMoveBlocked = true"
+                    + " AND self.inventory.stockLocation.id IN (:stockLocationIds)"
+                    + " AND self.product.id = :productId")
+            .bind("stockLocationIds", stockLocationIds)
+            .bind("productId", product.getId())
+            .fetchOne();
+
+    if (inventoryLine != null) {
+      throw new AxelorException(
+          TraceBackRepository.CATEGORY_INCONSISTENCY,
+          I18n.get(StockExceptionMessage.STOCK_CORRECTION_VALIDATE_ERROR));
+    }
+  }
+}

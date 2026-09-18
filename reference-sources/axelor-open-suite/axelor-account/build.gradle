@@ -1,0 +1,33 @@
+plugins {
+	id 'com.axelor.app'
+}
+
+apply from: "../libs.gradle"
+apply from: "../version.gradle"
+
+apply {
+	version = openSuiteVersion
+}
+
+axelor {
+	title "Axelor Account"
+	description "Axelor Account Module"
+}
+
+dependencies {
+	api project(":modules:axelor-base")
+
+	implementation libs.jdom
+	implementation libs.xalan
+	implementation libs.xmlbeans
+
+	implementation libs.bcprov_jdk18on
+	implementation libs.bcpkix_jdk18on
+
+	implementation libs.ical4j
+	implementation libs.iban4j
+	testImplementation libs.mockito
+
+	implementation libs.jaxb_bind_api
+	implementation libs.jsoup
+}

@@ -1,0 +1,45 @@
+/*
+ * Axelor Business Solutions
+ *
+ * Copyright (C) 2005-2026 Axelor (<http://axelor.com>).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.axelor.apps.maintenance.exception;
+
+public final class MaintenanceExceptionMessage {
+
+  private MaintenanceExceptionMessage() {}
+
+  public static final String EQUIPEMENT_MAINTENANCE_MISSING_SEQUENCE = /*$$(*/
+      "Missing equipement maintenance sequence." /*)*/;
+
+  public static final String MANUF_ORDER_1 = /*$$(*/
+      "Please select the Manufacturing order(s) to print." /*)*/;
+
+  public static final String MAINTENANCE_REQUEST_CREATION_EQUIPMENT_MISSING = /*$$(*/
+      "Please indicate an equipment for the maintenance request." /*)*/;
+
+  public static final String MAINTENANCE_REQUEST_CREATION_EXPECTED_DATE_MISSING = /*$$(*/
+      "Please indicate an expected date for the maintenance request." /*)*/;
+
+  public static final String BATCH_PREVENTIVE_MAINTENANCE_REPORT = /*$$(*/
+      "Preventive maintenance batch report: %d request(s) created, %d error(s)" /*)*/;
+
+  public static final String MAINTENANCE_COMPONENTS_STOCK_LOCATION_MISSING = /*$$(*/
+      "Please configure the maintenance components stock location in the stock configuration for company %s." /*)*/;
+
+  public static final String MAINTENANCE_VIRTUAL_STOCK_LOCATION_MISSING = /*$$(*/
+      "Please configure the maintenance virtual stock location in the stock configuration for company %s." /*)*/;
+}

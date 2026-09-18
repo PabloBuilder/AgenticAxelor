@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<domain-models xmlns="http://axelor.com/xml/ns/domain-models"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://axelor.com/xml/ns/domain-models https://axelor.com/xml/ns/domain-models/domain-models_8.2.xsd">
+
+  <module name="base" package="com.axelor.apps.base.db"/>
+
+  <entity name="Product">
+
+    <many-to-one name="mrpFamily" ref="com.axelor.apps.supplychain.db.MrpFamily"
+      title="MRP family" massUpdate="true"/>
+    <boolean name="excludeFromMrp" title="Exclude from MRP" massUpdate="true"/>
+    <integer name="standardDelay" title="Standard delay (days)" default="0"/>
+    <integer name="availabilityMeanTime" title="Availability mean time" min="0"
+      help="Average product availability time in working days" nullable="true"/>
+    <boolean name="isAdr" title="ADR"/>
+    <many-to-one name="unCode" ref="com.axelor.apps.supplychain.db.UNCode"
+      title="UN code"/>
+    <integer name="packagingGroupSelect" title="Packaging group"
+      selection="base.product.packaging.group.select" default="1"/>
+    <boolean name="limitedQty" title="Limited qty"/>
+    <boolean name="isReturnable" title="Returnable"/>
+    <boolean name="managedInStockMove" title="Managed in stock move by default"
+      default="true"/>
+    <string name="labelNumber" title="Label number"/>
+    <string name="hazardNumber" title="Hazard number"/>
+
+    <!-- Stock rotation category for depreciation rate calculation -->
+    <many-to-one name="stockRotationCategory"
+      ref="com.axelor.apps.supplychain.db.StockRotationCategory" title="Rotation stock category"
+      massUpdate="true"/>
+
+    <!-- If true, the stock rotation category is assigned automatically by the "Update stock history"
+      batch. If false, the user sets it manually and the batch skips this product. -->
+    <boolean name="autoAssignStockRotationCategory"
+      title="Auto-assign rotation stock category" default="true" massUpdate="true"/>
+
+    <!-- Revaluation rate applied on WAP: negative = depreciation, positive = valorization -->
+    <decimal name="revaluationRate" title="Revaluation rate" precision="20" scale="10"
+      massUpdate="true"/>
+
+    <extra-code>
+    	<![CDATA[
+    		public static final int PACKAGING_GROUP_I = 1;
+    		public static final int PACKAGING_GROUP_II = 2;
+    		public static final int PACKAGING_GROUP_III = 3;
+    	]]>
+    </extra-code>
+
+    <track on="UPDATE">
+      <field name="stockRotationCategory"/>
+      <field name="autoAssignStockRotationCategory"/>
+      <field name="revaluationRate"/>
+    </track>
+
+  </entity>
+
+</domain-models>
