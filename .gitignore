@@ -5,3 +5,6 @@ dist/
 .DS_Store
 .session.json
 
+# Axelor source
+reference-sources/axelor-open-suite/
+
