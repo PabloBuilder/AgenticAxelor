@@ -9,6 +9,7 @@ const client = new AxelorClient({
   baseUrl: process.env.AXELOR_URL || "http://localhost:8080/axelor-erp",
   username: process.env.AXELOR_USERNAME || "admin",
   password: process.env.AXELOR_PASSWORD || "admin",
+  cookie: process.env.AXELOR_COOKIE,
 });
 
 const dataService = new DataService(client);

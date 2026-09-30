@@ -12,6 +12,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/index.ts", "src/bridge.ts"],
   "exclude": ["node_modules", "dist"]
 }

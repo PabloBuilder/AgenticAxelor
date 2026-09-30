@@ -1,10 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { AxelorSessionInput } from "../types/axelor.js";
 
 export interface SessionData {
   cookie: string;
   url?: string;
+  updatedAt?: string;
+}
+
+export interface SessionStatus {
+  url: string;
   updatedAt?: string;
 }
 
@@ -30,8 +36,25 @@ export class SessionStore {
     return null;
   }
 
-  static saveSession(data: { cookie: string; url?: string }): SessionData {
-    const session: SessionData = {
+  static loadSessionStatus(): SessionStatus | null {
+    const session = this.loadSession();
+    if (
+      typeof session?.cookie !== "string" ||
+      !session.cookie.trim() ||
+      typeof session.url !== "string" ||
+      !session.url.trim()
+    ) {
+      return null;
+    }
+
+    return {
+      url: session.url,
+      updatedAt: session.updatedAt,
+    };
+  }
+
+  static saveSession(data: AxelorSessionInput): SessionData & AxelorSessionInput {
+    const session: SessionData & AxelorSessionInput = {
       cookie: data.cookie,
       url: data.url,
       updatedAt: new Date().toISOString(),

@@ -37,6 +37,11 @@ export interface AxelorConfig {
   cookie?: string;
 }
 
+export interface AxelorSessionInput {
+  cookie: string;
+  url: string;
+}
+
 export interface MetaViewRecord {
   id: number;
   name: string;

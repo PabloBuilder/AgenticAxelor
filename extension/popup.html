@@ -1,343 +1,129 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AgenticAxelor GPS</title>
-  <style>
-    :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --bg: rgba(255, 255, 255, 0.96);
-      --card-bg: rgba(248, 250, 252, 0.85);
-      --border: rgba(226, 232, 240, 0.85);
-      --text: #0f172a;
-      --text-muted: #64748b;
-    }
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AgenticAxelor | Session</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #182321;
+        --muted: #5d6d68;
+        --line: #d8e0da;
+        --surface: #f4f7f3;
+        --paper: #ffffff;
+        --accent: #087c67;
+        --accent-dark: #06624f;
+        --ok: #146b45;
+        --error: #a3342d;
+      }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-    }
+      * { box-sizing: border-box; }
 
-    body {
-      width: 320px;
-      background: var(--bg);
-      color: var(--text);
-      padding: 16px;
-      font-size: 13px;
-      line-height: 1.4;
-      user-select: none;
-    }
+      body {
+        width: 340px;
+        margin: 0;
+        padding: 18px;
+        background: var(--surface);
+        color: var(--ink);
+        font: 14px/1.45 "Segoe UI Variable", "Segoe UI", sans-serif;
+      }
 
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--line);
+      }
 
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-    }
+      .mark {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border: 1px solid #a8cfc4;
+        border-radius: 7px;
+        color: var(--accent-dark);
+        font-size: 16px;
+        font-weight: 700;
+      }
 
-    .header-tag {
-      font-size: 10px;
-      font-weight: 700;
-      background: rgba(37, 99, 235, 0.1);
-      color: var(--primary);
-      padding: 2px 6px;
-      border-radius: 9999px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
+      .brand {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+      }
 
-    .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 8px;
-    }
+      main { padding-top: 18px; }
 
-    .status-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
+      .eyebrow {
+        margin: 0 0 5px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
 
-    .status-card {
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+      .site {
+        margin: 0;
+        overflow-wrap: anywhere;
+        font-size: 19px;
+        line-height: 1.25;
+      }
 
-    .status-left {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .context {
+        min-height: 21px;
+        margin: 5px 0 17px;
+        color: var(--muted);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--text-muted);
-    }
+      button {
+        width: 100%;
+        min-height: 42px;
+        border: 0;
+        border-radius: 6px;
+        background: var(--accent);
+        color: #fff;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
 
-    .status-dot.online {
-      background: var(--success);
-      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-    }
+      button:hover:not(:disabled) { background: var(--accent-dark); }
+      button:focus-visible { outline: 3px solid #72b6a6; outline-offset: 2px; }
+      button:disabled { cursor: wait; opacity: 0.72; }
 
-    .status-dot.offline {
-      background: var(--danger);
-    }
+      .status {
+        min-height: 42px;
+        margin: 12px 0 0;
+        padding: 10px 11px;
+        border-left: 3px solid var(--line);
+        background: var(--paper);
+        color: var(--muted);
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
 
-    .status-label {
-      font-weight: 600;
-      font-size: 12px;
-      color: var(--text);
-    }
-
-    .status-value {
-      font-size: 11.5px;
-      font-weight: 500;
-      color: var(--text-muted);
-    }
-
-    .guide-box {
-      background: rgba(37, 99, 235, 0.04);
-      border: 1px solid rgba(37, 99, 235, 0.15);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 14px;
-    }
-
-    .guide-title {
-      font-weight: 700;
-      font-size: 13px;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    .guide-step {
-      font-size: 11.5px;
-      color: var(--primary);
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-
-    .guide-hint {
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.35;
-    }
-
-    .actions-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
-    button {
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 10px;
-      font-size: 11.5px;
-      font-weight: 600;
-      color: var(--text);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      transition: all 0.15s ease;
-    }
-
-    button:hover:not(:disabled) {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
-    }
-
-    button:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    button.btn-primary {
-      background: var(--primary);
-      color: #ffffff;
-      border-color: var(--primary);
-    }
-
-    button.btn-primary:hover:not(:disabled) {
-      background: var(--primary-hover);
-    }
-
-    button.btn-danger {
-      color: var(--danger);
-    }
-
-    button.btn-danger:hover:not(:disabled) {
-      background: rgba(239, 68, 68, 0.08);
-      border-color: rgba(239, 68, 68, 0.25);
-    }
-
-    .input-group {
-      margin-bottom: 12px;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 4px;
-    }
-
-    input[type="text"] {
-      flex: 1;
-      background: #ffffff;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 11.5px;
-      color: var(--text);
-      outline: none;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--primary);
-    }
-
-    .tag-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      margin-top: 6px;
-    }
-
-    .domain-tag {
-      background: rgba(37, 99, 235, 0.08);
-      color: var(--primary);
-      border: 1px solid rgba(37, 99, 235, 0.15);
-      font-size: 11px;
-      font-weight: 500;
-      padding: 2px 6px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .domain-tag-remove {
-      cursor: pointer;
-      font-weight: 700;
-      color: var(--text-muted);
-    }
-
-    .domain-tag-remove:hover {
-      color: var(--danger);
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="header-title">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
-      </svg>
-      <span>AgenticAxelor</span>
-    </div>
-    <span class="header-tag">GPS v0.3</span>
-  </div>
-
-  <div class="section-title">Indicateurs de Statut</div>
-  <div class="status-group">
-    <!-- 1. Bridge Server -->
-    <div class="status-card">
-      <div class="status-left">
-        <div class="status-dot" id="bridge-dot"></div>
-        <span class="status-label">Serveur MCP Bridge</span>
-      </div>
-      <span class="status-value" id="bridge-text">Vérification...</span>
-    </div>
-
-    <!-- 2. Axelor Session Cookie -->
-    <div class="status-card">
-      <div class="status-left">
-        <div class="status-dot" id="cookie-dot"></div>
-        <span class="status-label">Session Axelor ERP</span>
-      </div>
-      <span class="status-value" id="cookie-text">Non détectée</span>
-    </div>
-  </div>
-
-  <!-- 3. Active Guide Overview -->
-  <div class="section-title">Guidage Actuel</div>
-  <div class="guide-box" id="guide-box">
-    <div class="guide-step" id="guide-step-badge">Aucun guide actif</div>
-    <div class="guide-title" id="guide-title">En attente d'un parcours</div>
-    <div class="guide-hint" id="guide-hint">Déclenchez un guidage via l'agent ou les commandes MCP pour lancer le GPS.</div>
-  </div>
-
-  <!-- Route Control Actions -->
-  <div class="actions-grid">
-    <button id="btn-restart" disabled>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-        <path d="M3 3v5h5"></path>
-      </svg>
-      <span>Recommencer</span>
-    </button>
-    <button id="btn-clear" class="btn-danger" disabled>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-      </svg>
-      <span>Effacer</span>
-    </button>
-  </div>
-
-  <!-- Perimeter & Custom Domains -->
-  <div class="section-title" style="margin-top: 14px;">Domaines Axelor Autorisés</div>
-  <div class="input-group">
-    <div class="input-row">
-      <input type="text" id="domain-input" placeholder="ex: demo01.alter-si.fr ou 192.168.1.50">
-      <button id="btn-add-domain" class="btn-primary">+</button>
-    </div>
-    <div class="tag-container" id="domain-tags"></div>
-  </div>
-
-  <!-- Settings -->
-  <div class="section-title" style="margin-top: 14px;">Paramètres Réseau</div>
-  <div class="input-group">
-    <div class="input-row">
-      <input type="text" id="bridge-url-input" placeholder="http://localhost:3210" value="http://localhost:3210">
-      <button id="btn-save-url" class="btn-primary">OK</button>
-    </div>
-  </div>
-
-  <script src="popup.js"></script>
-</body>
+      .status[data-state="success"] { border-color: var(--ok); color: var(--ok); }
+      .status[data-state="error"] { border-color: var(--error); color: var(--error); }
+      .status[data-state="busy"] { border-color: var(--accent); color: var(--ink); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="mark" aria-hidden="true">A</div>
+      <p class="brand">AgenticAxelor</p>
+    </header>
+    <main>
+      <p class="eyebrow">Onglet Axelor actif</p>
+      <h1 class="site" id="site-host">Lecture de l’onglet…</h1>
+      <p class="context" id="site-context"></p>
+      <button id="sync-button" type="button" disabled>Synchroniser la session</button>
+      <p class="status" id="sync-status" role="status" aria-live="polite">En attente de l’onglet actif.</p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
 </html>

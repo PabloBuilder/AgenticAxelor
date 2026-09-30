@@ -1,27 +1,13 @@
-# Chrome Extension & Copilot HUD Specification
+# Historical Chrome Extension HUD Specification
 
-Technical breakdown of the Manifest V3 passive overlay engine and perimeter detection.
+**Legacy reference only.** These notes describe the former overlay design, not the Chrome extension shipped in [`extension/`](../../extension/). The current [manifest](../../extension/manifest.json) registers no content script; the [background worker](../../extension/background.js) only synchronizes the active Axelor session with the Bridge. No HUD is displayed. See the [current architecture](ARCHITECTURE.md) for the supported flow and [`old/extension-v0.3/`](../../old/extension-v0.3/) for archived implementation files.
 
----
+## Former Perimeter Detection Design
 
-## 1. Perimeter Detection Pipeline (`extension/content.js`)
+The former `content.js` design checked the site hostname against stored domains and Axelor keywords, then inspected DOM and framework markers before polling for guidance. Non-Axelor pages were intended to suppress the overlay. This behavior is not present in the shipped extension.
 
-1. **Tier 1 (Host/Storage Match)**: Checks `window.location.hostname` against `chrome.storage.local.customAxelorDomains` + default keywords (`axelor`, `open-suite`).
-2. **Tier 2 (DOM & Framework Markers)**: Evaluates root selectors (`[ng-app*='axelor']`, `#axelor-app`, `.navbar-axelor`, `meta[name='axelor:version']`, `link[href*='axelor']`).
-3. **Tier 3 (Passive Bailout)**: Non-Axelor pages skip bridge polling and suppress HUD rendering completely.
+## Former HUD Design
 
----
+The former `spotlightEngine.js` design described a collapsed step indicator and an expanded card with instructions, copyable fields, explanations, breadcrumbs, and previous/reset/next controls. A render cache was intended to avoid flicker during polling. The HUD was designed to remain separate from Axelor's own DOM interactions.
 
-## 2. Dual-State Pure HUD Engine (`extension/spotlightEngine.js`)
-
-- **Design Tokens**: Glassmorphism card (`rgba(255, 255, 255, 0.95)` + `blur(24px)` + subtle border & glow).
-- **State 1 (Collapsed Pill)**: 48px round trigger with current step badge (`X/Y`), click-to-expand.
-- **State 2 (Expanded Glass Card)**: Unfolded 380px card containing:
-  - Header with step pill (`Step X/Y`) and minimize toggle.
-  - Action directive (`ax-hud-instruction-box`).
-  - Single copyable badge or multi-fields table (`ax-hud-fields-table`) with unit Copy triggers.
-  - Contextual advice block (Pro Tip) powered by `step.explanation`.
-  - Breadcrumb trail (`ax-hud-breadcrumb`).
-  - Bidirectional navigation: Previous, Reset, and Next / Finish.
-- **Render Cache (`lastRenderedStepKey`)**: Prevents DOM re-renders during active polling to avoid UI flickering and broken clipboard handlers.
-- **DOM Decoupling**: Complete separation from host ERP internals—no synthetic auto-clicks, no DOM hijacking, no fragile outline injections.
+Bridge guidance endpoints and MCP guide tools still exist, but the current extension does not consume or display their routes. Do not use this document as an implementation contract for the shipped extension.

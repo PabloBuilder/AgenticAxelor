@@ -13,6 +13,7 @@ async function main() {
 
   if (!target) {
     console.log("Usage: npx tsx src/cli/guidePusher.ts <guide-id | menu-name> [model] [field]");
+    console.log("Routes are stored in the local Bridge; the current extension does not display them.");
     console.log("\nAvailable pre-packaged guides:");
     Object.keys(GUIDE_REGISTRY).forEach((key) => {
       console.log(`  - ${key} ("${GUIDE_REGISTRY[key].title}")`);
@@ -70,12 +71,12 @@ async function main() {
     });
 
     if (res.ok) {
-      console.log(`\n[GuidePusher] ✅ SUCCESS: Guidance route pushed to browser via bridge (localhost:3210)!`);
+      console.log(`\n[GuidePusher] SUCCESS: Guidance route stored in the local Bridge (127.0.0.1:3210). The current extension does not display guides.`);
     } else {
       console.error(`\n[GuidePusher] ❌ Bridge responded with status: ${res.status}`);
     }
   } catch (err: any) {
-    console.error(`\n[GuidePusher] ❌ Could not connect to bridge on localhost:3210 (${err.message}). Is MCP server running?`);
+    console.error(`\n[GuidePusher] Could not connect to the local Bridge on 127.0.0.1:3210 (${err.message}). Is npm run bridge running?`);
   }
 }
 

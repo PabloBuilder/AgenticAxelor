@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
+    "bridge": "tsx src/bridge.ts",
     "guide:push": "tsx src/cli/guidePusher.ts",
     "test:menu": "tsx src/cli/test/testMenu.ts",
     "test:view": "tsx src/cli/test/testView.ts",

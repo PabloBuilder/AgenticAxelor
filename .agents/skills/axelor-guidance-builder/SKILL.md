@@ -1,11 +1,15 @@
 ---
 name: axelor-guidance-builder
-description: "Author precise, user-centric step-by-step guidance routes (GuidanceRoute) for the Axelor Copilot HUD extension. Guarantees complete CRUD state-transitions, grouped copyable fields, and clear non-intrusive HUD steps."
+description: "Author grounded Axelor GuidanceRoute definitions for the Bridge. The current session-sync extension does not render routes or a HUD."
 ---
 
 # Axelor Guidance Builder
 
-## 1. Universal Axelor UX & Execution Protocols
+**Current scope:** The shipped extension only synchronizes the browser session with the Bridge. A route pushed through `guide_axelor_path` or `src/cli/guidePusher.ts` is stored server-side, not displayed in Axelor. Use this skill only when route authoring or Bridge-state inspection is explicitly requested; do not present a route push as on-screen guidance. See the [current architecture](../../docs/ARCHITECTURE.md) and [GuidanceRoute types](../../../src/types/guidance.ts).
+
+## 1. Route Authoring Rules (For a Future Consumer)
+
+UI path, modal, and selector advice below describes intended route content, not behavior of the current extension. Only include selectors and field locations verified against the target Axelor instance; the sample route below is illustrative, not ready to push.
 
 ### A. Mandatory Pre-Flight MCP & View Introspection (CRITICAL HARD GATE)
 - **ZERO Speculation / Hallucination**: NEVER write or push a guidance route based on guesses, assumed model names, or unverified UI fields.
@@ -47,13 +51,15 @@ description: "Author precise, user-centric step-by-step guidance routes (Guidanc
 
 ### F. Direct Delivery Protocol
 1. Perform MCP Pre-Flight audit to extract exact database entities.
-2. Write pure typed route in `src/guides/<name>Guide.ts` (exporting `GuidanceRoute`) and register it in `src/guides/index.ts`.
-3. Execute injection via runner (`npx tsx src/cli/guidePusher.ts <guide-id>`).
-4. Respond in chat with $\le 2$ sentences (file link + HUD injection confirmation). Zero theory/filler.
+2. If code changes are requested, write a typed route in `src/guides/<name>Guide.ts` and register it in `src/guides/index.ts`.
+3. If a Bridge push is explicitly requested, use `npx tsx src/cli/guidePusher.ts <guide-id>` with the Bridge running on port `3210`.
+4. Report route creation and Bridge push separately. Confirm only server-side state; never claim that the current extension displayed a HUD.
 
 ---
 
 ## 2. Schema Contract
+
+The authoritative definitions are in [src/types/guidance.ts](../../../src/types/guidance.ts). The shape below is an authoring reference; optional properties may be omitted.
 ```typescript
 export interface GuidanceFieldInput { label: string; value: string; hint?: string; }
 export interface GuidanceStep {
@@ -64,15 +70,20 @@ export interface GuidanceStep {
   label: string;
   hint: string;
   breadcrumb?: string[];
+  expectedView?: string;
   explanation?: string;
   fields?: GuidanceFieldInput[];
   valueHint?: string;
+  action?: string;
   fieldName?: string;
 }
 export interface GuidanceRoute {
   id: string;
   title: string;
   description?: string;
+  targetMenu?: string;
+  targetModel?: string;
+  targetField?: string;
   currentStepIndex: number;
   totalSteps: number;
   steps: GuidanceStep[];

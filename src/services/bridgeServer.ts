@@ -1,6 +1,63 @@
 import http from "http";
+import { AxelorSessionInput } from "../types/axelor.js";
 import { GuidanceRoute } from "../types/guidance.js";
 import { SessionStore } from "./sessionStore.js";
+
+const CHROME_EXTENSION_ORIGIN = /^chrome-extension:\/\/([a-p]{32})$/;
+
+function isAllowedExtensionOrigin(origin: string): boolean {
+  const match = CHROME_EXTENSION_ORIGIN.exec(origin);
+  if (!match) return false;
+
+  const allowedExtensionId = process.env.BRIDGE_EXTENSION_ID?.trim();
+  return !allowedExtensionId || match[1] === allowedExtensionId;
+}
+
+export function validateSessionInput(data: unknown): AxelorSessionInput {
+  if (!data || typeof data !== "object") {
+    throw new Error("Request body must be a JSON object.");
+  }
+
+  const input = data as Record<string, unknown>;
+  if (typeof input.cookie !== "string" || /[\r\n]/.test(input.cookie)) {
+    throw new Error("A valid JSESSIONID cookie is required.");
+  }
+
+  const cookie = input.cookie.trim();
+  const hasJSessionId = cookie.split(";").some((part) => {
+    const separator = part.indexOf("=");
+    return separator > 0 &&
+      part.slice(0, separator).trim() === "JSESSIONID" &&
+      part.slice(separator + 1).trim().length > 0;
+  });
+  if (!hasJSessionId) {
+    throw new Error("Cookie must contain a non-empty JSESSIONID.");
+  }
+
+  if (typeof input.url !== "string" || !input.url.trim()) {
+    throw new Error("An absolute HTTP(S) Axelor URL is required.");
+  }
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(input.url.trim());
+  } catch {
+    throw new Error("An absolute HTTP(S) Axelor URL is required.");
+  }
+
+  if (
+    !["http:", "https:"].includes(parsedUrl.protocol) ||
+    !parsedUrl.hostname ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.search ||
+    parsedUrl.hash
+  ) {
+    throw new Error("URL must be an HTTP(S) Axelor base URL without credentials, query, or fragment.");
+  }
+
+  return { cookie, url: input.url.trim() };
+}
 
 export interface BridgeState {
   currentRoute: GuidanceRoute | null;
@@ -15,20 +72,36 @@ export class BridgeServer {
     activeStepIndex: 0,
   };
   private sseClients: Set<http.ServerResponse> = new Set();
+  private applySession: (session: AxelorSessionInput) => void;
 
-  constructor(port: number = 3210) {
+  constructor(applySession: (session: AxelorSessionInput) => void, port: number = 3210) {
     this.port = port;
+    this.applySession = applySession;
   }
 
   start(): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.server = http.createServer((req, res) => {
-        // Enable CORS for browser extension communication
-        res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+        const origin = req.headers.origin;
+        if (origin && !isAllowedExtensionOrigin(origin)) {
+          res.writeHead(403, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ success: false, error: "Origin not allowed." }));
+          return;
+        }
+
+        if (origin) {
+          res.setHeader("Access-Control-Allow-Origin", origin);
+          res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+          res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+          res.setHeader("Vary", "Origin");
+        }
 
         if (req.method === "OPTIONS") {
+          if (!origin) {
+            res.writeHead(403, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ success: false, error: "Extension origin required." }));
+            return;
+          }
           res.writeHead(204);
           res.end();
           return;
@@ -145,14 +218,30 @@ export class BridgeServer {
           let body = "";
           req.on("data", (chunk) => (body += chunk));
           req.on("end", () => {
+            let sessionInput: AxelorSessionInput;
             try {
-              const data = JSON.parse(body);
-              SessionStore.saveSession(data);
-              res.writeHead(200, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ success: true }));
+              sessionInput = validateSessionInput(JSON.parse(body));
             } catch (err: any) {
               res.writeHead(400, { "Content-Type": "application/json" });
-              res.end(JSON.stringify({ error: err.message }));
+              res.end(JSON.stringify({ success: false, error: err.message || "Invalid session data." }));
+              return;
+            }
+
+            try {
+              this.applySession(sessionInput);
+              const savedSession = SessionStore.loadSession();
+              if (!savedSession || savedSession.cookie !== sessionInput.cookie || savedSession.url !== sessionInput.url) {
+                throw new Error("Session was not persisted.");
+              }
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({
+                success: true,
+                url: savedSession.url,
+                updatedAt: savedSession.updatedAt,
+              }));
+            } catch (err: any) {
+              res.writeHead(500, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: false, error: err.message || "Session synchronization failed." }));
             }
           });
           return;
@@ -162,7 +251,8 @@ export class BridgeServer {
         res.end(JSON.stringify({ error: "Not Found" }));
       });
 
-      this.server.listen(this.port, () => {
+      this.server.once("error", reject);
+      this.server.listen(this.port, "127.0.0.1", () => {
         resolve();
       });
     });

@@ -3,13 +3,13 @@
     "agentic-axelor": {
       "command": "node",
       "args": [
-        "g:/doc/projets/AgenticAxelor/dist/index.js"
+        "<ABSOLUTE_PATH_TO_PROJECT>/dist/index.js"
       ],
       "env": {
-        "AXELOR_URL": "https://demo01.alter-si.fr/axelor-erp",
-        "AXELOR_USERNAME": "admin",
-        "AXELOR_PASSWORD": "admin",
-        "AXELOR_COOKIE": ""
+        "AXELOR_URL": "<YOUR_AXELOR_URL>",
+        "AXELOR_USERNAME": "<YOUR_AXELOR_USERNAME>",
+        "AXELOR_PASSWORD": "<YOUR_AXELOR_PASSWORD>",
+        "BRIDGE_PORT": "3210"
       }
     },
     "agentic-axelor-dev": {
@@ -17,13 +17,13 @@
       "args": [
         "-y",
         "tsx",
-        "g:/doc/projets/AgenticAxelor/src/index.ts"
+        "<ABSOLUTE_PATH_TO_PROJECT>/src/index.ts"
       ],
       "env": {
-        "AXELOR_URL": "https://demo01.alter-si.fr/axelor-erp",
-        "AXELOR_USERNAME": "admin",
-        "AXELOR_PASSWORD": "admin",
-        "AXELOR_COOKIE": ""
+        "AXELOR_URL": "<YOUR_AXELOR_URL>",
+        "AXELOR_USERNAME": "<YOUR_AXELOR_USERNAME>",
+        "AXELOR_PASSWORD": "<YOUR_AXELOR_PASSWORD>",
+        "BRIDGE_PORT": "3210"
       }
     }
   }

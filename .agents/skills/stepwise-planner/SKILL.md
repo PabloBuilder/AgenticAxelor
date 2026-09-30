@@ -31,7 +31,7 @@ description: Generates a code-grounded implementation plan in dynamic atomic ste
 ## Step Breakdown
 
 ### [ ] Step [N]/[Total]: [Title]
-- **Target Files**: `[basename](file:///absolute/path)`
+- **Target Files**: `relative/path/to/file.ext`
 - **Contract Signatures**: Exact types/schemas created or consumed.
 - **Code Changes**: Semantic anchors (functions/hooks), not fragile line numbers.
 - **Definition of Done**: Verifiable completion criteria.

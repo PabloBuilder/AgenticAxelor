@@ -8,7 +8,7 @@ description: Generates a concise, high-density session handoff in HANDOFF.md wit
 ## Invariants
 - **Semantic Compression**: Communicate and reason with maximum information density. Telegraphic prose, zero conversational filler, zero chronological narrative, and zero dead ends.
 - **Target Output**: Overwrites `.agents/HANDOFF.md`.
-- **File Links**: Direct, clickable markdown links (`[basename](file:///absolute/path)`).
+- **File Paths**: Relative workspace path (e.g. `src/components/MyComponent.tsx`).
 
 ---
 
@@ -24,7 +24,7 @@ description: Generates a concise, high-density session handoff in HANDOFF.md wit
 - [Architectural choices, topology, and shared contracts established]
 
 ## 3. Important Files
-- `[basename](file:///path)`: [Dense role description]
+- `relative/path/to/file.ext`: [Dense role description]
 
 ## 4. Verified Facts & Completed Work
 - [Tested capabilities, validated builds, live API/DOM verifications]

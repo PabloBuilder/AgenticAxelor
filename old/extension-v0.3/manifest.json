@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "AgenticAxelor GPS Guide",
+  "version": "0.3.0",
+  "description": "Passive spotlight navigation guide for Axelor ERP powered by AgenticAxelor local bridge.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "cookies"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "AgenticAxelor GPS",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": ["pageBridge.js"],
+      "world": "MAIN",
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "css": ["spotlight.css"],
+      "js": ["domHelper.js", "spotlightEngine.js", "content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["pageBridge.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

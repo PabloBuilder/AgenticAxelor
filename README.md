@@ -1,134 +1,74 @@
 # AgenticAxelor
 
-> **Step-by-step Copilot GPS navigation assistant for Axelor Open Suite ERP.**  
-> Provides interactive HUD guidance cards, bidirectional navigation sync, and copy-paste form inputs.
+AgenticAxelor connecte un client compatible MCP à Axelor. Le serveur MCP fournit des outils pour explorer les menus et vues, consulter ou modifier des données et lancer des actions Axelor.
 
----
+Le projet comprend trois éléments :
 
-## Core Architecture
+- un serveur MCP lancé par votre application d’IA ;
+- un Bridge local sur `127.0.0.1:3210` ;
+- une extension Chrome qui synchronise la session Axelor du navigateur avec le Bridge.
 
-- **MCP Server (`src/`)**: Connects LLMs (Claude Desktop, Cursor, Autonomous Agents) to Axelor for menu/view introspection, data operations, and interactive guidance push.
-- **Chrome Extension (`extension/`)**: Non-intrusive bottom-right glassmorphic HUD displaying required actions, contextual advice (**Pro Tip**), and 1-click copyable inputs (**Copy**).
-- **Local Bridge (`localhost:3210`)**: Real-time HTTP/SSE bidirectional synchronization between agent runtime and browser HUD.
+> L’extension synchronise uniquement la session : elle n’affiche pas de HUD dans les pages Axelor.
 
----
+## Prérequis
 
-## Quick Start (3 Minutes)
+- Node.js 22 et npm ;
+- Chrome ou un navigateur Chromium ;
+- un compte Axelor et un client compatible MCP.
 
-### 1. Configure Environment
+## Installation
+
+Clonez le dépôt avec son URL GitHub, puis installez les dépendances :
+
 ```bash
-git clone https://github.com/your-repo/AgenticAxelor.git
-cd AgenticAxelor
-npm install
+git clone https://github.com/<OWNER>/<REPOSITORY>.git
+cd <REPOSITORY>
+npm ci
 ```
 
-Create `.env` in the root (see [`.env.example`](.env.example)):
-```env
-AXELOR_URL=http://localhost:8080/axelor-erp
-AXELOR_USERNAME=admin
-AXELOR_PASSWORD=admin
-# Optional: Session cookie (auto-captured by extension or set manually)
-AXELOR_COOKIE=JSESSIONID=...
-BRIDGE_PORT=3210
-```
+Remplacez les valeurs entre chevrons par l’URL et le nom réels du dépôt.
 
-### 2. Start MCP & Bridge Server
+## Configurer le serveur MCP
+
+Copiez [mcp-config.example.json](mcp-config.example.json) dans la configuration de votre client MCP. Gardez une seule des deux entrées :
+
+- `agentic-axelor` lance la version compilée ; construisez-la avec `npm run build` ;
+- `agentic-axelor-dev` lance directement le code TypeScript.
+
+Dans l’entrée conservée, remplacez `<ABSOLUTE_PATH_TO_PROJECT>` par le chemin absolu du projet et supprimez les variables d’identifiants Axelor si vous utilisez la session de l’extension. Sous Windows, utilisez `/` dans le chemin JSON, par exemple `C:/projets/AgenticAxelor`.
+
+## Démarrer et synchroniser
+
+1. Démarrez le Bridge depuis le dossier du projet et laissez-le ouvert :
+
+   ```bash
+   npm run bridge
+   ```
+
+   Sous Windows, vous pouvez aussi lancer `start-bridge.bat`.
+
+2. Dans Chrome, ouvrez `chrome://extensions`, activez le **Mode développeur**, puis choisissez **Charger l’extension non empaquetée** et sélectionnez le dossier [`extension/`](extension/).
+3. Connectez-vous à Axelor et rendez son onglet actif.
+4. Ouvrez la popup AgenticAxelor, vérifiez le site affiché, puis cliquez sur **Synchroniser la session** et autorisez l’accès aux cookies si Chrome le demande.
+5. Redémarrez ou rechargez la configuration MCP de votre client si nécessaire.
+
+L’URL et le cookie de session sont transmis par l’extension puis enregistrés dans `.session.json`. Il n’est pas nécessaire de configurer `AXELOR_URL`, un nom d’utilisateur ou un mot de passe pour ce parcours. Ne partagez jamais le cookie ni le fichier `.session.json`.
+
+L’extension utilise le port `3210`. Gardez cette valeur pour que le Bridge et l’extension puissent communiquer. Le fichier [`.env.example`](.env.example) ne sert qu’à configurer le port du Bridge ; en général, il n’est pas nécessaire de créer `.env`.
+
+## Outils et précautions
+
+Le serveur MCP propose des outils pour rechercher des menus, inspecter des vues, consulter des enregistrements, créer ou modifier des données, supprimer des enregistrements, lancer des actions et vérifier l’état de la session. Les outils de création, modification, suppression et exécution d’actions peuvent changer les données Axelor : utilisez-les avec un compte adapté.
+
+La session enregistrée n’est pas validée auprès d’Axelor au moment de la synchronisation. Si Axelor la rejette, reconnectez-vous dans le navigateur et synchronisez-la à nouveau.
+
+## Développement
+
 ```bash
-npm start
-```
-*Bridge listens on `http://localhost:3210` and MCP runs via standard I/O (`stdio`).*
-
-### 3. Load Chrome Extension
-1. Open `chrome://extensions` and enable **Developer mode**.
-2. Click **Load unpacked** and select the [`extension/`](extension/) folder.
-3. Open your Axelor tab: the Copilot trigger appears in the bottom right corner.
-
----
-
-## Universal MCP Integration (Any Agentic IDE / CLI)
-
-AgenticAxelor works with **all MCP-compatible AI environments**: Claude Desktop, Claude Code, Google Antigravity, Cursor, Windsurf, Roo Code / Cline, Zed, and custom LLM agents.
-
-### Standard `mcpServers` JSON Configuration
-Add to your environment's MCP config file (e.g. `claude_desktop_config.json`, `.cursor/mcp.json`, `settings.json`):
-```json
-{
-  "mcpServers": {
-    "agentic-axelor": {
-      "command": "node",
-      "args": ["<ABSOLUTE_PATH_TO_PROJECT>/dist/index.js"],
-      "env": {
-        "AXELOR_URL": "http://localhost:8080/axelor-erp",
-        "AXELOR_USERNAME": "admin",
-        "AXELOR_PASSWORD": "admin",
-        "AXELOR_COOKIE": "JSESSIONID=..."
-      }
-    }
-  }
-}
+npm ci
+npm run build
 ```
 
----
+Les autres commandes sont listées dans [package.json](package.json). Certaines exécutent des opérations Axelor ; vérifiez-les avant de les lancer. La CI vérifie l’installation, la compilation et les fichiers JSON sans se connecter à Axelor.
 
-## Copilot HUD Layout
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│ Axelor Guide                           Step 2/7    [—]  │
-├─────────────────────────────────────────────────────────┤
-│ Contact Details Form                                    │
-│                                                         │
-│ REQUIRED ACTION                                         │
-│ Fill in contact info in the modal window.               │
-│                                                         │
-│ FIELDS TO ENTER (3)                                     │
-│ Full Name    │ [ John Doe                ] [Copy]       │
-│ Work Email   │ [ john.doe@supplier.com   ] [Copy]       │
-│ Phone        │ [ +1 555 019 2834         ] [Copy]       │
-│                                                         │
-│ PRO TIP                                                 │
-│ Saving the modal refreshes the parent grid.             │
-│                                                         │
-│ Suppliers > Supplier Form > Contacts                    │
-├─────────────────────────────────────────────────────────┤
-│ [ < Previous ]  [ Reset ]                   [ Next > ]  │
-└─────────────────────────────────────────────────────────┘
-```
-
-- **Bidirectional Controls**: `Previous`, `Reset`, and `Next / Finish` synced via bridge.
-- **Copy Triggers**: Unit copy buttons with visual confirmation (`Copied!`).
-- **Pill Mode**: Collapses into a minimal circular `X/Y` trigger.
-- **Zero DOM Hijacking**: No synthetic clicks or destructive DOM mutations.
-
----
-
-## MCP Tool Registry (10 Tools)
-
-| Tool | Purpose |
-| :--- | :--- |
-| `guide_axelor_path` | Pushes deterministic guidance route to browser HUD |
-| `clear_axelor_guide` | Resets and hides Copilot HUD |
-| `search_axelor_menu` | Searches menu tree and hierarchical breadcrumbs |
-| `inspect_axelor_view` | Introspects form fields, tabs, widgets, and sub-grids |
-| `query_axelor_data` | Runs domain filters, pagination, and entity queries |
-| `fetch_axelor_record` | Fetches a single business entity by ID with fields selection |
-| `save_axelor_record` | Creates or updates records via Axelor REST API |
-| `delete_axelor_record` | Deletes records with live auto-versioning and relational error parsing |
-| `execute_axelor_action` | Triggers Axelor Actions (`action-method`, `action-attrs`, `action-group`) |
-| `sync_axelor_session` | Synchronizes runtime session cookie or target URL on the fly |
-
----
-
-## SDK Features
-
-- **Auto-Versioning**: `AxelorClient.remove` automatically resolves the latest database `$version` before executing `removeAll`.
-- **Relational Error Translation**: Converts PostgreSQL/Hibernate foreign key violations into readable messages indicating the exact referencing table.
-- **Session Namespacing**: Helper utilities in `src/services/namespacing.ts` (`formatSessionName`, `formatSessionCode`) to isolate test runs (`[S1]`, `[S2]`) and avoid constraint collisions.
-
----
-
-## Documentation
-- [Architecture & Protocol Specs](.agents/docs/ARCHITECTURE.md)
-- [Developer Guide & CLI Suite](.agents/docs/DEV_GUIDE.md)
-- [Guidance Authoring Rules (`axelor-guidance-builder`)](.agents/skills/axelor-guidance-builder/SKILL.md)
-- [Axelor REST API Cheatsheet](.agents/docs/axelor-api-cheatsheet.md)
+Documentation complémentaire : [guide développeur](.agents/docs/DEV_GUIDE.md), [architecture](.agents/docs/ARCHITECTURE.md), [API Axelor](.agents/docs/axelor-api-cheatsheet.md).

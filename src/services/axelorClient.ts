@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 import {
   AxelorActionResponse,
   AxelorApiError,
@@ -6,8 +6,11 @@ import {
   AxelorErrorDetails,
   AxelorResponse,
   AxelorSearchCriteria,
+  AxelorSessionInput,
 } from "../types/axelor.js";
 import { SessionStore } from "./sessionStore.js";
+
+const EXPIRED_SESSION_MESSAGE = "Axelor rejected the saved browser session. Sign in to Axelor in your browser, then click the extension's sync button again. Do not paste the cookie into chat or .env.";
 
 export class AxelorClient {
   private http: AxiosInstance;
@@ -15,11 +18,9 @@ export class AxelorClient {
   private authenticated: boolean = false;
   private cookieJar: Map<string, string> = new Map();
   private csrfToken: string | null = null;
-  private dynamicCookie: string | null = null;
 
   constructor(config: AxelorConfig) {
-    const diskSession = SessionStore.loadSession();
-    const effectiveBaseUrl = config.baseUrl || diskSession?.url || "http://localhost:8080/axelor-erp";
+    const effectiveBaseUrl = config.baseUrl || "http://localhost:8080/axelor-erp";
     this.config = { ...config, baseUrl: effectiveBaseUrl };
     const normalizedUrl = effectiveBaseUrl.replace(/\/+$/, "");
 
@@ -32,16 +33,30 @@ export class AxelorClient {
     });
 
     this.http.interceptors.response.use((response) => {
+      if (this.isLoginRedirect(response)) {
+        throw new Error(EXPIRED_SESSION_MESSAGE);
+      }
+
       const setCookie = response.headers["set-cookie"];
       if (setCookie) {
         this.updateCookies(setCookie);
       }
       return response;
+    }, (error: unknown) => {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        return Promise.reject(new Error(EXPIRED_SESSION_MESSAGE));
+      }
+      return Promise.reject(error);
     });
 
     this.http.interceptors.request.use((reqConfig) => {
       const diskSession = SessionStore.loadSession();
-      const activeCookie = this.dynamicCookie || this.config.cookie || diskSession?.cookie;
+      const hasPersistedSession = Boolean(diskSession?.cookie?.trim() && diskSession.url?.trim());
+      const activeCookie = hasPersistedSession ? diskSession!.cookie : this.config.cookie;
+
+      reqConfig.baseURL = hasPersistedSession
+        ? diskSession!.url!.replace(/\/+$/, "")
+        : this.config.baseUrl.replace(/\/+$/, "");
 
       if (activeCookie) {
         reqConfig.headers.Cookie = activeCookie;
@@ -59,10 +74,19 @@ export class AxelorClient {
     });
   }
 
-  setSessionCookie(cookie: string): void {
-    this.dynamicCookie = cookie;
+  setSession(sessionInput: AxelorSessionInput): void {
+    const session = SessionStore.saveSession(sessionInput);
+    const normalizedUrl = session.url.replace(/\/+$/, "");
+
+    this.config = { ...this.config, baseUrl: normalizedUrl };
+    this.http.defaults.baseURL = normalizedUrl;
+    this.cookieJar.clear();
+    this.csrfToken = null;
     this.authenticated = true;
-    SessionStore.saveSession({ cookie, url: this.config.baseUrl });
+  }
+
+  setSessionCookie(cookie: string): void {
+    this.setSession({ cookie, url: this.config.baseUrl });
   }
 
   private updateCookies(setCookies: string[]): void {
@@ -81,9 +105,34 @@ export class AxelorClient {
     }
   }
 
+  private isLoginRedirect(response: AxiosResponse): boolean {
+    const request = response.request as {
+      responseURL?: string;
+      res?: { responseUrl?: string };
+      _redirectable?: { _currentUrl?: string };
+    } | undefined;
+    const responseUrl = request?.res?.responseUrl || request?.responseURL || request?._redirectable?._currentUrl;
+    const location = response.headers.location;
+    const requestPath = response.config.url || "";
+    const originalRequestIsLogin = /(?:^|\/)login(?:\.jsp)?(?:[?#]|$)/i.test(requestPath);
+
+    if (originalRequestIsLogin) {
+      return false;
+    }
+
+    return [responseUrl, location].some((url) => {
+      if (!url) return false;
+      try {
+        return /(?:^|\/)login(?:\.jsp)?\/?$/i.test(new URL(url, response.config.baseURL).pathname);
+      } catch {
+        return /(?:^|\/)login(?:\.jsp)?(?:[?#]|$)/i.test(url);
+      }
+    });
+  }
+
   async authenticate(): Promise<void> {
     const diskSession = SessionStore.loadSession();
-    if (this.config.apiKey || this.config.cookie || this.dynamicCookie || diskSession?.cookie) {
+    if (this.config.apiKey || this.config.cookie || diskSession?.cookie) {
       this.authenticated = true;
       return;
     }

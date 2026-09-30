@@ -7,7 +7,8 @@ import { MenuService } from "./services/menuService.js";
 import { ViewService } from "./services/viewService.js";
 import { DataService } from "./services/dataService.js";
 import { GuidanceService } from "./services/guidanceService.js";
-import { BridgeServer } from "./services/bridgeServer.js";
+import { BridgeClient } from "./services/bridgeClient.js";
+import { SessionStore } from "./services/sessionStore.js";
 
 dotenv.config();
 
@@ -28,7 +29,7 @@ const menuService = new MenuService(axelorClient);
 const viewService = new ViewService(axelorClient);
 const dataService = new DataService(axelorClient);
 const guidanceService = new GuidanceService(menuService, viewService);
-const bridgeServer = new BridgeServer(bridgePort);
+const bridgeClient = new BridgeClient(bridgePort);
 
 const server = new McpServer({
   name: "agentic-axelor-mcp",
@@ -328,38 +329,43 @@ server.tool(
 
 server.tool(
   "sync_axelor_session",
-  "Dynamically synchronize the active Axelor ERP session cookie (JSESSIONID) or target URL with the server runtime without restarting.",
-  {
-    cookie: z.string().describe("Axelor session cookie (e.g. 'JSESSIONID=8F3924B9...; Path=/axelor-erp')"),
-    url: z.string().optional().describe("Optional target Axelor instance base URL if switching environments"),
-  },
-  async ({ cookie, url }) => {
+  "Check and adopt the Axelor browser session saved by the extension. This tool takes no cookie or URL input. If the session is missing, sign in to Axelor in your browser and sync with the extension. If the session is expired, sign in again in the browser and sync again; never paste a cookie into chat or .env.",
+  {},
+  async () => {
     try {
-      axelorClient.setSessionCookie(cookie);
+      const session = SessionStore.loadSessionStatus();
+      if (!session) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: "No synchronized Axelor browser session was found. Sign in to Axelor in your browser, then use the extension's sync button and try again. Do not paste a cookie into chat or .env.",
+            },
+          ],
+        };
+      }
+
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify(
-              {
-                success: true,
-                message: "Axelor session synchronized successfully across memory and .session.json.",
-                url: url || baseUrl,
-                cookiePreview: `${cookie.substring(0, 24)}...`,
-              },
-              null,
-              2
-            ),
+            text: JSON.stringify({
+              success: true,
+              message: "Using the Axelor browser session saved by the extension. If Axelor rejects it as expired, sign in through the browser and sync again with the extension. Never paste a cookie into chat or .env.",
+              url: session.url,
+              updatedAt: session.updatedAt,
+            }, null, 2),
           },
         ],
       };
-    } catch (error: any) {
+    } catch {
       return {
         isError: true,
         content: [
           {
             type: "text",
-            text: `Error syncing Axelor session: ${error.message || String(error)}`,
+            text: "Could not read the saved Axelor browser session. Sign in to Axelor in your browser, then sync with the extension and try again. Do not paste a cookie into chat or .env.",
           },
         ],
       };
@@ -369,11 +375,11 @@ server.tool(
 
 server.tool(
   "guide_axelor_path",
-  "Calculate a passive navigation roadmap (menu breadcrumbs, new button, target fields) and project it as a visual spotlight into the user's browser via local bridge.",
+  "Calculate a navigation route (menu breadcrumbs, new button, target fields) and store it in the local Bridge. The current extension does not display guides in the browser.",
   {
     targetMenu: z.string().optional().describe("Menu keyword or section title to navigate to (e.g. 'Commandes clients', 'Sequences')"),
     targetModel: z.string().optional().describe("Axelor technical model name (e.g. 'com.axelor.apps.sale.db.SaleOrder')"),
-    targetField: z.string().optional().describe("Target field name on the form to spotlight (e.g. 'clientPartner', 'currency')"),
+    targetField: z.string().optional().describe("Target field name on the form for the route (e.g. 'clientPartner', 'currency')"),
     description: z.string().optional().describe("User intent or summary of the guided action"),
   },
   async ({ targetMenu, targetModel, targetField, description }) => {
@@ -386,7 +392,7 @@ server.tool(
       });
 
       // Push roadmap to the local bridge for the browser extension spotlight
-      bridgeServer.setRoute(route);
+      await bridgeClient.pushRoute(route);
 
       return {
         content: [
@@ -395,7 +401,7 @@ server.tool(
             text: JSON.stringify(
               {
                 success: true,
-                message: `Guidance route "${route.title}" pushed to local bridge (localhost:${bridgePort}).`,
+                message: `Guidance route "${route.title}" stored in the local Bridge (127.0.0.1:${bridgePort}). The current extension does not display guides.`,
                 totalSteps: route.totalSteps,
                 steps: route.steps.map((s, idx) => ({
                   step: idx + 1,
@@ -426,16 +432,16 @@ server.tool(
 
 server.tool(
   "clear_axelor_guide",
-  "Clear any active navigation roadmap and remove the spotlight indicator from the browser.",
+  "Clear the guidance route stored in the local Bridge. The current extension does not display guides in the browser.",
   {},
   async () => {
     try {
-      bridgeServer.clearRoute();
+      await bridgeClient.clearRoute();
       return {
         content: [
           {
             type: "text",
-            text: JSON.stringify({ success: true, message: "Active guidance route cleared." }, null, 2),
+            text: JSON.stringify({ success: true, message: "Guidance route cleared from the local Bridge; the current extension has no guide display." }, null, 2),
           },
         ],
       };
@@ -454,7 +460,6 @@ server.tool(
 );
 
 async function start() {
-  await bridgeServer.start();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
