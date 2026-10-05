@@ -8,7 +8,7 @@ AgenticAxelor connecte directement votre assistant d’IA (Cursor, Claude Deskto
 
 ## Pourquoi AgenticAxelor au Quotidien ?
 
-Conçu pour faire gagner un temps précieux aux **chefs de projet**, **consultants fonctionnels** et **développeurs**, AgenticAxelor transforme votre IDE ou client IA en copilote ERP opérationnel :
+Conçu pour faire gagner un temps précieux aux **chefs de projet**, et **développeurs**, AgenticAxelor transforme votre IDE ou client IA en copilote ERP opérationnel :
 
 1. **Introspection & Documentation Instantanée** :
    - Plus besoin de chercher dans le code source ou la console SQL : l'agent inspecte en 2 secondes les entités JPA, les listes de sélection (`MetaSelect`), les relations de clés étrangères (ERD) et les champs personnalisés créés dans le **Studio Axelor** (`attrs`).
