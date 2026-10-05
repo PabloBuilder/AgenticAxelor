@@ -1,133 +1,119 @@
 # AgenticAxelor
 
-> Le connecteur MCP officiel pour accélérer le travail quotidien des équipes (Chefs de Projet, Développeurs) sur l'ERP Axelor.
+> Connecteur MCP pour accélérer le travail des équipes (Chefs de Projet & Développeurs) sur l'ERP Axelor.
 
-AgenticAxelor connecte directement votre assistant d’IA (Cursor, Claude Desktop, Goose, Pi, Claude Code, etc.) à votre instance Axelor en temps réel en exploitant votre session de travail active, de manière sécurisée et sans configuration complexe.
-
----
-
-## Pourquoi AgenticAxelor au Quotidien ?
-
-Conçu pour faire gagner un temps précieux aux **chefs de projet**, et **développeurs**, AgenticAxelor transforme votre IDE ou client IA en copilote ERP opérationnel :
-
-1. **Introspection & Documentation Instantanée** :
-   - Plus besoin de chercher dans le code source ou la console SQL : l'agent inspecte en 2 secondes les entités JPA, les listes de sélection (`MetaSelect`), les relations de clés étrangères (ERD) et les champs personnalisés créés dans le **Studio Axelor** (`attrs`).
-2. **Moteur de Calcul en Temps Réel (Simulation `onChange`)** :
-   - Testez et simulez les règles métier complexes (calcul des taxes, remises, devises, conditions de règlement) en direct avant toute validation ou enregistrement réel.
-3. **GED & Génération de Documents Directs** :
-   - Dépôt, listing et téléchargement de pièces jointes (DMS). Génération et enregistrement immédiat des devis, factures ou états de stocks aux formats **PDF, Word ou Excel** (BIRT / Jasper).
-4. **Gain de Productivité & Diagnostics Rapides** :
-   - Extraction de données à la volée (CSV/JSON), audit des modifications de champs (`get_axelor_audit_log`) et diagnostic de l'état des workflows BPMN sans navigation manuelle fastidieuse.
+AgenticAxelor relie directement votre assistant d'IA (Goose, Cursor, Claude Code, etc.) à votre instance Axelor en réutilisant en direct votre session de travail, en toute sécurité.
 
 ---
 
-## Cas d'Usage Quotidiens par Profil
+## 🎯 Pourquoi AgenticAxelor ?
 
-### Pour le Chef de Projet & Consultant Fonctionnel
-- **Vérification de paramétrage** : Identifier rapidement les champs obligatoires d'un formulaire, les listes déroulantes actives ou l'arborescence des menus.
-- **Assistance à la recette** : Générer des jeux de données de test cohérents et vérifier les calculs automatiques (taxes, totaux, remises) en une simple phrase.
-- **Extraction & Synthèse rapide** : Exporter facilement les données ciblées sous Excel/CSV pour préparer une réunion client, un atelier de cadrage ou un point d'avancement.
+Transformez votre assistant IA en copilote ERP opérationnel :
 
-### Pour le Développeur & Intégrateur
-- **Exploration du modèle de données** : Comprendre instantanément les liens entre les tables et objets sans ouvrir d'outil de base de données.
-- **Inspection des formulaires & écrans** : Analyser la structure des écrans, les grilles et les champs personnalisés ajoutés dans Axelor.
-- **Validation des actions & automatisations** : Déclencher les actions métier et tester le comportement des formulaires directement depuis l'assistant.
+- **Compréhension instantanée** : Retrouvez la structure des écrans, les listes de choix et les champs personnalisés en quelques secondes.
+- **Simulation en temps réel** : Testez les calculs automatiques (taxes, remises, devises) avant validation de fiches.
+- **Gestion documentaire & Rapports** : Générez devis ou factures (PDF/Excel) et gérez vos pièces jointes sans clic superflu.
+- **Audits & Exports rapides** : Exportez des données ciblées (CSV/Excel) et consultez l'historique des modifications en un message.
 
 ---
 
-## Capacités & Outils MCP (18 Fonctions Clés)
+## 👥 Cas d'Usage Quotidiens
 
-AgenticAxelor met à disposition de votre assistant une suite de 18 fonctionnalités couvrant vos besoins du quotidien sur l'ERP :
+### 📋 Chef de Projet & Consultant Fonctionnel
+- **Vérification de paramétrage** : Identifier les champs obligatoires, listes actives ou menus.
+- **Aide à la recette** : Générer des jeux de données cohérents et valider les calculs automatiques.
+- **Synthèse & Cadrage** : Exporter rapidement des listes filtrées pour vos réunions client.
 
-| Domaine | Outils Inclus | À quoi ça sert concrètement ? |
+### 💻 Développeur & Intégrateur
+- **Exploration du modèle** : Visualiser les relations entre objets métier sans requête SQL manuelle.
+- **Structure des écrans** : Inspecter la composition des formulaires, onglets et grilles.
+- **Automatisation & Actions** : Déclencher et tester les actions métier directement depuis l'assistant.
+
+---
+
+## 🛠️ Capacités MCP (18 Outils Clés)
+
+| Domaine | Outils Inclus | Utilité concrète |
 | :--- | :--- | :--- |
-| **Connexion & Sécurité** | `sync_axelor_session` | Réutilise automatiquement votre connexion active du navigateur, avec exactement les mêmes droits et accès que vous. |
-| **Structure & Personnalisation** | `search_axelor_models`<br>`inspect_axelor_model`<br>`inspect_axelor_selections`<br>`get_axelor_schema_relations`<br>`inspect_axelor_custom_fields` | Explorer les objets métier, les listes de choix, les liens entre écrans et retrouver les champs personnalisés créés dans l'ERP. |
-| **Navigation & Menus** | `search_axelor_menu`<br>`inspect_axelor_view` | Retrouver un menu, comprendre l'organisation des écrans (onglets, formulaires, tableaux). |
-| **Recherche & Export** | `query_axelor_data`<br>`fetch_axelor_record`<br>`export_axelor_data` | Trouver des fiches, filtrer des informations précises et exporter des listes de données au format Excel/CSV. |
-| **Mise à jour & Règles de Calcul** | `simulate_axelor_onchange`<br>`save_axelor_record`<br>`batch_axelor_operations`<br>`delete_axelor_record`<br>`execute_axelor_action`<br>`get_axelor_audit_log` | Simuler les calculs automatiques d'un formulaire avant validation, créer ou modifier des fiches (seules ou en masse), lancer une action et consulter l'historique des modifications. |
-| **Documents, Rapports & Processus** | `get_axelor_attachments`<br>`upload_axelor_attachment`<br>`download_axelor_attachment`<br>`list_axelor_templates`<br>`generate_axelor_report`<br>`get_axelor_bpm_state` | Consulter et joindre des pièces jointes, générer des rapports (devis, factures, récapitulatifs en PDF/Excel) et suivre l'avancement des processus métier. |
+| 🔐 **Connexion** | `sync_axelor_session` | Réutilise votre session navigateur avec vos droits et permissions exacts. |
+| 🏗️ **Structure** | `search_axelor_models`<br>`inspect_axelor_model`<br>`inspect_axelor_selections`<br>`get_axelor_schema_relations`<br>`inspect_axelor_custom_fields` | Explorer les objets métier, listes déroulantes et champs personnalisés. |
+| 🧭 **Navigation** | `search_axelor_menu`<br>`inspect_axelor_view` | Retrouver un menu et comprendre l'organisation d'un écran. |
+| 📊 **Données & Export** | `query_axelor_data`<br>`fetch_axelor_record`<br>`export_axelor_data` | Rechercher, filtrer et exporter des données (CSV / JSON / Excel). |
+| ⚙️ **Mises à jour & Calculs** | `simulate_axelor_onchange`<br>`save_axelor_record`<br>`batch_axelor_operations`<br>`delete_axelor_record`<br>`execute_axelor_action`<br>`get_axelor_audit_log` | Simuler les calculs, créer/modifier des fiches (seules ou en lot) et tracer les audits. |
+| 📁 **Documents & Processus** | `get_axelor_attachments`<br>`upload_axelor_attachment`<br>`download_axelor_attachment`<br>`list_axelor_templates`<br>`generate_axelor_report`<br>`get_axelor_bpm_state` | Gérer les pièces jointes, générer des rapports (PDF/Excel) et suivre les processus. |
 
 ---
 
-## Sécurité & Bonnes Pratiques
+## 🔒 Sécurité & Bonnes Pratiques
 
 > [!WARNING]
-> **Sécurité des Données & Responsabilité** :
-> - **Héritage des droits utilisateur** : L'agent utilise votre session et dispose de **l'ensemble de vos permissions**. Si vous êtes administrateur, il dispose des droits de création, modification et suppression.
-> - **Simulation préalable** : Privilégiez les simulations (`simulate_axelor_onchange`) ou les requêtes de lecture avant d'exécuter des modifications en masse.
-> - **Environnement recommandé** : Utilisez prioritairement une instance de **test / recette / staging** avant tout usage en environnement de production.
-> - **Confidentialité de session** : Le fichier local `.session.json` contient votre cookie de session temporaire et ne doit pas être partagé. Il est exclu du versionnement Git par défaut.
+> - **Permissions identiques** : L'agent hérite strictement de vos droits d'accès sur l'ERP.
+> - **Simulation recommandée** : Privilégiez les simulations de calculs et requêtes de lecture avant toute mise à jour en masse.
+> - **Environnement** : Préférez une instance de recette / staging avant tout usage en production.
+> - **Confidentialité** : Le fichier `.session.json` contient votre cookie temporaire et reste strictement local (exclu de Git).
 
 ---
 
-## Guide d'Installation
+## 🚀 Guide d'Installation
 
-### Option A : Installation Assistée par l'IA (Recommandé avec Goose)
-1. **Téléchargez et décompressez** l'archive du projet sur votre poste de travail.
-2. **Ouvrez Goose** et sélectionnez le dossier décompressé comme répertoire de travail (Workspace / Working directory).
-3. **Dans le chat de Goose**, écrivez simplement :
+### Option A : Installation Guidée avec Goose (Recommandé)
+
+1. **Téléchargez et décompressez** le projet sur votre poste.
+2. **Ouvrez Goose** et sélectionnez le dossier décompressé (*Workspace*).
+3. **Dans le chat**, demandez simplement :
    > **"Lance le setup du projet"** (ou `/setup-assistant`)
-4. L'agent s'occupe de tout : installation des dépendances, compilation et lancement du service de connexion (Bridge local).
-5. Installez l'extension Chrome (fournie dans le sous-dossier `extension/`) et cliquez sur **Synchroniser la session** sur votre onglet Axelor.
+4. L'agent configure l'environnement, compile et démarre le service Bridge local.
+5. Chargez l'extension Chrome (dossier `extension/`) et cliquez sur **Synchroniser la session** sur votre page Axelor.
 
 ---
 
 ### Option B : Installation Manuelle
 
-#### 1. Prérequis & Compilation
-- [Node.js](https://nodejs.org/) (v18+ ou v22 recommandée).
-- Dans le répertoire du projet :
-  ```bash
-  npm install
-  npm run build
-  ```
+1. **Compiler le projet** :
+   ```bash
+   npm install
+   npm run build
+   ```
 
-#### 2. Déclaration dans le Client MCP
-Ajoutez la configuration suivante dans votre client MCP (Cursor, Claude Desktop, etc.) :
-```json
-{
-  "mcpServers": {
-    "agentic-axelor": {
-      "command": "node",
-      "args": ["<CHEMIN_ABSOLU_DU_PROJET>/dist/index.js"]
-    }
-  }
-}
-```
+2. **Déclarer le serveur MCP** dans la configuration de votre client :
+   ```json
+   {
+     "mcpServers": {
+       "agentic-axelor": {
+         "command": "node",
+         "args": ["<CHEMIN_ABSOLU_DU_PROJET>/dist/index.js"]
+       }
+     }
+   }
+   ```
 
-#### 3. Démarrage du Bridge de Session
-- **Sous Windows** : Exécutez **`start-bridge.bat`**.
-- **Sous macOS / Linux** : Lancez `npm run bridge`.
+3. **Démarrer le Bridge** :
+   - Windows : exécuter `start-bridge.bat`
+   - macOS / Linux : `npm run bridge`
 
-#### 4. Synchronisation via l'Extension Navigateur
-1. Dans Google Chrome (`chrome://extensions`), activez le **Mode développeur** et chargez le dossier [`extension/`](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/extension).
-2. Connectez-vous à votre ERP Axelor.
-3. Cliquez sur l'icône de l'extension puis sur **Synchroniser la session**.
-
-Votre agent IA est immédiatement connecté à votre instance Axelor.
+4. **Synchroniser la session** :
+   - Chargez l'extension Chrome non empaquetée depuis `extension/`.
+   - Cliquez sur **Synchroniser la session** depuis votre ERP Axelor.
 
 ---
 
-## Usage Avancé : Workflows Multi-MCP & Agents Autonomes
+## 🤖 Intégration Multi-Agents & Automatisation
 
-En plus de l'usage interactif au quotidien, AgenticAxelor respecte le standard ouvert **Model Context Protocol (MCP)** et peut s'intégrer dans des chaînes de traitement automatisées :
+AgenticAxelor s'intègre naturellement avec d'autres connecteurs MCP dans des chaînes de traitement automatisées :
 
 ```mermaid
 graph TD
-    User["Utilisateur / Pipeline d'Automatisation"] --> Orchestrator["Agent / Orchestrateur (Claude Code / LangGraph / Cursor)"]
+    User["Utilisateur / Pipeline"] --> Orchestrator["Agent / Orchestrateur (Goose / Claude / LangGraph)"]
     
-    Orchestrator -->|Introspection & Données ERP| MCP_Axelor["MCP AgenticAxelor\n(Devis, Factures, Stocks, GED)"]
-    Orchestrator -->|Gestion de tickets & Projets| MCP_Redmine["MCP Gestion de Projet\n(Redmine)"]
-    Orchestrator -->|Bureautique & Stockage Cloud| MCP_Google["MCP Espace Collaboratif\n(Drive, Gmail, Docs, Sheets)"]
+    Orchestrator -->|Données & Rapports ERP| MCP_Axelor["MCP AgenticAxelor\n(Devis, Factures, Stocks, GED)"]
+    Orchestrator -->|Tickets & Projets| MCP_Redmine["MCP Redmine"]
+    Orchestrator -->|Bureautique & Stockage| MCP_Google["MCP Google Workspace"]
 ```
-
-- **Scénarios transverses** : Rapprochement automatique de temps passés (Redmine), synchronisation de tableaux de bord Cloud, traitement automatisé de pièces jointes.
-- **Frameworks compatibles** : *LangGraph*, *CrewAI*, *AutoGen*, *LlamaIndex*, *n8n* ou scripts autonomes en Python / TypeScript.
 
 ---
 
-## Documentation Technique
+## 📚 Documentation Technique
+
 - [Guide Développeur & CLI](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/.agents/docs/DEV_GUIDE.md)
 - [Architecture & Protocoles](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/.agents/docs/ARCHITECTURE.md)
 - [Arbres de Décision Opérateur](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/.agents/standard-index.md)
