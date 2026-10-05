@@ -1,6 +1,6 @@
 # AgenticAxelor
 
-> Le connecteur MCP officiel pour accélérer le travail quotidien des équipes (Chefs de Projet, Développeurs, Consultants) sur l'ERP Axelor.
+> Le connecteur MCP officiel pour accélérer le travail quotidien des équipes (Chefs de Projet, Développeurs) sur l'ERP Axelor.
 
 AgenticAxelor connecte directement votre assistant d’IA (Cursor, Claude Desktop, Goose, Pi, Claude Code, etc.) à votre instance Axelor en temps réel en exploitant votre session de travail active, de manière sécurisée et sans configuration complexe.
 
@@ -23,30 +23,30 @@ Conçu pour faire gagner un temps précieux aux **chefs de projet**, et **dével
 
 ## Cas d'Usage Quotidiens par Profil
 
-### Pour le Chef de Projet / Consultant Fonctionnel
-- **Vérification de paramétrage** : Identifier rapidement les champs obligatoires d'un formulaire, les listes de choix actives ou l'arborescence des menus.
-- **Assistance à la recette** : Créer des jeux de données de test cohérents avec simulation des règles de calcul en une seule demande.
-- **Extraction ad-hoc** : Exporter en CSV les enregistrements filtrés pour les réunions de cadrage ou le reporting client.
+### Pour le Chef de Projet & Consultant Fonctionnel
+- **Vérification de paramétrage** : Identifier rapidement les champs obligatoires d'un formulaire, les listes déroulantes actives ou l'arborescence des menus.
+- **Assistance à la recette** : Générer des jeux de données de test cohérents et vérifier les calculs automatiques (taxes, totaux, remises) en une simple phrase.
+- **Extraction & Synthèse rapide** : Exporter facilement les données ciblées sous Excel/CSV pour préparer une réunion client, un atelier de cadrage ou un point d'avancement.
 
-### Pour le Développeur
-- **Exploration du modèle de données** : Comprendre instantanément les clés étrangères et les relations parent/enfant sans ouvrir pgAdmin.
-- **Inspection des vues & Studio** : Analyser la structure XML des formulaires, les grilles et les champs dynamiques Studio.
-- **Tests d'actions & Mutations** : Déclencher des actions métier (`action-method`, `action-record`) et valider les flux de données directement depuis l'IDE.
+### Pour le Développeur & Intégrateur
+- **Exploration du modèle de données** : Comprendre instantanément les liens entre les tables et objets sans ouvrir d'outil de base de données.
+- **Inspection des formulaires & écrans** : Analyser la structure des écrans, les grilles et les champs personnalisés ajoutés dans Axelor.
+- **Validation des actions & automatisations** : Déclencher les actions métier et tester le comportement des formulaires directement depuis l'assistant.
 
 ---
 
-## Capacités & Outils MCP (18 Fonctions Métier)
+## Capacités & Outils MCP (18 Fonctions Clés)
 
-AgenticAxelor met à disposition de vos agents un jeu complet de 18 outils couvrant l'ensemble du cycle de vie ERP, sans restriction de module :
+AgenticAxelor met à disposition de votre assistant une suite de 18 fonctionnalités couvrant vos besoins du quotidien sur l'ERP :
 
-| Capacité Métier | Outils Inclus | Portée & Flexibilité Transverse |
+| Domaine | Outils Inclus | À quoi ça sert concrètement ? |
 | :--- | :--- | :--- |
-| **Authentification & Session** | `sync_axelor_session` | Adopte de façon sécurisée la session connectée dans votre navigateur avec l'ensemble de vos habilitations métier. |
-| **Introspection & Studio** | `search_axelor_models`<br>`inspect_axelor_model`<br>`inspect_axelor_selections`<br>`get_axelor_schema_relations`<br>`inspect_axelor_custom_fields` | Découverte dynamique de la base de données : entités JPA, dictionnaires de sélection (`MetaSelect`), graphe relationnel (ERD) et champs dynamiques configurés via le Studio Axelor (`attrs`). |
-| **Navigation & Ergonomie** | `search_axelor_menu`<br>`inspect_axelor_view` | Exploration de l'arborescence des menus ERP et compréhension de la structure des vues (formulaires, grilles, onglets). |
-| **Données & Extraction** | `query_axelor_data`<br>`fetch_axelor_record`<br>`export_axelor_data` | Recherche multicritère, pagination, tris, consultation ciblée d'enregistrements et exports volumineux au format CSV ou JSON. |
-| **Règles Métier & Mutations** | `simulate_axelor_onchange`<br>`save_axelor_record`<br>`batch_axelor_operations`<br>`delete_axelor_record`<br>`execute_axelor_action`<br>`get_axelor_audit_log` | Simulation en temps réel des règles d'interface (`onChange`), exécution transactionnelle unitaire ou par lot (batch), déclenchement d'actions/boutons et traçabilité d'audit. |
-| **GED, Rapports & Processus** | `get_axelor_attachments`<br>`upload_axelor_attachment`<br>`download_axelor_attachment`<br>`list_axelor_templates`<br>`generate_axelor_report`<br>`get_axelor_bpm_state` | Gestion documentaire (DMS), génération et téléchargement de rapports (PDF, Word, Excel via BIRT/Jasper) et diagnostic des workflows BPMN. |
+| **Connexion & Sécurité** | `sync_axelor_session` | Réutilise automatiquement votre connexion active du navigateur, avec exactement les mêmes droits et accès que vous. |
+| **Structure & Personnalisation** | `search_axelor_models`<br>`inspect_axelor_model`<br>`inspect_axelor_selections`<br>`get_axelor_schema_relations`<br>`inspect_axelor_custom_fields` | Explorer les objets métier, les listes de choix, les liens entre écrans et retrouver les champs personnalisés créés dans l'ERP. |
+| **Navigation & Menus** | `search_axelor_menu`<br>`inspect_axelor_view` | Retrouver un menu, comprendre l'organisation des écrans (onglets, formulaires, tableaux). |
+| **Recherche & Export** | `query_axelor_data`<br>`fetch_axelor_record`<br>`export_axelor_data` | Trouver des fiches, filtrer des informations précises et exporter des listes de données au format Excel/CSV. |
+| **Mise à jour & Règles de Calcul** | `simulate_axelor_onchange`<br>`save_axelor_record`<br>`batch_axelor_operations`<br>`delete_axelor_record`<br>`execute_axelor_action`<br>`get_axelor_audit_log` | Simuler les calculs automatiques d'un formulaire avant validation, créer ou modifier des fiches (seules ou en masse), lancer une action et consulter l'historique des modifications. |
+| **Documents, Rapports & Processus** | `get_axelor_attachments`<br>`upload_axelor_attachment`<br>`download_axelor_attachment`<br>`list_axelor_templates`<br>`generate_axelor_report`<br>`get_axelor_bpm_state` | Consulter et joindre des pièces jointes, générer des rapports (devis, factures, récapitulatifs en PDF/Excel) et suivre l'avancement des processus métier. |
 
 ---
 
@@ -63,12 +63,13 @@ AgenticAxelor met à disposition de vos agents un jeu complet de 18 outils couvr
 
 ## Guide d'Installation
 
-### Option A : Installation Assistée par l'IA (Recommandé)
-Si vous ouvrez ce projet dans un IDE assisté (Cursor, Goose, Pi, Claude Code...) :
-1. Téléchargez et décompressez le projet.
-2. Indiquez à votre agent :
+### Option A : Installation Assistée par l'IA (Recommandé avec Goose)
+1. **Téléchargez et décompressez** l'archive du projet sur votre poste de travail.
+2. **Ouvrez Goose** et sélectionnez le dossier décompressé comme répertoire de travail (Workspace / Working directory).
+3. **Dans le chat de Goose**, écrivez simplement :
    > **"Lance le setup du projet"** (ou `/setup-assistant`)
-3. L'agent configure l'environnement, compile et démarre le Bridge local.
+4. L'agent s'occupe de tout : installation des dépendances, compilation et lancement du service de connexion (Bridge local).
+5. Installez l'extension Chrome (fournie dans le sous-dossier `extension/`) et cliquez sur **Synchroniser la session** sur votre onglet Axelor.
 
 ---
 
