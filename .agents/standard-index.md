@@ -103,10 +103,14 @@ Comprehensive routing map, decision trees, and token efficiency guidelines for o
 
 ## 4. Token Economy & Operational Safety Rules
 
-1. **Prefer Disk `outputPath` over `includeBase64`**:
+1. **Large Dataset Export Policy (Threshold >= 15 records)**:
+   - **Never dump massive tables or CSV strings directly in chat**.
+   - If a query returns $\ge 15$ records, export the dataset to a file (e.g. `Work_data/<name>.csv` or `.json` via `export_axelor_data` or `npm run query -- --output`).
+   - In chat, output **strictly**: high-level aggregates / KPIs, top 5 sample rows, and a clickable Markdown file link (`file:///...`).
+2. **Prefer Disk `outputPath` over `includeBase64`**:
    - Binary files (PDFs, DOCs, attachments) encoded in Base64 consume tens of thousands of LLM context tokens. Always pass `outputPath: "./output.pdf"` when downloading or generating documents.
-2. **ERP Relational Deletion Order (LIFO)**:
+3. **ERP Relational Deletion Order (LIFO)**:
    - When deleting business entities, delete dependent child records first to satisfy PostgreSQL foreign key constraints:
    - `StockLocationLineHistory` ➔ `StockLocationLine` ➔ `InvoiceLine` ➔ `Invoice` ➔ `StockMoveLine` ➔ `StockMove` ➔ `SaleOrderLine` ➔ `SaleOrder`.
-3. **Session Security**:
+4. **Session Security**:
    - Never paste session cookies into chat or code. Use the extension sync button.

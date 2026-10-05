@@ -4,7 +4,9 @@ dist/
 *.log
 .DS_Store
 .session.json
-Work_data/
+Work_data/*
+!Work_data/.gitkeep
+exports/
 src/cli/test/
 reference-sources/.axelor-open-suite-git-backup/
 

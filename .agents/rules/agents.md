@@ -21,6 +21,7 @@ Before taking action, identify the operational intent and load ONLY the correspo
 ### Mode 1: Operator / Tool User (Standard Usage)
 > **Trigger**: User asks to query Axelor data, inspect menus, synchronize a browser session, or work with server-side guidance routes without modifying this project's code.
 >  **Load and follow**: [Operator index](../standard-index.md)
+>  **Large Data Policy**: For datasets $\ge 15$ records, export to file on disk (`Work_data/`) and return in chat only KPIs, Top 5, and the clickable file link.
 >  **CLI Fallback**: If MCP Axelor tools are not active in the session, execute queries directly via `npm run query -- --model <Model> [--domain <Domain>] [--fields <f1,f2>] [--format table|json|csv] [--output <file>]`. Never generate ad-hoc exploration scripts in `src/cli/`.
 
 ### Mode 2: Engineer / Developer (Coding & Maintenance)
