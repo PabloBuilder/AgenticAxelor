@@ -349,4 +349,33 @@ export class AxelorClient {
 
     return response.data;
   }
+
+  async downloadFile(fileId: number): Promise<{ data: Buffer; contentType?: string; contentDisposition?: string }> {
+    await this.ensureAuthenticated();
+
+    const endpoint = `/ws/rest/com.axelor.meta.db.MetaFile/${fileId}/content/download`;
+    const response = await this.http.get<ArrayBuffer>(endpoint, {
+      responseType: "arraybuffer",
+      headers: {
+        Accept: "*/*",
+      },
+    });
+
+    const contentType = response.headers["content-type"];
+    const contentDisposition = response.headers["content-disposition"];
+
+    return {
+      data: Buffer.from(response.data),
+      contentType: contentType ? String(contentType) : undefined,
+      contentDisposition: contentDisposition ? String(contentDisposition) : undefined,
+    };
+  }
+
+  getBaseUrl(): string {
+    const diskSession = SessionStore.loadSession();
+    if (diskSession?.url?.trim()) {
+      return diskSession.url.trim().replace(/\/+$/, "");
+    }
+    return this.config.baseUrl.replace(/\/+$/, "");
+  }
 }

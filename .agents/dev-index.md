@@ -15,24 +15,30 @@ The [HUD specification](docs/extension-hud.md) is historical only; the shipped e
 
 ---
 
-## 2. Workspace Layout
+## 2. Workspace Layout & Service Architecture
 
-| Path | Component / Target | Key Entry Points |
+| Path / Service | Component / Purpose | Key Entry Points |
 | :--- | :--- | :--- |
-| `src/` | MCP server over stdio; separate local Bridge on `127.0.0.1:3210` | [MCP entry](../src/index.ts), [Bridge entry](../src/bridge.ts), [Bridge server](../src/services/bridgeServer.ts), [session store](../src/services/sessionStore.ts) |
-| `src/guides/` | Retained server-side route definitions and contracts; no browser consumer | [Guide registry](../src/guides/index.ts), [guidance types](../src/types/guidance.ts) |
-| `src/cli/` | CLI runners, diagnostics, and tests | [Guide pusher](../src/cli/guidePusher.ts), [inspection](../src/cli/inspect/), [operations](../src/cli/ops/), [tests](../src/cli/test/) |
-| `extension/` | Manifest V3 browser session sync; no HUD content script | [Manifest](../extension/manifest.json), [popup](../extension/popup.js), [background worker](../extension/background.js) |
-| `.agents/skills/` | Agent skills registry | [Skills](skills/) |
-| `reference-sources/` | Upstream Axelor Open Suite reference code | Query XML resources using globs from [Axelor index](Axelor-index.md) |
+| `src/index.ts` | Main MCP server registering 18 tools over stdio | [MCP Entry](../src/index.ts) |
+| `src/services/schemaService.ts` | JPA model discovery, schema introspection, selections (`MetaSelect`), custom fields (`attrs`), ERD relations | `inspectModel`, `searchModels`, `inspectSelections`, `getSchemaRelations`, `inspectCustomFields` |
+| `src/services/dataService.ts` | Business record querying, single fetch, save, LIFO delete, batch operations, onchange simulation, bulk export | `queryData`, `fetchRecord`, `saveRecord`, `deleteRecord`, `batchOperations`, `simulateOnChange`, `exportData` |
+| `src/services/reportService.ts` | Report & template listing, server-side BIRT/Jasper report generation and downloading | `listTemplates`, `generateReport` |
+| `src/services/dmsService.ts` | Attachment listing (`MetaAttachment`), upload, and binary downloading (`MetaFile`) | `getAttachments`, `uploadAttachment`, `downloadAttachment` |
+| `src/services/bpmService.ts` | BPMN workflow instance introspection (`WkfInstance`), stages, and task assignments | `getBpmState` |
+| `src/services/auditService.ts` | Historical field changes and audit trail querying (`GlobalTrackingLog`) | `getAuditLog` |
+| `src/services/menuService.ts` | Menu hierarchy traversal and keyword searching (`MetaMenu`) | `searchMenu` |
+| `src/services/viewService.ts` | XML view structure introspection (`MetaView`) | `inspectView` |
+| `src/services/axelorClient.ts` | HTTP client with automatic session synchronization, CSRF, and login handling | `AxelorClient` |
+| `src/bridge.ts` | Local Bridge daemon on `127.0.0.1:3210` receiving session sync from Chrome extension | [Bridge Server](../src/services/bridgeServer.ts), [Session Store](../src/services/sessionStore.ts) |
+| `extension/` | Manifest V3 browser extension for 1-click Axelor session synchronization | [Manifest](../extension/manifest.json), [Popup](../extension/popup.js) |
+| `.agents/skills/` | Specialized agent workflows | [Skills Registry](skills/) |
 
 ---
 
 ## 3. Engineering Directives
-- **Zero Java UI Scanning**: Restrict UI, field, and view discovery to XML files (`*-form.xml`, `*-menu.xml`, `*-grid.xml`).
-- **Strict Typing**: Ground all changes in typed interfaces ([types](../src/types/)).
-- **Session sync**: Keep the cookie out of chat and ensure the Bridge and MCP share the same checkout; the extension does not render guides.
-- **Session Namespacing**: Use `formatSessionName` (`[S1]`, `[T2]`) or `formatSessionCode` from `src/services/namespacing.ts` for demo/test entities.
+- **Strict Typing**: Ground all changes in typed interfaces ([types](../src/types/axelor.ts)).
+- **Token Efficiency**: Always prefer local disk `outputPath` over binary base64 returns in MCP tool calls.
+- **Session Security**: Keep the cookie out of chat and `.env`. Rely strictly on extension sync via `SessionStore`.
 - **ERP Deletion Order (LIFO)**: `StockLocationLineHistory` ➔ `StockLocationLine` ➔ `InvoiceLine` ➔ `Invoice` ➔ `StockMoveLine` ➔ `StockMove` ➔ `OrderLine` ➔ `Order` ➔ `Parent Entity`. Validate FSM downgrade (`statusSelect: 1` or `4`) before parent deletion.
 
 
