@@ -12,6 +12,7 @@ Paths below are repository-relative, explicit files; do not replace them with re
 | `.agents/docs/DEV_GUIDE.md` | `README.md`, `package.json`, `src/index.ts`, `src/bridge.ts`, `src/cli/guidePusher.ts`, `src/guides/index.ts`, `extension/manifest.json`, `extension/popup.html`, `extension/popup.js`, `extension/background.js` | `-` | `unverified` |
 | `.agents/standard-index.md` | `README.md`, `src/index.ts`, `src/types/guidance.ts`, `.agents/skills/axelor-guidance-builder/SKILL.md`, `extension/manifest.json` | `-` | `unverified` |
 | `.agents/dev-index.md` | `README.md`, `.agents/docs/ARCHITECTURE.md`, `.agents/docs/bridge-protocol.md`, `.agents/docs/DEV_GUIDE.md`, `.agents/Axelor-index.md`, `src/index.ts`, `src/bridge.ts`, `src/services/bridgeServer.ts`, `src/services/sessionStore.ts`, `src/guides/index.ts`, `src/cli/guidePusher.ts`, `extension/manifest.json`, `extension/popup.js`, `extension/background.js` | `-` | `unverified` |
+| `.agents/missions/cdp-ticket-writer/SKILL.md` | `.agents/rules/agents.md`, `.agents/missions/cdp-ticket-writer/assets/template-ticket.md`, `.agents/missions/cdp-ticket-writer/references/qualification-guide.md`, `.agents/missions/cdp-ticket-writer/references/mermaid-rules.md`, `.agents/Axelor-index.md`, `.agents/standard-index.md`, `.agents/redmine-index.md`, `.agents/google-workspace-index.md` | `-` | `unverified` |
 
 ## Review States
 

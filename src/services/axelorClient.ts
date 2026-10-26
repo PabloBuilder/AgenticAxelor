@@ -7,6 +7,7 @@ import {
   AxelorResponse,
   AxelorSearchCriteria,
   AxelorSessionInput,
+  MetaFileRecord,
 } from "../types/axelor.js";
 import { SessionStore } from "./sessionStore.js";
 
@@ -348,6 +349,44 @@ export class AxelorClient {
     });
 
     return response.data;
+  }
+
+  async uploadFile(
+    fileName: string,
+    buffer: Buffer,
+    fileType: string = "application/octet-stream"
+  ): Promise<MetaFileRecord> {
+    await this.ensureAuthenticated();
+
+    const endpoint = `/ws/files/upload`;
+    const formData = new FormData();
+    const blob = new Blob([buffer], { type: fileType });
+    formData.append("file", blob, fileName);
+
+    const response = await this.http.post<AxelorResponse<MetaFileRecord>>(endpoint, formData, {
+      headers: {
+        "X-File-Name": fileName,
+        "X-File-Size": String(buffer.length),
+        "X-File-Type": fileType,
+        "X-File-Offset": "0",
+      },
+    });
+
+    if (response.data && response.data.status !== 0) {
+      const errorMsg = response.data.message || `Failed to upload file ${fileName} to Axelor`;
+      throw new AxelorApiError(
+        response.data.status,
+        errorMsg,
+        { message: errorMsg }
+      );
+    }
+
+    const metaFile = response.data?.data?.[0];
+    if (!metaFile || !metaFile.id) {
+      throw new Error(`Failed to obtain valid MetaFile from upload of ${fileName}`);
+    }
+
+    return metaFile;
   }
 
   async downloadFile(fileId: number): Promise<{ data: Buffer; contentType?: string; contentDisposition?: string }> {

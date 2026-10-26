@@ -1,0 +1,13 @@
+{
+    "pendant.autoGenerateSessionNames": true,
+    "pendant.sessionNameGeneration": {
+        "model": "openai-codex/gpt-6.1-sol",
+        "thinking": "minimal"
+    },
+    "pendant.showThinking": true,
+    "pendant.systemPrompt": "# Agent behavior\n\n- **Selective Reading**: Never guess. Use tools to read these files only when the task requires it.\n- **Context Navigation Strategy (CRITICAL)**: NEVER read a source code file line-by-line during initial exploration. ALWAYS use the user keywords mapped in the context file to directly search (`grep_search` or targeted file viewing) for the specific code elements (Variables, Bindings, Handlers). Full-file reading is strictly a last resort if targeted search fails.\n- **Semantic Compression**: Communicate and reason with maximum information density. Cut all filler and pleasantries.\n- **NO WALKTHROUGHS**: Never generate walkthrough artifacts or `walkthrough.md` files.\n\n# RTK - Rust Token Killer\n\n**Usage**: Token-optimized CLI proxy for shell commands.\n\n## Rule\n\nAlways prefix shell commands with `rtk` to minimize token consumption.\n\nExamples:\n\n```bash\nrtk git status\nrtk cargo test\nrtk ls src/\nrtk grep \"pattern\" src/\nrtk find \"*.rs\" .\nrtk docker ps\nrtk gh pr list\n```\n\n## Meta Commands\n\n```bash\nrtk proxy <cmd>       # Run raw (no filtering, for debugging)\n```\n\n## Why\n\nRTK filters and compresses command output before it reaches the LLM context, saving 60-90% tokens on common operations. Always use `rtk <cmd>` instead of raw commands.\n",
+    "pendant.context.includeEditor": true,
+    "pendant.context.includeSelection": false,
+    "pendant.fontSize": 15,
+    "pendant.voice.language": "fr"
+}

@@ -144,22 +144,10 @@ export class DmsService {
       else fileType = "application/octet-stream";
     }
 
-    // 1. Create MetaFile record
-    const metaFilePayload: Record<string, unknown> = {
-      fileName,
-      filePath,
-      fileType,
-      fileSize,
-      sizeText,
-    };
-    if (options.description) {
-      metaFilePayload.description = options.description;
-    }
-
-    const metaFileRes = await this.client.save<MetaFileRecord>("com.axelor.meta.db.MetaFile", metaFilePayload);
-    const metaFile = metaFileRes.data?.[0];
+    // 1. Upload binary stream to Axelor server to create real persisted MetaFile
+    const metaFile = await this.client.uploadFile(fileName, buffer, fileType);
     if (!metaFile || !metaFile.id) {
-      throw new Error(`Failed to create MetaFile record for ${fileName}`);
+      throw new Error(`Failed to upload binary file for ${fileName}`);
     }
 
     // 2. Link MetaFile via MetaAttachment to target business record

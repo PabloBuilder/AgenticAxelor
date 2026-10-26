@@ -1,0 +1,1 @@
+Before responding or acting, read and follow [.agents/rules/agents.md](.agents/rules/agents.md) and its routing instructions.
