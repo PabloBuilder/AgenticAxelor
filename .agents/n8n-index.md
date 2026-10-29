@@ -1,6 +1,6 @@
 # n8n Operational Index
 
-Use the installed external n8n CLI for workflows and execution diagnosis. It is not an MCP server and does not use the Axelor Bridge.
+Use the installed external n8n CLI for workflows and execution diagnosis. It is not an MCP server and does not use the Axelor Bridge. For n8n operations, read and follow [n8n-axi knowledge](knowledge/n8n-axi/index.md) for CLI commands and task-specific references; the safeguards in this index remain applicable.
 
 ## 1. Local Availability & Authentication
 

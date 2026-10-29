@@ -1,0 +1,11 @@
+# Audit des droits Axelor en lecture seule
+
+1. Définir l'instance, le périmètre, les identités de test autorisées et les règles métier de partage attendues. Pour comparer plusieurs comptes, obtenir l'autorisation de chaque test et utiliser les sessions synchronisées par le mécanisme prévu ; ne jamais archiver de cookies ou de secrets.
+2. Préparer des objets de test connus et des contrôles positifs : vérifier qu'un compte autorisé peut lire l'objet et que l'identité testée conserve l'accès aux données qu'elle doit voir. Une absence de résultat ne prouve pas un refus : l'objet peut être absent, supprimé ou hors du périmètre de la requête.
+3. Comparer séparément l'accès au parent et à ses objets liés pertinents : lignes, versions, associations ou adresses. Tester recherche et lecture directe lorsque disponibles, en limitant les champs et les résultats. Les règles de partage légitime doivent être déterminées avec le responsable métier avant de qualifier une exposition.
+4. Pour les documents, distinguer la liste des pièces jointes, les métadonnées et l'accès au contenu ; vérifier séparément les parcours et endpoints réellement disponibles. Préférer un fichier synthétique ; ne télécharger un document sensible réel qu'avec une autorisation explicite. Ne pas supposer qu'un parcours particulier est toujours obligatoire.
+5. Consigner environnement, compte de test, cas, résultat observé et limites, avec les données minimales nécessaires. Distinguer refus observé, objet non retrouvé et test non effectué ; ne pas inventer un code HTTP ni extrapoler à tous les objets. Expurger données personnelles, pièces confidentielles et secrets.
+
+L'audit Interservices archivé rapporte des différences d'accès entre parents, éléments liés et documents à partir de transcriptions sélectionnées, non de journaux bruts exhaustifs. Il ne démontre ni la cause racine, ni une politique générale, ni les droits d'écriture. Les résultats sont propres aux comptes, données, environnement et dates testés.
+
+Ce skill est strictement en lecture seule : aucune création, modification, suppression, changement de permissions ou action métier. Un audit d'écriture est un chantier séparé, nécessitant son propre périmètre, des données adaptées et une autorisation explicite.

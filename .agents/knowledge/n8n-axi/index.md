@@ -1,9 +1,3 @@
----
-disable-model-invocation: true
-name: n8n-axi
-description: "n8n workflows and automations on automation.alter-si.fr — list, read, search, author, patch, activate, tag, and debug a failed run down to the node that broke. Covers webhooks, triggers, schedules, node types and typeVersions, parameters and credentials. Triggers in French too: automatisation, exécution, workflow planté, déclencheur, nœud, « pourquoi ça a échoué », « combien tournent ». Prefer this over the n8n MCP connector, over ad-hoc curl, and over reading node-index.json by hand."
----
-
 # n8n-axi
 
 n8n from the command line, shaped for agents. Compact TOON output by default;

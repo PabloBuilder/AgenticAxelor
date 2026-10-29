@@ -1,7 +1,7 @@
 ---
-disable-model-invocation: true
 name: axelor-xml-data-import
 description: "Author and validate Axelor ERP XML binding files for CSV imports: bindings, adapters, repo lookups, M2M, sequences, attrs, checks, and Excel helpers."
+disable-model-invocation: true
 ---
 
 # Axelor XML Data Import & Binding Builder
@@ -10,18 +10,26 @@ Génération et validation strictes des fichiers XML de liaison CSV Axelor ERP.
 
 ## 0. Auto-Binding & Minimalist XML (Zero-Bloat Rule)
 
-Axelor résout nativement les correspondances directes et relations sans aucune balise `<bind>` :
+Pour l'import classique CSV/XML, l'auto-binding ci-dessous a été observé notamment dans les tâches #4023 et #5691. Vérifier le comportement sur la version et l'instance cibles avant de le généraliser :
 
-1. **Auto-Binding direct (`column = field`)** : Si le nom de la colonne CSV est identique au nom du champ Java (ex: `name`, `code`, `description`), Axelor le mappe automatiquement.
-2. **Dot-Notation sur Relations ManyToOne (`rel.field`)** : Si la colonne CSV est au format `relation.champ` (ex: `status.id`, `parent.code`, `partner.id`), Axelor recherche automatiquement l'entité liée par sa clé/champ et l'associe sans aucun `<bind to="..." search="..."/>`.
-3. **Paramètre Search Automatique (`:nom_colonne`)** : Tout paramètre dans `search="self.id = :id"` ou `search="self.code = :code"` est automatiquement résolu depuis la colonne CSV correspondante sans `<bind to="id" column="id"/>`.
+1. **Auto-binding direct (`column = field`)** : Une colonne correspondant au champ Java peut être mappée sans `bind` explicite.
+2. **Dot-notation ManyToOne (`rel.field`)** : Des colonnes telles que `status.id` et `businessProjectType.id` ont permis de retrouver et associer des entités liées sans `bind` explicite dans les cas observés.
+3. **Paramètre de recherche (`:nom_colonne`)** : `search="self.id = :id"` a utilisé la colonne CSV `id` dans les cas observés ; vérifier les correspondances et le comportement sur la cible.
 4. **Pattern Minimaliste Ultra-Court (Self-Closing)** :
    ```xml
-   <!-- Import/Mise à jour directe sans balise enfant (100% fonctionnel) -->
+   <!-- Exemple d'import/mise à jour : vérifier sur la version cible -->
    <input file="update_tasks.csv" separator=";" type="com.axelor.apps.project.db.ProjectTask" search="self.id = :id" update="true"/>
    ```
 
 > ⚠️ **Règle d'or :** N'utiliser les balises `<bind>` que si nécessaire (transformation Groovy `eval`, adaptateur `adapter="LocalDate"`, split ManyToMany `\|`, ou alias de colonne différent du modèle).
+
+## Contrôles de l'import classique CSV/XML
+
+- Confirmer l'instance cible, le périmètre et le traitement des archivés ; vérifier l'existence et l'unicité des IDs cibles et des références avant toute mise à jour. Les IDs ne sont pas supposés identiques entre environnements.
+- `search` et `update="true"` ne démontrent pas à eux seuls qu'un ID absent ne créera jamais d'enregistrement : tester ce comportement sur la version cible avant de s'y fier. Ne pas présumer qu'un champ dérivé tel que `fullName` sera recalculé.
+- Préparer et vérifier le lot en lecture seule ; toute exécution exige une autorisation explicite. Tester sur un petit périmètre autorisé avant le lot complet ; conserver l'état avant si un retour arrière est requis, sans prétendre qu'il est disponible ou testé.
+- Consulter l'historique et les logs de l'import classique pour les réussites et anomalies, puis comparer les valeurs métier attendues au fichier réellement importé et aux données relues sur la cible. Un succès technique ne remplace pas ce contrôle.
+- Ne pas relancer à l'aveugle après une erreur ou supposer qu'une réexécution est idempotente ; diagnostiquer l'état actuel et tester le comportement de reprise.
 
 ## 1. Schema & Adapters Blueprint
 

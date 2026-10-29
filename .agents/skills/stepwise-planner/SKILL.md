@@ -1,7 +1,7 @@
 ---
 name: stepwise-planner
 disable-model-invocation: true
-description: Generates a code-grounded implementation plan in dynamic atomic steps (1-7), saved to session artifact plan.md with chat silence.
+description: Generates a code-grounded implementation plan in dynamic atomic steps (1-7), saved to the project's designated planning directory with chat silence.
 ---
 
 # Stepwise Planner
@@ -9,7 +9,7 @@ description: Generates a code-grounded implementation plan in dynamic atomic ste
 ## Invariants
 - **Language**: English strictly.
 - **Silence**: Chat response MUST be a 1-line confirmation only. Never dump plan text in chat.
-- **Output Target**: `<appDataDir>\brain\<conversation-id>/plan.md` (Temporary artifact).
+- **Output Target**: `reference-sources/axelor-open-suite/axelor-intervention/src/main/java/com/axelor/apps/intervention/service/planning/plan-<topic>.md` in the workspace. Use a descriptive topic; never overwrite an unrelated plan.
 - **No Overhead**: Zero compilation/build tests and zero walkthrough artifacts unless requested.
 
 ## Sizing & Granularity (1-7 Steps)
@@ -48,7 +48,7 @@ description: Generates a code-grounded implementation plan in dynamic atomic ste
 
 ### Plan Generation
 1. Investigate codebase using targeted lookups.
-2. Write initial artifact to `<appDataDir>\brain\<conversation-id>/plan.md` (steps marked `[ ]`).
+2. Write initial artifact to the designated planning directory as `plan-<topic>.md` (steps marked `[ ]`); use a unique name if needed and do not search for a conversation ID.
 3. Output 1-line confirmation in chat: `Implementation plan generated in plan.md. Awaiting confirmation for Step 1.`
 
 ### Step Execution (When Step [N] Triggered)
