@@ -7,7 +7,7 @@ Conditional task guidance for Axelor ERP operations. Discover available tools an
 ## 1. Primary References & Setup
 - **Onboarding & Setup Assistant**: [Setup Assistant Skill](skills/setup-assistant/SKILL.md)
 - **User Documentation & Safety**: [README](../README.md)
-- **Axelor REST API Cheatsheet**: [Axelor REST API Cheatsheet](../docs/axelor-api-cheatsheet.md)
+- **Axelor REST API Cheatsheet**: [Axelor REST API Cheatsheet](docs/axelor-api-cheatsheet.md)
 - **Architectural Analysis & Critique**: [Read-Only Consultant Skill](skills/read-only-consultant/SKILL.md)
 - **Optional Guidance Authoring**: [Axelor Guidance Builder Skill](skills/axelor-guidance-builder/SKILL.md)
 

@@ -26,3 +26,13 @@ Use the installed external n8n CLI for workflows and execution diagnosis. It is 
 - Confirm activation, execution triggers, deletion, bulk changes, and potentially externally communicating operations. Do not mutate or trigger workflows as arbitrary setup tests.
 - Standing approval in `rules/agents.md` covers local preparation and creation of separate manual inactive Axelor demo test workflows; do not ask again for that preparation scope. Preserve existing workflows and execution-data protections. Execution, activation, existing-workflow changes and ERP writes remain separately approval-gated.
 - Read back changed state and report partial failures. Do not blindly repeat non-idempotent writes or claim a successful execution from activation alone.
+
+## 4. Architecture & Design Rules (Zero-Bloat Doctrine)
+
+When designing, refactoring, or diagnosing n8n workflows (especially n8n ↔ Axelor + LLM), enforce these 5 rules and consult [n8n ↔ Axelor & AI Engineering Guide](docs/n8n-axelor-engineering.md) and [Axelor REST API Cheatsheet](docs/axelor-api-cheatsheet.md):
+
+1. **Single Idempotent Pipeline (No Duplicated Recovery Corridors)**: Query existing ERP state (`IF Record Exists`, `IF Attachment Exists`) and reuse valid drafts instead of building parallel "Creation" and "Recovery" branches.
+2. **Strict `I/O → Code → I/O` Alternation**: Never chain `Code → Code` on the main port. Merge consecutive validation/preparation logic into a single `Code` node between I/O boundaries.
+3. **Minimal `Data Table` Footprint**: At most 1 state read at workflow start and 2 writes at workflow exit (`DONE`/`ERROR` status + event log). Never build per-node Two-Phase Commit state machines.
+4. **Centralized 4-Node Error Branch**: Route all `main:1` error outputs directly to one central error collector (`Diagnostic & Preparation Erreur` → `Fallback Action` → `Statut ERROR` → `Journal Erreur`). Prefix thrown errors with `[STAGE:<Node Name>]` instead of adding per-node capture/diagnostic wrappers.
+5. **Declarative Build & Offline Test First**: Generate workflows via declarative scripts (`Work_data/build-*.mjs`), validate with `n8n-axi.exe workflow validate --strict` (`0 warnings`), and verify all `Code` nodes offline (`Work_data/test-*.mjs`) before pushing. Keep environment-specific IDs in `Work_data/*-bindings.json`, never in `.agents/`.
