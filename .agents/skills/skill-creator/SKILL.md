@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: skill-creator
 description: "Author or review AgentSkills: create, repair, validate, or restructure SKILL.md files and bundled resources."
 ---

@@ -1,5 +1,6 @@
 ---
 name: axelor-guidance-builder
+disable-model-invocation: true
 description: "Author grounded Axelor GuidanceRoute definitions for the Bridge. The current session-sync extension does not render routes or a HUD."
 ---
 

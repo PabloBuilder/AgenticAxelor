@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: context-architecture-maintainer
 description: "Use when auditing or refreshing AgenticAxelor contextual architecture, context freshness, documentation drift, or agent indexes after project changes. Compare a focused Git watchlist with the real runtime, update small documentation changes, and escalate cross-document work."
 ---

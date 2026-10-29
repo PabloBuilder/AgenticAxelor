@@ -1,5 +1,6 @@
 ---
 name: stepwise-planner
+disable-model-invocation: true
 description: Generates a code-grounded implementation plan in dynamic atomic steps (1-7), saved to session artifact plan.md with chat silence.
 ---
 

@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: axelor-xml-data-import
 description: "Author and validate Axelor ERP XML binding files for CSV imports: bindings, adapters, repo lookups, M2M, sequences, attrs, checks, and Excel helpers."
 ---

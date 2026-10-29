@@ -1,5 +1,6 @@
 ---
 name: handoff
+disable-model-invocation: true
 description: Generates a concise, high-density session handoff in HANDOFF.md with strict semantic compression for seamless continuation in a fresh session.
 ---
 

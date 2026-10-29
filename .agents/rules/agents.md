@@ -30,7 +30,7 @@ Reading documentation or discussing architecture does not authorize code changes
 
 ### Mode 3: Redmine / Project & Issue Operations
 > **Trigger**: User asks to read or search Redmine tickets/issues, manage projects, change assignments or statuses, add comments, or track time. A ticket number in a Redmine context also triggers this mode.
-> **Load and follow**: [Redmine operational index](../redmine-index.md)
+> **Load and follow**: `~/.pi/agent/skills/redmine-axi/SKILL.md` for Redmine reads. For writes, also load its `references/writing.md`. If unavailable, report the blocker; do not silently switch connectors.
 
 ### Mode 4: Google Workspace Operations
 > **Trigger**: User requests Google documents, spreadsheets, Drive files, mail, calendars, or other Google Workspace operations.
