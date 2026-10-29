@@ -27,6 +27,14 @@ Conditional task guidance for Axelor ERP operations. Discover available tools an
 
 ## 3. Validation & Verification
 
+### Axelor navigation and UI instructions
+
+- Before giving an Axelor menu path, verify it on the target instance with `search_axelor_menu`; report the returned breadcrumb rather than an assumed path.
+- Before describing a specific tab, field, button, or action, inspect the relevant view with `inspect_axelor_view` and only assert details supported by its results. If the view does not establish a detail, say it is unverified.
+- Distinguish evidence from the target instance from reference-source code: installed versions and customizations may differ. Reference code alone does not establish the current instance's navigation or UI.
+- A returned menu does not by itself prove that the user can see it or has permission to use it. State this limitation when relevant.
+- If the necessary tools, synchronized session, or evidence are unavailable, say so and do not invent a path or UI detail. Suggest restoring the session or ask for a screenshot; label any unverified hypothesis explicitly.
+
 - A known-model/ID read can fetch directly. Selections, custom fields, relations and views are conditional on missing evidence and task needs, not mandatory introspection stages.
 - Before writes, resolve exact targets, read current records and related context, validate fields and status constraints, and retain optimistic-lock versions where supported. Apply specific authorization and sensitive-action confirmation from the router.
 - Use `simulate_axelor_onchange` when changed fields require dependent calculations (prices, taxes, addresses, terms or UI attributes). Resolve applicable actions from schema/view evidence; simulation is not a persisted save or permission to execute arbitrary actions.

@@ -30,6 +30,8 @@ Utiliser [le modele historique](./assets/01_process_historique.md). Rediger en f
 
 Pour chaque etape, preciser entree, action effectivement realisee, regle ou decision, sortie, controle et intervention humaine. Conserver les difficultes et essais abandonnes lorsqu'ils expliquent le choix final. Ne pas presenter une solution proposee comme executee.
 
+Inclure systématiquement un retour d'expérience explicite : les difficultés rencontrées par l'assistant, ce qu'il a appris, et ce qu'il changerait concrètement la prochaine fois. Relier chaque point à un fait ou à une limite observée, sans inventer d'expérience.
+
 Qualifier les affirmations importantes : `Realise et verifie`, `Rapporte sans preuve archivee`, `Propose`, `Information manquante`. Une declaration dans la discussion n'est pas une preuve de resultat.
 
 Pour les transformations, expliciter jointures, colonnes intermediaires, filtres, valeurs techniques et traitement des absences ou doublons lorsqu'ils sont connus. Distinguer nombre d'enregistrements et lignes physiques. Ne pas confondre presence d'une ligne et quantite positive. Les identifiants et mappings observes restent propres a l'environnement tant que leur portabilite n'est pas verifiee.
@@ -60,7 +62,7 @@ Critere : fichiers sources et traites disponibles effectivement copies, inventai
 
 Utiliser [le modele roadmap](./assets/02_roadmap_automatisation.md). Separer mecanismes deja disponibles et capacites a verifier. Ne pas inventer d'endpoint, de connecteur ou de nom d'outil.
 
-Transformer chaque geste manuel en candidat d'automatisation, en precisant ses entrees, sorties, dependances et test d'acceptation. Distinguer calcul deterministe, jugement metier et autorisation humaine. Identifier controles prealables, simulation sans ecriture, relance sans doublons, verification apres action et possibilite de retour arriere quand pertinents. Ne pas promettre une automatisation totale sans conditions de securite et validation metier.
+Transformer chaque geste manuel en candidat d'automatisation, en precisant ses entrees, sorties, dependances et test d'acceptation. Identifier systématiquement ce qui semble facilement automatisable de bout en bout, en expliquant pourquoi, les limites et les confirmations humaines toujours nécessaires ; si aucun parcours ne peut être qualifié ainsi, le dire. Distinguer calcul deterministe, jugement metier et autorisation humaine. Identifier controles prealables, simulation sans ecriture, relance sans doublons, verification apres action et possibilite de retour arriere quand pertinents. Ne pas promettre une automatisation totale sans conditions de securite et validation metier.
 
 Critere : backlog ordonne, testable, avec inconnues et validations humaines explicites.
 

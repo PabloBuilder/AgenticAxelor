@@ -1,32 +1,35 @@
-# Session Handoff: demo01 invoice pilot — resume E2E acceptance
+# Session Handoff: Refonte V2 & Demo01 Invoice 38 E2E Completed
 
 ## 1. Goal
-- n8n: Drive PDF → extraction → controlled Axelor draft + verified PDF → classification/CSV; no posting/payment. Complete manual synthetic E2E, then anti-duplicate replay. Full architecture still incomplete.
+- Refactor the 299-node invoice workflow into a clean, 3-corridor workflow (`PILOTE demo01 - Saisie Factures Fournisseurs (Refonte V2)`, `08B4U0Ey1SWRV4vg`) and complete the end-to-end recovery of Demo01 Draft Invoice 38 (`1Z5xnQ_IdlAXOZJ4fFpPGlLfFYyhEn2cA`) without creating duplicates, posting, or paying. **COMPLETED.**
 
 ## 2. Key Decisions & Architecture
-- User explicitly authorized remote setup/tests/demo01 drafts/Drive writes. Preserve original master; no scheduled activation during acceptance. Never inspect/copy keys/cookies; local Axelor via SessionStore-synced browser session.
-- Native n8n tables: treatments/events/exports; durable intents + outbox; unknown writes reconcile, never blindly retry. `serializationVerified:false`; `controlledManualPilot:true` = singleton operator/local lease, NOT distributed locking/unattended readiness. Scope fixed to synthetic Drive ID.
-- **OpenAI RESOLVED**: screenshot actual URL `http://192.168.100.148:4000/v1`; existing credential `bKyH19HiTuMp2dYM`; sole advertised model `gpt-5.6-luna`. Public `https://iacost.alter-si.fr/v1` 403 diagnosis was WRONG TARGET, not broken credential. Internal models/extraction succeed. Exact internal HTTP exception only; no key changed.
+- **1A/2A/5A/6A/7A**: Single workflow compacted from **299 nodes to 186 nodes (-113 nodes, 0 warnings)** organized in 3 swimlanes (*Saisie*, *Reprise & Réconciliation*, *Classement/Fallback/Journal/Exports*), with `Manual Trigger` + `Webhook` + disabled `Schedule Trigger`, and direct `main:1` error routing to 3 central collectors (zero per-node `Capture Echec` / `Diagnostic Pilote` wrappers).
+- **Live Axelor DMS & Search Contract Fixes**:
+  - `Decision Association Reprise PDF` & `Garde Recherche Reprise ERP` accept omitted `data` (`undefined`) when `total === 0`.
+  - `Upload Reprise PDF` sends raw binary (`contentType: "binaryData"`, `Content-Type: application/octet-stream`) with `X-File-Size` header, and `Intention Rattachement Reprise PDF` parses both direct `MetaFile` objects (`{ id }`) and `{ status: 0, data: [{ id }] }`.
+  - `Telechargement Reprise PDF` & `Telechargement PDF Axelor` send `Accept: */*` (fixing JAX-RS HTTP 406 on `Accept: application/json`).
+  - `Restauration Binaire - Empreinte ...` nodes kept separate before `this.helpers.getBinaryDataBuffer(0, ...)` after `Crypto` nodes.
 
 ## 3. Important Files
-- `Work_data/Architecture-saisie-factures-n8n.md`, `Work_data/Plan-finalisation-workflow-factures.md`, `Work_data/invoice-completion-matrix.md`: target/plan/gaps; historical statuses superseded by latest runtime contract.
-- `Work_data/build-invoice-integrated.mjs`: generator from preserved legacy master + `Work_data/invoice-runtime-bindings.json`; regenerate, never hand-edit candidate.
-- `Work_data/build-invoice-{pdf-recovery,recovery-errors,fallback-recovery,outbox,export-state}.mjs`: graph modules; uncertainty/diagnostics/CSV persistence.
-- `Work_data/build-invoice-live-pilot.mjs`: isolated webhook copy, no editor/manual/schedule trigger; `Work_data/run-invoice-live-pilot.mjs <unique-label>`: exclusive local lease + immutable run intent, no blind repeat.
-- `Work_data/build-invoice-extraction-probe.mjs [models]`, `Work_data/run-invoice-extraction-probe.mjs`: read-only synthetic extraction probe; default extraction, optional models.
-- `Work_data/refresh-invoice-pilot.mjs <id> dry-run|push [spec]`: snapshots/version precheck; CLI expands compact JSON before push (direct compact-JSON push fails). Read dry-run changes before push; target must be inactive. Actual CLI lacks `--out`/`--expect-version`/activation dry-run; no `--force`.
-- `Work_data/n8n-invoice-tables.mjs rows`: public API fallback (installed CLI lacks tables); sanitized row summaries + local row files, inherited auth only.
-- `Work_data/Recette-demo01-facture-pilote.md`, `Work_data/invoice-runtime-contract.md`, `Work_data/Diagnostic-acces-OpenAI.md`: receipts/current corrections. `Work_data/openai-internal-models-result.json`, `Work_data/invoice-extraction-probe.result.json`: live OpenAI success.
+- `Work_data/Matrice-refonte-workflow-factures.md`: Phase 1 & 2 refactoring matrix and target architecture.
+- `Work_data/build-invoice-refonte.mjs`: Refonte V2 generator, code-chain merger, and 3-corridor layout engine.
+- `Work_data/n8n-workflow-refonte-v2.json`, `Work_data/n8n-workflow-refonte-v2.expanded.json`: Generated & CLI-validated workflow spec (`ok: true, warnings: 0`).
+- `Work_data/test-invoice-refonte.mjs`, `Work_data/test-invoice-integrated.mjs`, `Work_data/test-invoice-durability.mjs`: 131 passing offline checks (66 + 51 + 14).
+- `Work_data/invoice-treatments-rows.json`, `Work_data/invoice-events-rows.json`, `Work_data/invoice-exports-rows.json`: Final verified Data Table snapshots.
 
-## 4. Verified Facts & Completed Work
-- All 6 `RECETTE demo01` workflows INACTIVE. Corrected full copy **`ig4W8G2i04D1j0sI`**; extraction probe **`EASsk0Ne8SXWDZM0`**. Original **`2VBBSRBR9qfL42fv`** untouched/inactive. Other inactive probes: `U7isoaKer8ZsGcIu`, `NyRtPuxIuFsfhTcn`, `nP03p0Xcdx475sE0`, `TIKLwQbHmsYuQWwc`.
-- Native tables CREATED/schema-readback: treatments **`1atLXJCjbXmUYboi`** (`treatment_id,drive_file_id,state_json`); events **`VaP6u6KX3DJhf8Jx`** (`event_id,event_json`); exports **`o4rtmfLMSdTXZcgt`** (`export_id,state_json`); columns string.
-- Synthetic PDF **`1Z5xnQ_IdlAXOZJ4fFpPGlLfFYyhEn2cA`**, reference **`RECETTE-N8N-DEMO01-20261026112328`**. Uploaded source `1AY7PihVHo4hO-kHCz2DIBRyGLAZ21wqb`; real 3 PDFs untouched. Extraction LIVE validated supplier/dates/EUR/quotes/HT10/TVA2/TTC12.
-- Demo-only mappings live-read: company1, supplier30 SASAKI Components (`isSupplier:true`), EUR46, purchase account654, unit1, operation1/subtype1/lineType0, STANDARD20 TaxLine13. Other rates NOT mapped; old tax shortcuts disproved. Admin user1 exists; Pablo/Cantini not found. No human-validation node required.
-- Full pilot previously stopped pre-ERP; last ERP reference readback **0 invoices**. Treatment persisted **BLOCKED**, error `PRE_CREATION_ERROR`, one error/outbox event; exports empty. This historical state was NOT reset after fixing OpenAI. Recheck current Drive placement before resetting; don't discard audit/outbox.
-- Runtime fixes: Crypto drops binaries → explicit binary restore after every hash; n8n Code lacks structuredClone → JSON clone shim; normalize string errors/line suffixes. Recovery checks line IDs/relations/amounts, invoice totals and tax bases; missing tax hydration/partial calculations block.
-- Latest tests: `node Work_data/test-invoice-integrated.mjs` **51** + `node Work_data/test-invoice-durability.mjs` **47** = **98 pass**; `node Work_data/validate-invoice-candidate.mjs` passes; corrected full remote copy validates. No E2E/ERP/PDF/classification/CSV success yet.
+## 4. Verified End-to-End Results on Demo01 (Invoice 38)
+- **n8n Workflow**: `08B4U0Ey1SWRV4vg` (`versionId: 3b77cc01-263e-4faa-9d63-ad05f8b0f561`), executed once and immediately deactivated (`active: false`). Legacy 299-node workflow `ig4W8G2i04D1j0sI` preserved inactive.
+- **Axelor ERP (`demo01`)**:
+  - Draft Invoice **38** (`RECETTE-N8N-DEMO01-20261026112328`, partner 30 `SASAKI Components`, version 3, `statusSelect: 1`, HT 10 / TVA 2 / TTC 12 EUR, line `69`, tax `71`) reconciled with **zero duplicate invoices** created.
+  - `MetaFile` **501** (`invoice-1Z5xnQ_IdlAXOZJ4fFpPGlLfFYyhEn2cA.pdf`, `1096` bytes, `application/pdf`) uploaded and linked via `MetaAttachment` **114** (`objectId: 38`).
+  - Independent download of `MetaFile 501` verified: `%PDF-1.4` magic bytes and exact SHA-256 `5aad1dd0112f286c2576bf97d2abb0eda8fec9c6a1eb1ecf56aeccf824d38ebb`.
+- **Google Drive & Native Data Tables**:
+  - Source PDF `1Z5xnQ_IdlAXOZJ4fFpPGlLfFYyhEn2cA` moved to `Factures saisies` (`1PT5m54VBPpMYrwsj7i8e_JPlKgl9iCJP`) and parent verified.
+  - Treatment `1Z5xnQ_IdlAXOZJ4fFpPGlLfFYyhEn2cA`: `stage: "DONE"`, `lastError: null`, `verified: true`, `writeOutcome: "CONFIRMED"`.
+  - Journal `invoice-events` (`VaP6u6KX3DJhf8Jx`): 19 rows including `CLASSIFICATION_VERIFIED` + all historical events preserved.
+  - Monthly CSV Exports (`invoice-exports` `o4rtmfLMSdTXZcgt`): `2026-10:ALL` (`1rx4TYsvviiGGudOaeKwJVHcJoSjJneXe`, 24 events) and `2026-10:ERRORS` (`107GwLabhRSz48e_d-cSuf02uy6XMO-Py`, 18 events) both `CONFIRMED` after UTF-8 readback verification.
 
 ## 5. Status & Next Action
-- **Status**: OpenAI fixed + extraction accepted; corrected full pilot deployed INACTIVE. Existing synthetic BLOCKED row prevents normal creation. Remaining global gaps: true serialization/retention, partial ERP repair/tax hydration, OCR/multi-piece/credit notes/reverse charge, live final acceptance.
-- **Next Action**: Read back synthetic reference in demo01, its treatment/outbox and Drive location; if still no ERP write, explicitly requalify ONLY that synthetic treatment for pre-creation retry while preserving history, then run corrected full pilot once and verify actual ERP/PDF/Drive/CSV outputs before replay. Use n8n-axi skill; local `npm run query -- --model ... --domain ... --fields ... --output Work_data/...` fallback works (MCP lookup disabled); never transfer browser cookies to n8n. Leave tests inactive afterward; do not re-ask already granted demo acceptance permission.
+- **Status**: Pilot Invoice 38 E2E 100% completed (`DONE`) on Refonte V2 workflow (`08B4U0Ey1SWRV4vg`, inactive).
+- **Next Action**: Proceed to Lot 2 edge cases (OCR adapter, multi-piece/credit notes HUBIN, reverse-charge VAT IONOS, mixed/exempt VAT Upcoop) when requested by user.
