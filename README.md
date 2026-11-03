@@ -1,3 +1,5 @@
+[![AgenticAxelor : explorer le graphe contextuel](assets/context-graph-cover.svg)](context-graph.html)
+
 # AgenticAxelor
 
 **Le second cerveau d'Alter-si : un environnement de travail pour les assistants et agents IA.**
@@ -18,23 +20,7 @@ Une demande est prise en charge par un assistant compatible qui s'appuie sur les
 
 Ces ressources forment un graphe contextuel : elles sont liées entre elles et peuvent être mobilisées en fonction de la tâche. Ce graphe est une organisation de fichiers, de références et de règles, pas une mémoire qui apprend automatiquement. Il peut évoluer avec les besoins, les connaissances et les outils d'Alter-si.
 
-```mermaid
-flowchart TD
-    Demande["Demande du collaborateur"] --> Agent["Assistant ou agents IA"]
-    Agent --> Regles["Règles et index"]
-    Regles --> Connaissances["Connaissances métier et techniques"]
-    Regles --> Competences["Compétences et missions"]
-    Competences --> Connaissances
-    Competences --> Connecteurs["Connecteurs et outils"]
-    Agent --> Connecteurs
-    Connecteurs --> Axelor["Axelor"]
-    Connecteurs --> Redmine["Redmine"]
-    Connecteurs --> Google["Google Workspace"]
-    Connecteurs --> N8n["n8n"]
-    Agent --> Resultat["Résultat vérifié avec contrôle humain"]
-```
-
-Ce schéma simplifie les relations entre les ressources. Pour explorer leur cartographie détaillée, ouvrez [la carte du contexte](context-graph.html). Les connexions aux outils externes dépendent de leur configuration et des accès disponibles.
+Le visuel en haut de page simplifie les relations entre les ressources. Pour explorer leur cartographie détaillée, ouvrez [la carte du contexte](context-graph.html) dans votre navigateur. Les connexions aux outils externes dépendent de leur configuration et des accès disponibles.
 
 Selon l'assistant utilisé et ses capacités, une mission peut être réalisée par un agent ou déléguée à plusieurs agents. La création et l'orchestration de ces agents dépendent de l'environnement qui les exécute.
 

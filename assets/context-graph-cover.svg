@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="450" viewBox="0 0 1200 450" role="img" aria-labelledby="title desc">
+  <title id="title">AgenticAxelor, le graphe contextuel d'Alter-si</title>
+  <desc id="desc">Un réseau de connaissances, compétences et connecteurs reliés aux agents IA.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0b1022"/><stop offset="1" stop-color="#162a40"/></linearGradient>
+    <linearGradient id="accent"><stop stop-color="#63e6d0"/><stop offset="1" stop-color="#8a9cff"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#56d9cb" stop-opacity=".2"/><stop offset="1" stop-color="#56d9cb" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="450" rx="24" fill="url(#bg)"/>
+  <circle cx="920" cy="225" r="220" fill="url(#glow)"/>
+  <g font-family="Arial, sans-serif">
+    <text x="70" y="105" fill="#65e3ce" font-size="15" font-weight="700" letter-spacing="3">ALTER-SI · ENVIRONNEMENT IA</text>
+    <text x="70" y="172" fill="#f5f8ff" font-size="48" font-weight="700">AgenticAxelor</text>
+    <text x="70" y="222" fill="#c5d1e5" font-size="23">Le contexte qui relie vos agents,</text>
+    <text x="70" y="255" fill="#c5d1e5" font-size="23">vos connaissances et vos outils.</text>
+    <rect x="70" y="305" width="265" height="47" rx="23" fill="#1b3848" stroke="#56d9cb" stroke-opacity=".6"/>
+    <text x="93" y="334" fill="#8bf0df" font-size="15" font-weight="700">EXPLORER LE GRAPHE →</text>
+    <g stroke="#70daca" stroke-opacity=".45" stroke-width="1.5" fill="none">
+      <path d="M900 220 L740 111 M900 220 L1080 115 M900 220 L1090 315 M900 220 L735 327 M900 220 L830 380 M900 220 L965 57 M740 111 L735 327 M1080 115 L1090 315 M735 327 L830 380 M965 57 L1080 115"/>
+      <circle cx="900" cy="220" r="94" stroke-opacity=".18"/><circle cx="900" cy="220" r="150" stroke-opacity=".1"/>
+    </g>
+    <circle cx="900" cy="220" r="52" fill="#193b4d" stroke="url(#accent)" stroke-width="2"/>
+    <text x="900" y="215" text-anchor="middle" fill="#f1fffc" font-size="15" font-weight="700">AGENTS</text><text x="900" y="236" text-anchor="middle" fill="#9feee1" font-size="14">IA</text>
+    <g fill="#192c43" stroke="#6fe2d2" stroke-opacity=".7">
+      <circle cx="740" cy="111" r="35"/><circle cx="1080" cy="115" r="35"/><circle cx="1090" cy="315" r="35"/><circle cx="735" cy="327" r="35"/><circle cx="830" cy="380" r="25"/><circle cx="965" cy="57" r="25"/>
+    </g>
+    <g fill="#e3f8f6" font-size="12" font-weight="700" text-anchor="middle"><text x="740" y="115">RÈGLES</text><text x="1080" y="112">SAVOIR</text><text x="1080" y="128">MÉTIER</text><text x="1090" y="312">OUTILS</text><text x="1090" y="328">MÉTIER</text><text x="735" y="324">MISSIONS</text><text x="735" y="340">SKILLS</text><text x="830" y="384">DOCS</text><text x="965" y="61">INDEX</text></g>
+    <g fill="#70e1d0"><circle cx="814" cy="164" r="4"/><circle cx="1004" cy="172" r="4"/><circle cx="996" cy="268" r="4"/><circle cx="813" cy="273" r="4"/></g>
+  </g>
+</svg>
