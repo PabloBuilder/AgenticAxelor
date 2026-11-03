@@ -1,5 +1,5 @@
 ---
-name: compte-rendu-procedure
+name: compte-rendu-docs
 description: "Rédiger ou mettre à jour un bref compte rendu de procédure en français : récit chronologique au passé avec « on », préparation des données, traitement, import, contrôles et niveau de validation factuel. Utiliser pour documenter une reprise, une correction ou une intervention ERP à partir des opérations réellement réalisées."
 disable-model-invocation: true
 ---
@@ -16,11 +16,14 @@ Produire un texte directement réutilisable dans un ticket, un document ou un me
 - En général 5 à 8 paragraphes courts, adaptés à la complexité réelle, environ 250 à 400 mots au maximum sauf demande contraire.
 - Français naturel, professionnel et accessible, proche du langage de l'utilisateur.
 - Narration chronologique au passé composé avec « on » : « On a commencé par… », « On a ensuite… », « Une fois… », « Pour contrôler le résultat… ».
+- Le compte rendu est rédigé du point de vue de l'utilisateur : désigner ses actions par « on », jamais par son prénom à la troisième personne, sauf demande explicite. Préserver la distinction entre ses déclarations et les contrôles indépendants sans le nommer, et ne pas inventer de résultats.
 - Un paragraphe par phase. Pas de tableaux, listes de champs exhaustives, emojis ou introduction conversationnelle. Dans Google Docs, les phases peuvent être numérotées comme dans le modèle de référence.
-- Nommer les objets métier et les outils utiles. Expliquer simplement les identifiants, rapprochements et règles de correction ; éviter le jargon et le code.
+- Nommer les objets métier et donner les références exactes utiles lorsqu'elles sont connues : identifiants, noms, valeurs et environnement. Expliquer simplement les rapprochements et règles ; éviter le jargon et le code.
+- Ne pas mentionner l'API, Agentic Axelor ou les moyens techniques de vérification si l'utilisateur ne le souhaite pas. Ne pas pour autant attribuer un contrôle à l'interface ou à une personne sans preuve ; conserver les limites du résultat.
 - Dans le chat, employer du texte brut sans gras, italique ou formatage Markdown. Dans Google Docs, appliquer la mise en forme du modèle de référence, y compris son titre et ses points numérotés.
 - Ne jamais utiliser le tiret cadratin « — » dans le texte ou le titre. Préférer une phrase, une virgule ou deux points.
-- Ne pas raconter tous les essais infructueux. Mentionner une difficulté seulement si elle explique la méthode finale, une limite ou un risque restant.
+- Ne pas raconter tous les essais infructueux. Mentionner une difficulté seulement si elle explique la méthode finale, une limite ou un risque restant ; respecter les éléments que l'utilisateur ne souhaite pas communiquer.
+- Placer chaque question, réserve ou suggestion dans le paragraphe correspondant, plutôt que de la répéter automatiquement en conclusion. Terminer naturellement et brièvement, sans formules mécaniques, tout en respectant le niveau de validation établi.
 
 ### Ordre narratif attendu
 
@@ -37,7 +40,8 @@ Fusionner les phases courtes ; omettre celles qui ne s'appliquent pas. Ne jamais
 ## Ancrage factuel obligatoire
 
 - Extraire les faits de la conversation, des fichiers désignés et des contrôles disponibles. Lire uniquement les éléments nécessaires ; ne pas relancer d'opérations métier pour rédiger un compte rendu.
-- Distinguer ce qui est proposé, préparé, exécuté, déclaré par l'utilisateur et vérifié indépendamment.
+- Pour chaque scénario pertinent, préciser ce qui a été testé, les conditions importantes, le résultat observé et, si connu, ce qui a été validé, signalé ou reste à clarifier. Ne pas se limiter à une liste d'actions.
+- Distinguer les scénarios aux conditions différentes, sans généraliser un résultat à tous les cas. Distinguer ce qui est proposé, préparé, exécuté, déclaré par l'utilisateur et vérifié indépendamment ; ne pas inventer une validation ou une origine d'observation.
 - Vérifier la cohérence des volumes : lignes de données versus en-tête, fichiers filtrés versus exports complets, archivés versus non archivés.
 - Ne pas reprendre un ancien chiffre si un contrôle plus récent l'a remplacé.
 - Distinguer environnement source et environnement d'import. Un résultat en recette ne prouve jamais une mise en production.
@@ -79,8 +83,11 @@ Utiliser cette trame comme guide, sans conserver les crochets ni ajouter de fait
 
 ## Livraison et mises à jour
 
-- Lorsqu'un compte rendu est demandé via ce skill, créer directement un Google Doc et fournir son lien. Charger et respecter l'index Google Workspace et ses règles de confirmation avant toute modification des permissions.
+- Lorsqu'un compte rendu est demandé via ce skill, créer directement un Google Doc et fournir son lien, sauf si l'utilisateur demande d'abord un brouillon dans le chat. Dans ce cas, présenter le brouillon sans modifier ni créer de document jusqu'à sa demande. Charger et respecter l'index Google Workspace et ses règles de confirmation avant toute modification des permissions.
+- Avant création, consulter [l'index de navigation Drive des projets](../../knowledge/drive-projets-index.md) pour rechercher le projet et choisir la zone selon l'intervention. Réutiliser un dossier de ticket adapté ou créer, si nécessaire et autorisé, un sous-dossier au nom explicite ; copier le modèle directement dans la destination retenue. Vérifier les accès hérités et le résultat, puis indiquer le chemin et le lien. Ne pas demander systématiquement le classement quand les éléments suffisent ; ne pas deviner si le projet ou la destination reste impossible à établir, et respecter les confirmations requises pour les permissions.
 - Utiliser comme modèle visuel le document https://docs.google.com/document/d/1oSDzf1d11ob3OtbxnsFJ7ny51ioAfwYBxF0V_pYFbEQ/edit : reproduire exactement la police, les tailles, le style du titre, les espacements et la numérotation des étapes. Inspecter le modèle ; si possible en créer une copie, puis remplacer entièrement son contenu par le nouveau compte rendu en préservant les styles. Adapter le nombre de points aux faits et vérifier qu'aucun texte du modèle ne subsiste par erreur. Ne jamais modifier le document modèle.
 - Rendre le document accessible et modifiable par le domaine de l'entreprise alter-si.fr uniquement, jamais par toute personne disposant du lien. Vérifier les permissions existantes, demander la confirmation requise avant de les modifier, puis vérifier l'accès et le contenu. Si le partage ou la création échoue, signaler précisément le résultat partiel.
+- Après création ou mise à jour, inspecter la structure des paragraphes et relire le contenu. Vérifier que la numérotation est continue, qu'aucun élément de liste vide ne subsiste et que tous les points ont une séparation visuelle régulière, équivalente à un saut de ligne, sauf préférence contraire de l'utilisateur. Ne pas se fier uniquement à l'export Markdown, qui peut masquer les paragraphes vides et les écarts d'espacement.
+- Lors du remplacement de texte dans une liste numérotée, éviter les doubles retours à la ligne qui créent des paragraphes numérotés vides. Séparer les points par des paragraphes non vides et régler uniformément l'espace vertical entre eux, sans insérer d'éléments de liste vides. Dans Google Docs, un espacement de paragraphe peut être réduit entre éléments de liste : si nécessaire, utiliser le mode `NEVER_COLLAPSE` en plus de l'espacement. Vérifier le rendu visuel lorsque possible, ou demander confirmation à l'utilisateur ; un succès de l'API ou un export Markdown ne prouvent pas que l'espace est visible. Si nécessaire, supprimer les paragraphes vides concernés et relire la numérotation et la structure après correction, sans modifier le texte.
 - Si l'utilisateur demande une mise à jour, conserver le style, corriger les faits obsolètes et ajuster la conclusion aux nouvelles preuves.
 - Ne pas publier automatiquement dans Redmine ou un autre service, ni créer de walkthrough ou de fichier walkthrough.md.

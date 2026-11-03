@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { AxelorSessionInput } from "../types/axelor.js";
 
@@ -7,6 +8,7 @@ export interface SessionData {
   cookie: string;
   url?: string;
   updatedAt?: string;
+  csrfCookie?: AxelorSessionInput["csrfCookie"];
 }
 
 export interface SessionStatus {
@@ -57,10 +59,19 @@ export class SessionStore {
     const session: SessionData & AxelorSessionInput = {
       cookie: data.cookie,
       url: data.url,
+      ...(data.csrfCookie ? { csrfCookie: data.csrfCookie } : {}),
       updatedAt: new Date().toISOString(),
     };
 
-    fs.writeFileSync(sessionFilePath, JSON.stringify(session, null, 2), "utf8");
+    const temporary = path.join(path.dirname(sessionFilePath), `.${path.basename(sessionFilePath)}.${randomUUID()}.tmp`);
+    try {
+      fs.writeFileSync(temporary, JSON.stringify(session, null, 2), { encoding: "utf8", mode: 0o600, flag: "wx" });
+      fs.renameSync(temporary, sessionFilePath);
+    } finally {
+      try { fs.unlinkSync(temporary); } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+      }
+    }
     return session;
   }
 }

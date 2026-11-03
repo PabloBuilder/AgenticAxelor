@@ -1,6 +1,7 @@
 ---
 name: setup-assistant
 description: Guides and automates full local setup of AgenticAxelor (prerequisites, dependencies, build, MCP config, Bridge daemon, and browser extension syncing).
+disable-model-invocation: true
 ---
 
 # Setup Assistant

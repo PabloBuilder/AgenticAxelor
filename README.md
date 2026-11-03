@@ -75,6 +75,8 @@ Transformez votre assistant IA en copilote ERP opérationnel :
    npm run build
    ```
 
+   Pour utiliser les outils navigateur expérimentaux, installer Chromium une fois avec `npm run browser:install`. Ce téléchargement est facultatif pour les outils Axelor existants. Les outils `axelor_browser_open`, `axelor_browser_observe`, `axelor_browser_act` et `axelor_browser_close` sont destinés aux cas nécessitant l'interface ; privilégier les outils Axelor habituels. Pour positionner Chromium sur un autre écran, définir `AXELOR_BROWSER_WINDOW_POSITION` au format `x,y` dans l'environnement du processus MCP avant son démarrage (par exemple `-1850,40`, à adapter à la disposition des écrans). Exécuter `npm run test:browser` pour les tests navigateur locaux.
+
 2. **Déclarer le serveur MCP** dans la configuration de votre client :
    ```json
    {
@@ -94,6 +96,8 @@ Transformez votre assistant IA en copilote ERP opérationnel :
 4. **Synchroniser la session** :
    - Chargez l'extension Chrome non empaquetée depuis `extension/`.
    - Cliquez sur **Synchroniser la session** depuis votre ERP Axelor.
+   - L'extension affiche les sessions enregistrées et permet de les activer, désactiver ou supprimer. Une session active n'est pas nécessairement encore valide ; resynchronisez-la si nécessaire.
+   - Les outils MCP Axelor, y compris les outils navigateur, acceptent `sessionId` : utilisez `list_axelor_sessions` pour obtenir les identifiants. Sans identifiant, l'unique session active est choisie ; aucune session active ou plusieurs sessions actives entraînent un refus. Chaque session possède son navigateur isolé ; après modification de son cookie, rouvrez ce navigateur.
 
 ---
 

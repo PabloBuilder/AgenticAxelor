@@ -40,6 +40,7 @@ export interface AxelorConfig {
 export interface AxelorSessionInput {
   cookie: string;
   url: string;
+  csrfCookie?: { value: string; path: string; secure: boolean; httpOnly: boolean };
 }
 
 export interface MetaViewRecord {

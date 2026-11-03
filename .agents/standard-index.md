@@ -16,6 +16,7 @@ Conditional task guidance for Axelor ERP operations. Discover available tools an
 ## 2. Task-to-Tool Map
 
 Read and follow only the guidance matching the task; load multiple references or skills only when their scopes overlap. These routes do not authorize writes:
+- For every Axelor operation requiring a session, read and follow [Axelor session targeting](knowledge/axelor-sessions.md) before calling tools.
 - Axelor data migrations, reconciliation, or post-import verification: [data reconciliation](knowledge/axelor-data-reconciliation.md).
 - Classic CSV/XML import preparation or diagnosis: [classic XML import skill](skills/axelor-xml-data-import/SKILL.md).
 - Graphical advanced-import configuration or diagnosis: [advanced import](knowledge/axelor-advanced-import.md).

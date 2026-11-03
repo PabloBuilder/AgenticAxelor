@@ -1,0 +1,12 @@
+# Concurrency, idempotence and recovery
+
+Use when a workflow creates or changes consequential external records, handles retries, or resumes a partial execution. Scale safeguards to the risk; a simple read-only workflow does not need a mutex.
+
+- A search-before-create is not atomic: concurrent runs can both find nothing. Design an appropriate atomic reservation or lock for consequential concurrent creation; search again after acquiring it.
+- A versioned record can support a mutex with an execution owner, source fingerprint and durable journal, subject to the storage system's verified concurrency contract. It protects only participants using it, not humans or other programs. Account for journal capacity; avoid automatic TTL takeover or blind lock reset. A losing run must not move the source or overwrite the winner's status.
+- For reuse, verify the complete relevant record and related lines and taxes, not just totals. Search results and abbreviated relations may be incomplete; paginate and read related records.
+- After an ambiguous write or timeout, inspect current state before retrying. Before recovery, prove the run is terminal, identify lock owner and source SHA, and inspect existing records and attachments. Do not reset the registry, delete the draft, erase the journal or copy the source to bypass failure.
+- Where the recovery protocol supports it, correct the same draft with a fresh version, independently verify it, reconcile only the affected journal entry, release the lock using the verified concurrency contract, and let the common reuse path finish. Do not declare success before the remaining steps and readback succeed.
+- A failed local comparison after a write may reflect JSON key ordering rather than a failed mutation; compare semantically before deciding to write again.
+
+Source and scope: [lessons learned §§16–17](../../../docs/retour-experience-axelor-n8n-factures.md). For attachment verification see [files and Drive](files-drive.md); for publication and ambiguous tests see [n8n operations](publication-diagnostics.md).

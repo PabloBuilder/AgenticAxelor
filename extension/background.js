@@ -45,8 +45,10 @@ async function synchronizeActiveTab(request) {
   }
 
   let cookie;
+  let csrf;
   try {
     cookie = await chrome.cookies.get({ url: activeTab.url, name: "JSESSIONID" });
+    csrf = await chrome.cookies.get({ url: activeTab.url, name: "CSRF-TOKEN" });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     return {
@@ -71,7 +73,11 @@ async function synchronizeActiveTab(request) {
     const response = await fetch(`${BRIDGE_URL}/api/session/sync`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cookie: `JSESSIONID=${cookie.value}`, url }),
+      body: JSON.stringify({
+        cookie: `JSESSIONID=${cookie.value}`,
+        url,
+        ...(csrf?.value ? { csrfCookie: { value: csrf.value, path: csrf.path, secure: csrf.secure, httpOnly: csrf.httpOnly } } : {}),
+      }),
     });
     const result = await response.json().catch(() => null);
 

@@ -3,113 +3,80 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AgenticAxelor | Session</title>
+    <title>AgenticAxelor | Sessions</title>
     <style>
       :root {
         color-scheme: light;
-        --ink: #182321;
-        --muted: #5d6d68;
-        --line: #d8e0da;
-        --surface: #f4f7f3;
-        --paper: #ffffff;
-        --accent: #087c67;
-        --accent-dark: #06624f;
-        --ok: #146b45;
-        --error: #a3342d;
+        --ink: #172923;
+        --muted: #71817a;
+        --line: #e8eeeb;
+        --accent: #25866b;
+        --error: #a64640;
       }
-
       * { box-sizing: border-box; }
-
       body {
-        width: 340px;
+        width: 360px;
         margin: 0;
-        padding: 18px;
-        background: var(--surface);
+        padding: 22px;
+        background: #fff;
         color: var(--ink);
-        font: 14px/1.45 "Segoe UI Variable", "Segoe UI", sans-serif;
+        font: 13px/1.45 "Segoe UI Variable", "Segoe UI", sans-serif;
       }
-
-      header {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-        padding-bottom: 14px;
-        border-bottom: 1px solid var(--line);
-      }
-
+      header { display: flex; align-items: center; gap: 9px; }
       .mark {
-        display: grid;
-        width: 28px;
-        height: 28px;
-        place-items: center;
-        border: 1px solid #a8cfc4;
-        border-radius: 7px;
-        color: var(--accent-dark);
-        font-size: 16px;
-        font-weight: 700;
+        display: grid; place-items: center; width: 30px; height: 30px;
+        border-radius: 9px; background: #e9f5ef; color: #23785f;
+        font-size: 15px; font-weight: 750;
       }
-
-      .brand {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 700;
+      .brand { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: -.02em; }
+      main { padding-top: 27px; }
+      h1 { margin: 0; font-size: 21px; line-height: 1.2; letter-spacing: -.035em; }
+      .hint { margin: 7px 0 17px; color: var(--muted); font-size: 12px; }
+      #sessions-status { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+      #sessions-status:not(:empty) { margin-bottom: 10px; }
+      .session-item {
+        padding: 14px; margin: 8px 0; border: 1px solid var(--line);
+        border-radius: 12px; background: #fafcfb; overflow-wrap: anywhere;
       }
-
-      main { padding-top: 18px; }
-
-      .eyebrow {
-        margin: 0 0 5px;
-        color: var(--muted);
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
+      .session-head { display: flex; align-items: center; gap: 9px; }
+      .session-head strong { flex: 1; min-width: 0; font-size: 13px; }
+      .indicator { width: 8px; height: 8px; border-radius: 50%; background: #b9c4bf; flex: none; }
+      .indicator[data-active="true"] { background: #33ad7d; box-shadow: 0 0 0 3px #e1f4ea; }
+      .session-item p { margin: 5px 0 0 17px; color: var(--muted); font-size: 11px; }
+      .session-details { margin-top: 7px; }
+      .session-details summary { width: fit-content; margin-left: 17px; color: var(--muted); font-size: 11px; cursor: pointer; }
+      .session-details summary:hover { color: var(--ink); }
+      .session-details summary:focus-visible { outline: 3px solid #a2d8c7; outline-offset: 2px; }
+      .switch { position: relative; width: 38px; height: 22px; flex: none; display: inline-block; }
+      .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+      .slider { display: block; height: 22px; border-radius: 20px; background: #cdd7d2; pointer-events: none; }
+      .slider::after { content: ''; display: block; position: relative; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: transform .15s; }
+      .switch input:checked + .slider { background: var(--accent); }
+      .switch input:checked + .slider::after { transform: translateX(16px); }
+      .switch input:focus-visible + .slider { outline: 3px solid #a2d8c7; outline-offset: 2px; }
+      .switch input:disabled { cursor: not-allowed; }
+      .switch input:disabled + .slider { opacity: .5; }
+      button { font: inherit; cursor: pointer; }
+      button:focus-visible { outline: 3px solid #a2d8c7; outline-offset: 2px; }
+      button:disabled { cursor: not-allowed; opacity: .55; }
+      .remove { margin: 7px 0 0 17px; padding: 0; border: 0; background: none; color: #9b6c68; font-size: 11px; }
+      .remove:hover:not(:disabled) { color: var(--error); text-decoration: underline; }
+      .sync-section { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 18px; }
+      .eyebrow { margin: 0 0 9px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+      .site { margin: 0; font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+      .context { margin: 3px 0 14px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+      #sync-button, .retry {
+        width: 100%; min-height: 38px; border: 0; border-radius: 9px;
+        background: var(--accent); color: white; font-weight: 650;
       }
-
-      .site {
-        margin: 0;
-        overflow-wrap: anywhere;
-        font-size: 19px;
-        line-height: 1.25;
-      }
-
-      .context {
-        min-height: 21px;
-        margin: 5px 0 17px;
-        color: var(--muted);
-        font-size: 12px;
-        overflow-wrap: anywhere;
-      }
-
-      button {
-        width: 100%;
-        min-height: 42px;
-        border: 0;
-        border-radius: 6px;
-        background: var(--accent);
-        color: #fff;
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      button:hover:not(:disabled) { background: var(--accent-dark); }
-      button:focus-visible { outline: 3px solid #72b6a6; outline-offset: 2px; }
-      button:disabled { cursor: wait; opacity: 0.72; }
-
-      .status {
-        min-height: 42px;
-        margin: 12px 0 0;
-        padding: 10px 11px;
-        border-left: 3px solid var(--line);
-        background: var(--paper);
-        color: var(--muted);
-        font-size: 12px;
-        overflow-wrap: anywhere;
-      }
-
-      .status[data-state="success"] { border-color: var(--ok); color: var(--ok); }
-      .status[data-state="error"] { border-color: var(--error); color: var(--error); }
-      .status[data-state="busy"] { border-color: var(--accent); color: var(--ink); }
+      #sync-button:hover:not(:disabled), .retry:hover { background: #1d6f59; }
+      .retry { margin: 0 0 10px; background: #edf5f1; color: #286b56; }
+      .retry:hover { color: white; }
+      .retry[hidden] { display: none; }
+      .status { margin: 9px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+      .status[data-state="success"] { color: #21835e; }
+      .status[data-state="error"] { color: var(--error); }
+      .status[data-state="busy"] { color: var(--ink); }
     </style>
   </head>
   <body>
@@ -118,11 +85,18 @@
       <p class="brand">AgenticAxelor</p>
     </header>
     <main>
-      <p class="eyebrow">Onglet Axelor actif</p>
-      <h1 class="site" id="site-host">Lecture de l’onglet…</h1>
-      <p class="context" id="site-context"></p>
-      <button id="sync-button" type="button" disabled>Synchroniser la session</button>
-      <p class="status" id="sync-status" role="status" aria-live="polite">En attente de l’onglet actif.</p>
+      <h1>Sessions MCP</h1>
+      <p class="hint">Choisissez les environnements accessibles. Un voyant actif ne garantit pas une connexion valide.</p>
+      <div id="sessions-status" role="status" aria-live="polite">Chargement…</div>
+      <button class="retry" id="sessions-retry" type="button" hidden>Réessayer</button>
+      <div id="sessions-list"></div>
+      <section class="sync-section" aria-label="Synchronisation de l’onglet">
+        <p class="eyebrow">Onglet actif</p>
+        <h2 class="site" id="site-host">Lecture de l’onglet…</h2>
+        <p class="context" id="site-context"></p>
+        <button id="sync-button" type="button" disabled>Synchroniser la session</button>
+        <p class="status" id="sync-status" role="status" aria-live="polite">En attente de l’onglet actif.</p>
+      </section>
     </main>
     <script src="popup.js"></script>
   </body>

@@ -21,9 +21,9 @@ flowchart LR
 | MCP server | [src/index.ts](../../src/index.ts) | Exposes menu, view, data, action, session-status, and guidance tools over stdio. |
 | Bridge | [src/bridge.ts](../../src/bridge.ts), [bridgeServer.ts](../../src/services/bridgeServer.ts) | Listens on `127.0.0.1:3210`; accepts session sync and retains guide state and SSE endpoints. |
 | Session store | [sessionStore.ts](../../src/services/sessionStore.ts) | Persists browser URL, cookie, and sync time in `.session.json`; the MCP's Axelor client reloads the session for requests. |
-| Chrome extension | [manifest.json](../../extension/manifest.json), [popup.js](../../extension/popup.js), [background.js](../../extension/background.js) | Requests cookie access for the active site on user action and sends its `JSESSIONID` and base URL to the Bridge. No content script is registered. |
+| Chrome extension | [manifest.json](../../extension/manifest.json), [popup.js](../../extension/popup.js), [background.js](../../extension/background.js) | Requests cookie access for the active site on user action and sends its `JSESSIONID`, base URL and optional `CSRF-TOKEN` cookie to the Bridge. No content script is registered. |
 
-The Bridge writes the session to disk; the MCP server reads that file from the same project checkout rather than receiving the cookie over stdio. The session sync endpoint checks input and persistence, not whether Axelor accepts the session. Treat `.session.json` as a secret.
+The Bridge writes the session to disk; the MCP server reads that file from the same project checkout rather than receiving cookies over stdio. The optional `CSRF-TOKEN` is used by the Playwright browser to support Axelor UI requests. The session sync endpoint checks input and persistence, not whether Axelor accepts the session. Treat `.session.json` as a secret.
 
 ## Guidance Status
 

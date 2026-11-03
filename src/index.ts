@@ -1,10 +1,13 @@
 import dotenv from "dotenv";
+import path from "node:path";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { AxelorClient } from "./services/axelorClient.js";
 import { MenuService } from "./services/menuService.js";
 import { ViewService } from "./services/viewService.js";
+import { BrowserService } from "./services/browserService.js";
 import { SchemaService } from "./services/schemaService.js";
 import { DmsService } from "./services/dmsService.js";
 import { ReportService } from "./services/reportService.js";
@@ -14,6 +17,7 @@ import { DataService } from "./services/dataService.js";
 import { GuidanceService } from "./services/guidanceService.js";
 import { BridgeClient } from "./services/bridgeClient.js";
 import { SessionStore } from "./services/sessionStore.js";
+import { SessionRegistry } from "./services/sessionRegistry.js";
 
 dotenv.config();
 
@@ -30,15 +34,51 @@ const axelorClient = new AxelorClient({
   apiKey,
 });
 
-const menuService = new MenuService(axelorClient);
-const viewService = new ViewService(axelorClient);
-const schemaService = new SchemaService(axelorClient);
-const dmsService = new DmsService(axelorClient);
-const reportService = new ReportService(axelorClient);
-const bpmService = new BpmService(axelorClient);
-const auditService = new AuditService(axelorClient);
-const dataService = new DataService(axelorClient);
-const guidanceService = new GuidanceService(menuService, viewService);
+const sessionRegistry = new SessionRegistry(path.join(path.dirname(SessionStore.getSessionPath()), ".sessions.json"));
+const browsers = new Map<string, BrowserService>();
+const browserQueues = new Map<string, Promise<unknown>>();
+function browserForSession(id: string): BrowserService {
+  let browser = browsers.get(id);
+  if (!browser) {
+    browser = new BrowserService(() => sessionRegistry.resolve(id));
+    browsers.set(id, browser);
+  }
+  return browser;
+}
+function createOperationServices(client: AxelorClient, sessionId: string) {
+  const menuService = new MenuService(client);
+  const viewService = new ViewService(client);
+  return {
+    menuService, viewService,
+    schemaService: new SchemaService(client), dmsService: new DmsService(client),
+    reportService: new ReportService(client), bpmService: new BpmService(client),
+    auditService: new AuditService(client), dataService: new DataService(client),
+    guidanceService: new GuidanceService(menuService, viewService),
+    browserService: browserForSession(sessionId),
+  };
+}
+type OperationServices = ReturnType<typeof createOperationServices>;
+const operationContext = new AsyncLocalStorage<OperationServices>();
+function scopedService<K extends keyof OperationServices>(key: K): OperationServices[K] {
+  return new Proxy({} as OperationServices[K], {
+    get(_target, property) {
+      const service = operationContext.getStore()?.[key];
+      if (!service) throw new Error("No session is bound to this operation.");
+      const value = Reflect.get(service, property, service);
+      return typeof value === "function" ? value.bind(service) : value;
+    },
+  });
+}
+const menuService = scopedService("menuService");
+const viewService = scopedService("viewService");
+const schemaService = scopedService("schemaService");
+const dmsService = scopedService("dmsService");
+const reportService = scopedService("reportService");
+const bpmService = scopedService("bpmService");
+const auditService = scopedService("auditService");
+const dataService = scopedService("dataService");
+const guidanceService = scopedService("guidanceService");
+const browserService = scopedService("browserService");
 const bridgeClient = new BridgeClient(bridgePort);
 
 const server = new McpServer({
@@ -46,7 +86,43 @@ const server = new McpServer({
   version: "0.1.0",
 });
 
+// Each targeted invocation owns its client and service caches, including during concurrent calls.
+const registerTargetedTool = ((name: string, description: string, schema: z.ZodRawShape, handler: (args: Record<string, unknown>, extra: unknown) => unknown) => {
+  const register = server.tool.bind(server) as unknown as (name: string, description: string, schema: z.ZodRawShape, handler: (args: Record<string, unknown>, extra: unknown) => unknown) => unknown;
+  return register(name, description, {
+    ...schema,
+    sessionId: z.string().min(1).optional().describe("Identifiant de l'environnement Axelor visé. Utiliser list_axelor_sessions pour identifier la cible ; si la destination est ambiguë, demander une précision plutôt que choisir au hasard. Facultatif techniquement si une seule session est active, mais vérifier qu'elle correspond à la demande."),
+  }, async (args, extra) => {
+    let session;
+    try { session = sessionRegistry.resolve(args.sessionId as string | undefined); }
+    catch (error) {
+      return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Impossible de résoudre la session." }] };
+    }
+    const invoke = () => {
+      // A queued browser operation must recheck activation and synchronization before use.
+      const current = sessionRegistry.resolve(session.id);
+      return operationContext.run(createOperationServices(AxelorClient.forSession(current), current.id), () => handler(args, extra));
+    };
+    if (!name.startsWith("axelor_browser_")) return invoke();
+    const previous = browserQueues.get(session.id) ?? Promise.resolve();
+    const next = previous.catch(() => undefined).then(invoke);
+    browserQueues.set(session.id, next);
+    try { return await next; }
+    finally { if (browserQueues.get(session.id) === next) browserQueues.delete(session.id); }
+  });
+}) as typeof server.tool;
+
 server.tool(
+  "list_axelor_sessions",
+  "List synchronized Axelor environments and their identifiers without credentials. Identify the requested destination and pass its sessionId to targeted tools; ask the user if the intended environment is unclear. Active status does not guarantee session validity or permission to modify data.",
+  {},
+  async () => {
+    try { return { content: [{ type: "text", text: JSON.stringify(sessionRegistry.list()) }] }; }
+    catch { return { isError: true, content: [{ type: "text", text: "Impossible de lire le registre des sessions." }] }; }
+  }
+);
+
+registerTargetedTool(
   "search_axelor_menu",
   "Search Axelor ERP menus by keyword and return matching items with their full hierarchical breadcrumb path (Parent > Submenu > Item).",
   {
@@ -90,7 +166,52 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
+  "axelor_browser_open",
+  "Open a visible browser using the synchronized session. Prefer existing Axelor tools; use browser only when the rendered interface is needed.",
+  {},
+  async () => {
+    try { return { content: [{ type: "text", text: JSON.stringify(await browserService.open()) }] }; }
+    catch (error) { return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Browser open failed" }] }; }
+  }
+);
+
+registerTargetedTool(
+  "axelor_browser_observe",
+  "Return a compact accessibility snapshot of the current page. Open the browser first. The snapshot can be truncated.",
+  {},
+  async () => {
+    try { return { content: [{ type: "text", text: JSON.stringify(await browserService.observe()) }] }; }
+    catch (error) { return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Browser observation failed" }] }; }
+  }
+);
+
+registerTargetedTool(
+  "axelor_browser_act",
+  "Perform one browser action. Use an exact accessible role and name, or click_text for an exact visible text when roles are unavailable; stop if ambiguous. Actions may modify Axelor data.",
+  {
+    action: z.enum(["click", "click_text", "fill", "select", "check", "uncheck", "wait_visible", "navigate"]),
+    role: z.enum(["button", "link", "textbox", "combobox", "tab", "checkbox", "radio", "spinbutton", "option", "dialog"]).optional(),
+    name: z.string().optional().describe("Exact accessible name of the target"),
+    value: z.string().optional().describe("Text, native select label, or URL for navigation"),
+  },
+  async ({ action, role, name, value }) => {
+    try { return { content: [{ type: "text", text: JSON.stringify(await browserService.act(action, role, name, value)) }] }; }
+    catch (error) { return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Browser action failed" }] }; }
+  }
+);
+
+registerTargetedTool(
+  "axelor_browser_close",
+  "Close the browser and release its resources.",
+  {},
+  async () => {
+    try { await browserService.close(); return { content: [{ type: "text", text: "Browser closed." }] }; }
+    catch (error) { return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Browser close failed" }] }; }
+  }
+);
+
+registerTargetedTool(
   "inspect_axelor_view",
   "Inspect Axelor ERP views (form/grid) by view name or model name, prioritizing canonical primary views and returning parsed fields, panels/tabs hierarchy, and widgets.",
   {
@@ -148,7 +269,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "inspect_axelor_model",
   "Introspect an Axelor JPA entity schema and its field definitions directly via MetaModel and MetaField metadata.",
   {
@@ -195,7 +316,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "search_axelor_models",
   "Search available Axelor JPA entity models by keyword (matching name, full package, table name, or title) or filter by package name.",
   {
@@ -244,7 +365,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "inspect_axelor_selections",
   "Inspect selection dictionaries and enum options (MetaSelect / MetaSelectItem) for dropdown fields (e.g. statusSelect, typeSelect) with titles, technical values, colors, and order.",
   {
@@ -297,7 +418,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "get_axelor_schema_relations",
   "Explore relational dependencies, foreign keys, and ERD links (outgoing & incoming ManyToOne, OneToMany, ManyToMany) for any Axelor model.",
   {
@@ -337,7 +458,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "inspect_axelor_custom_fields",
   "Inspect dynamic custom fields, Studio JSON attributes (stored in 'attrs'), transient $fields, and customized views (MetaViewCustom) for an entity model.",
   {
@@ -373,7 +494,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "get_axelor_attachments",
   "List attached files and documents linked to any Axelor business record with direct download URLs.",
   {
@@ -422,7 +543,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "upload_axelor_attachment",
   "Attach a document or file (from local disk path or inline content) to any Axelor business record.",
   {
@@ -480,7 +601,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "download_axelor_attachment",
   "Download a DMS attachment by fileId with option to save it directly to a local disk path or receive it as base64 content.",
   {
@@ -518,7 +639,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "list_axelor_templates",
   "List available print templates, BIRT/Jasper reports, and email templates for an entity model or across the ERP system.",
   {
@@ -569,7 +690,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "generate_axelor_report",
   "Generate a printable document (PDF, Word, Excel) or BIRT/Jasper report for an ERP record with optional local saving.",
   {
@@ -615,7 +736,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "get_axelor_bpm_state",
   "Inspect active BPMN workflow instances, current execution stages, assigned tasks, and blocking errors for an ERP record or process.",
   {
@@ -666,7 +787,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "export_axelor_data",
   "Export large datasets from any Axelor model to CSV or JSON with automatic pagination loop, field selection, domain filters, and optional local file saving.",
   {
@@ -714,7 +835,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "get_axelor_audit_log",
   "Query audit trails and historical field modifications (who changed what, previous value, new value, date) for any Axelor business record, model, or user.",
   {
@@ -765,7 +886,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "query_axelor_data",
   "Query business records of any Axelor model with optional field selection, domain filters, sorting, and pagination.",
   {
@@ -811,7 +932,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "fetch_axelor_record",
   "Fetch a single Axelor record by model name and record ID.",
   {
@@ -856,7 +977,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "save_axelor_record",
   "Create or update a record for any Axelor model. Provide 'id' and 'version' inside record for updating an existing entity, or omit them to create a new one.",
   {
@@ -888,7 +1009,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "delete_axelor_record",
   "Delete a record by model name, record ID, and optional version (optimistic lock).",
   {
@@ -921,7 +1042,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "batch_axelor_operations",
   "Execute a sequence of multiple create, update, and delete operations across records or models in a single batch call.",
   {
@@ -965,7 +1086,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "execute_axelor_action",
   "Execute an Axelor Action (action-method, action-record, action-attrs, action-group) via /ws/action with contextual entity data.",
   {
@@ -998,7 +1119,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "simulate_axelor_onchange",
   "Simulate UI onChange triggers to automatically compute dependent values (prices, taxes, payment terms, addresses) and UI field attributes before saving a record.",
   {
@@ -1086,7 +1207,7 @@ server.tool(
   }
 );
 
-server.tool(
+registerTargetedTool(
   "guide_axelor_path",
   "Calculate a navigation route (menu breadcrumbs, new button, target fields) and store it in the local Bridge. The current extension does not display guides in the browser.",
   {

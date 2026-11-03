@@ -2,6 +2,19 @@
 
 Use the installed external n8n CLI for workflows and execution diagnosis. It is not an MCP server and does not use the Axelor Bridge. For n8n operations, read and follow [n8n-axi knowledge](knowledge/n8n-axi/index.md) for CLI commands and task-specific references; the safeguards in this index remain applicable.
 
+Use the [lessons learned](docs/retour-experience-axelor-n8n-factures.md) selectively before designing changes or repeating tests. It distinguishes live evidence, local simulations and unresolved limits; historical evidence does not prove the current state or grant permission. Environment-specific IDs remain in `Work_data/`.
+
+| Task or risk | Read in the lessons learned |
+|---|---|
+| Publication, webhook testing or execution diagnosis | [Publication and diagnostics](knowledge/n8n-axi/references/publication-diagnostics.md); lessons §§13–15. |
+| Axelor integration, invoice creation or accounting | [Axelor invoices](knowledge/n8n-axi/references/axelor-invoices.md); lessons §§3–7. For generic API contracts also use the cheatsheet below. |
+| OCR, PDF extraction or AI-produced invoice data | [Documents and OCR](knowledge/n8n-axi/references/documents-ocr.md); lessons §§8–12. |
+| Duplicate prevention, concurrency or partial failure | [Recovery and idempotence](knowledge/n8n-axi/references/recovery-idempotence.md); lessons §§16–17. Apply safeguards proportionately to actual side effects. |
+| Binary attachment or Drive handling | [Files and Drive](knowledge/n8n-axi/references/files-drive.md); lessons §§18–19. |
+| Resuming the supplier-invoice V3 | §§1–2 and 20–22 first, then the relevant topics above; use the existing common V3 and recheck current evidence. |
+
+For technical API contracts, also consult the [Axelor REST API Cheatsheet](docs/axelor-api-cheatsheet.md). Read only applicable topics; do not impose invoice-specific bindings or the V3 mutex on unrelated workflows.
+
 ## 1. Local Availability & Authentication
 
 - Verified workstation executable: `%LOCALAPPDATA%/Alter-si/connectors/n8n-axi/0.1.0/n8n-axi-0.1.0-win-x64/n8n-axi.exe`. In PowerShell invoke it with `& "$env:LOCALAPPDATA\Alter-si\connectors\n8n-axi\0.1.0\n8n-axi-0.1.0-win-x64\n8n-axi.exe"` followed by command arguments.
@@ -29,10 +42,12 @@ Use the installed external n8n CLI for workflows and execution diagnosis. It is 
 
 ## 4. Architecture & Design Rules (Zero-Bloat Doctrine)
 
-When designing, refactoring, or diagnosing n8n workflows (especially n8n ↔ Axelor + LLM), enforce these 5 rules and consult [n8n ↔ Axelor & AI Engineering Guide](docs/n8n-axelor-engineering.md) and [Axelor REST API Cheatsheet](docs/axelor-api-cheatsheet.md):
+**Work proportionately:** Start with the existing workflow, tools, scripts and tests. For a defect, identify the specific cause, make the smallest suitable common change, and run relevant existing tests and checks for the affected behavior and risk. Do not run a full battery after every small correction or create a script, file, prototype, workflow or infrastructure without a clear need. Reuse existing choices and components when applicable. Keep strict validation before publication, test changed behavior and verify actual effects; never skip safety checks or permissions for speed.
 
-1. **Single Idempotent Pipeline (No Duplicated Recovery Corridors)**: Query existing ERP state (`IF Record Exists`, `IF Attachment Exists`) and reuse valid drafts instead of building parallel "Creation" and "Recovery" branches.
+When designing, refactoring, or diagnosing n8n workflows, use the following safeguards where applicable; consult the [n8n ↔ Axelor & AI Engineering Guide](docs/n8n-axelor-engineering.md) and [Axelor REST API Cheatsheet](docs/axelor-api-cheatsheet.md) for integrations in their scope:
+
+1. **Single Idempotent Pipeline (No Duplicated Recovery Corridors)**: Query existing ERP state (`IF Record Exists`, `IF Attachment Exists`) and reuse fully verified drafts instead of building parallel "Creation" and "Recovery" branches. A pre-search alone is not an atomic lock; protect consequential concurrent creations appropriately.
 2. **Strict `I/O → Code → I/O` Alternation**: Never chain `Code → Code` on the main port. Merge consecutive validation/preparation logic into a single `Code` node between I/O boundaries.
-3. **Minimal `Data Table` Footprint**: At most 1 state read at workflow start and 2 writes at workflow exit (`DONE`/`ERROR` status + event log). Never build per-node Two-Phase Commit state machines.
+3. **Minimal `Data Table` Footprint**: At most 1 Data Table state read at workflow start and 2 writes at workflow exit (`DONE`/`ERROR` status + event log). Never build per-node Two-Phase Commit state machines. This limit does not replace a separate atomic reservation and durable journal when concurrency or safe recovery requires them; preserve the existing V3 mutex invariants.
 4. **Centralized 4-Node Error Branch**: Route all `main:1` error outputs directly to one central error collector (`Diagnostic & Preparation Erreur` → `Fallback Action` → `Statut ERROR` → `Journal Erreur`). Prefix thrown errors with `[STAGE:<Node Name>]` instead of adding per-node capture/diagnostic wrappers.
-5. **Declarative Build & Offline Test First**: Generate workflows via declarative scripts (`Work_data/build-*.mjs`), validate with `n8n-axi.exe workflow validate --strict` (`0 warnings`), and verify all `Code` nodes offline (`Work_data/test-*.mjs`) before pushing. Keep environment-specific IDs in `Work_data/*-bindings.json`, never in `.agents/`.
+5. **Reproducible Build & Focused Offline Tests**: Reuse an existing generator or spec; use declarative generation when the workflow's complexity warrants it, not as a reason to create files for every change. Before publication, validate with `n8n-axi.exe workflow validate --strict` (`0 warnings`) and test changed Code and expressions with representative inputs; expand tests to other affected paths and risks. Keep environment-specific IDs in `Work_data/*-bindings.json`, never in `.agents/`.

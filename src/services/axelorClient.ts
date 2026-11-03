@@ -19,10 +19,18 @@ export class AxelorClient {
   private authenticated: boolean = false;
   private cookieJar: Map<string, string> = new Map();
   private csrfToken: string | null = null;
+  private readonly fixedSession?: AxelorSessionInput;
 
-  constructor(config: AxelorConfig) {
+  /** A fixed-session client never reads or writes the legacy session store. */
+  static forSession(session: AxelorSessionInput): AxelorClient {
+    if (!session.url?.trim() || !session.cookie?.trim()) throw new Error("Invalid fixed session.");
+    return new AxelorClient({ baseUrl: session.url }, session);
+  }
+
+  constructor(config: AxelorConfig, fixedSession?: AxelorSessionInput) {
+    this.fixedSession = fixedSession ? { ...fixedSession, ...(fixedSession.csrfCookie ? { csrfCookie: { ...fixedSession.csrfCookie } } : {}) } : undefined;
     const effectiveBaseUrl = config.baseUrl || "http://localhost:8080/axelor-erp";
-    this.config = { ...config, baseUrl: effectiveBaseUrl };
+    this.config = fixedSession ? { baseUrl: fixedSession.url } : { ...config, baseUrl: effectiveBaseUrl };
     const normalizedUrl = effectiveBaseUrl.replace(/\/+$/, "");
 
     this.http = axios.create({
@@ -51,7 +59,7 @@ export class AxelorClient {
     });
 
     this.http.interceptors.request.use((reqConfig) => {
-      const diskSession = SessionStore.loadSession();
+      const diskSession = this.fixedSession ?? SessionStore.loadSession();
       const hasPersistedSession = Boolean(diskSession?.cookie?.trim() && diskSession.url?.trim());
       const activeCookie = hasPersistedSession ? diskSession!.cookie : this.config.cookie;
 
@@ -76,6 +84,7 @@ export class AxelorClient {
   }
 
   setSession(sessionInput: AxelorSessionInput): void {
+    if (this.fixedSession) throw new Error("Cannot change a fixed-session client.");
     const session = SessionStore.saveSession(sessionInput);
     const normalizedUrl = session.url.replace(/\/+$/, "");
 
@@ -132,7 +141,7 @@ export class AxelorClient {
   }
 
   async authenticate(): Promise<void> {
-    const diskSession = SessionStore.loadSession();
+    const diskSession = this.fixedSession ?? SessionStore.loadSession();
     if (this.config.apiKey || this.config.cookie || diskSession?.cookie) {
       this.authenticated = true;
       return;
@@ -411,7 +420,7 @@ export class AxelorClient {
   }
 
   getBaseUrl(): string {
-    const diskSession = SessionStore.loadSession();
+    const diskSession = this.fixedSession ?? SessionStore.loadSession();
     if (diskSession?.url?.trim()) {
       return diskSession.url.trim().replace(/\/+$/, "");
     }

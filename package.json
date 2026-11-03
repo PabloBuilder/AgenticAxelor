@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "browser:install": "playwright install chromium",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "query": "tsx src/cli/query.ts",
@@ -15,12 +16,15 @@
     "test:view": "tsx src/cli/test/testView.ts",
     "test:data": "tsx src/cli/test/testData.ts",
     "test:mutation": "tsx src/cli/test/testMutation.ts",
-    "test:stdio": "tsx src/cli/test/testStdio.ts"
+    "test:stdio": "tsx src/cli/test/testStdio.ts",
+    "test:browser-session": "tsx src/cli/test/testBrowserSession.ts",
+    "test:browser": "npm run build && node --test tests/browserService.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
+    "playwright": "1.64.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {

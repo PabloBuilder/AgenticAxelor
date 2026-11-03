@@ -217,6 +217,16 @@ records only what existing workflows happened to be built with, which is why
 it lags. Do not open the catalogue to check a `typeVersion` — it is a large
 document and it is the older number.
 
+## Local task references
+
+Read only applicable references; these complement CLI guides and preserve evidence limits:
+
+- [Publication and diagnostics](references/publication-diagnostics.md)
+- [Recovery and idempotence](references/recovery-idempotence.md)
+- [Documents and OCR](references/documents-ocr.md)
+- [Axelor supplier invoices](references/axelor-invoices.md)
+- [Files and Drive](references/files-drive.md)
+
 ## Domain references
 
     n8n-axi guide                    # list the topics
