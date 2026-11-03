@@ -1,83 +1,106 @@
 # AgenticAxelor
 
-> Connecteur MCP pour accélérer le travail des équipes (Chefs de Projet & Développeurs) sur l'ERP Axelor.
+**Le second cerveau d'Alter-si : un environnement de travail pour les assistants et agents IA.**
 
-AgenticAxelor relie directement votre assistant d'IA (Goose, Cursor, Claude Code, etc.) à votre instance Axelor en réutilisant en direct votre session de travail, en toute sécurité.
+AgenticAxelor rassemble des connaissances, des méthodes et des outils pour aider les équipes à comprendre une demande, retrouver les bonnes informations et accomplir leurs missions. Il ne se limite pas à un connecteur Axelor : il fournit aux assistants un contexte de travail organisé et évolutif.
 
----
+**Les connecteurs sont la clé pour exploiter pleinement cet environnement.** Reliés aux outils d'Alter-si, les assistants peuvent mettre les connaissances au service du travail réel : consulter l'ERP, analyser un ticket, exploiter un document ou accompagner une automatisation. Chaque connexion doit être configurée et reste soumise aux droits et autorisations applicables.
 
-## 🎯 Pourquoi AgenticAxelor ?
+## Comment ça fonctionne
 
-Transformez votre assistant IA en copilote ERP opérationnel :
+Une demande est prise en charge par un assistant compatible qui s'appuie sur les ressources adaptées à la mission :
 
-- **Compréhension instantanée** : Retrouvez la structure des écrans, les listes de choix et les champs personnalisés en quelques secondes.
-- **Simulation en temps réel** : Testez les calculs automatiques (taxes, remises, devises) avant validation de fiches.
-- **Gestion documentaire & Rapports** : Générez devis ou factures (PDF/Excel) et gérez vos pièces jointes sans clic superflu.
-- **Audits & Exports rapides** : Exportez des données ciblées (CSV/Excel) et consultez l'historique des modifications en un message.
+1. **Les règles et les index** orientent l'assistant vers le contexte pertinent et les précautions à respecter.
+2. **Les connaissances** apportent des repères métier et techniques.
+3. **Les compétences et les missions** décrivent des méthodes de travail réutilisables.
+4. **Les connecteurs** donnent accès aux informations et aux actions disponibles dans les outils reliés.
+5. **L'utilisateur garde le contrôle**, notamment pour les actions nécessitant une autorisation ou une confirmation.
 
----
+Ces ressources forment un graphe contextuel : elles sont liées entre elles et peuvent être mobilisées en fonction de la tâche. Ce graphe est une organisation de fichiers, de références et de règles, pas une mémoire qui apprend automatiquement. Il peut évoluer avec les besoins, les connaissances et les outils d'Alter-si.
 
-## 👥 Cas d'Usage Quotidiens
+```mermaid
+flowchart TD
+    Demande["Demande du collaborateur"] --> Agent["Assistant ou agents IA"]
+    Agent --> Regles["Règles et index"]
+    Regles --> Connaissances["Connaissances métier et techniques"]
+    Regles --> Competences["Compétences et missions"]
+    Competences --> Connaissances
+    Competences --> Connecteurs["Connecteurs et outils"]
+    Agent --> Connecteurs
+    Connecteurs --> Axelor["Axelor"]
+    Connecteurs --> Redmine["Redmine"]
+    Connecteurs --> Google["Google Workspace"]
+    Connecteurs --> N8n["n8n"]
+    Agent --> Resultat["Résultat vérifié avec contrôle humain"]
+```
 
-### 📋 Chef de Projet & Consultant Fonctionnel
-- **Vérification de paramétrage** : Identifier les champs obligatoires, listes actives ou menus.
-- **Aide à la recette** : Générer des jeux de données cohérents et valider les calculs automatiques.
-- **Synthèse & Cadrage** : Exporter rapidement des listes filtrées pour vos réunions client.
+Ce schéma simplifie les relations entre les ressources. Pour explorer leur cartographie détaillée, ouvrez [la carte du contexte](context-graph.html). Les connexions aux outils externes dépendent de leur configuration et des accès disponibles.
 
-### 💻 Développeur & Intégrateur
-- **Exploration du modèle** : Visualiser les relations entre objets métier sans requête SQL manuelle.
-- **Structure des écrans** : Inspecter la composition des formulaires, onglets et grilles.
-- **Automatisation & Actions** : Déclencher et tester les actions métier directement depuis l'assistant.
+Selon l'assistant utilisé et ses capacités, une mission peut être réalisée par un agent ou déléguée à plusieurs agents. La création et l'orchestration de ces agents dépendent de l'environnement qui les exécute.
 
----
+## Exemples d'utilisation
 
-## 🛠️ Capacités MCP (18 Outils Clés)
+- **Préparer une spécification** : partir de notes d'atelier, qualifier le besoin, consulter les références Axelor pertinentes et préparer un document structuré pour les développeurs. Les vérifications sur l'instance et la publication éventuelle dépendent des connexions et autorisations disponibles.
+- **Comprendre un ticket** : retrouver son contexte, son objectif et les actions attendues, à partir de Redmine lorsque le connecteur est disponible.
+- **Explorer Axelor** : rechercher un modèle, comprendre un écran, consulter des données ou préparer un export avec le connecteur Axelor.
+- **Suivre une intervention** : préparer un compte rendu et un brouillon de réponse, avec validation avant publication lorsque nécessaire.
+- **Analyser une automatisation** : s'appuyer sur les connaissances et les outils n8n disponibles pour comprendre un workflow ou diagnostiquer une exécution.
 
-| Domaine | Outils Inclus | Utilité concrète |
+## Les connecteurs
+
+Sans connecteur, un assistant peut utiliser les ressources locales accessibles dans le projet. Il ne peut pas pour autant consulter les systèmes externes ou y agir. Avec les connecteurs configurés et les accès nécessaires, il peut combiner le contexte du projet avec les informations et outils de travail.
+
+| Outil | Utilité | Disponibilité |
 | :--- | :--- | :--- |
-| 🔐 **Connexion** | `sync_axelor_session` | Réutilise votre session navigateur avec vos droits et permissions exacts. |
-| 🏗️ **Structure** | `search_axelor_models`<br>`inspect_axelor_model`<br>`inspect_axelor_selections`<br>`get_axelor_schema_relations`<br>`inspect_axelor_custom_fields` | Explorer les objets métier, listes déroulantes et champs personnalisés. |
-| 🧭 **Navigation** | `search_axelor_menu`<br>`inspect_axelor_view` | Retrouver un menu et comprendre l'organisation d'un écran. |
-| 📊 **Données & Export** | `query_axelor_data`<br>`fetch_axelor_record`<br>`export_axelor_data` | Rechercher, filtrer et exporter des données (CSV / JSON / Excel). |
-| ⚙️ **Mises à jour & Calculs** | `simulate_axelor_onchange`<br>`save_axelor_record`<br>`batch_axelor_operations`<br>`delete_axelor_record`<br>`execute_axelor_action`<br>`get_axelor_audit_log` | Simuler les calculs, créer/modifier des fiches (seules ou en lot) et tracer les audits. |
-| 📁 **Documents & Processus** | `get_axelor_attachments`<br>`upload_axelor_attachment`<br>`download_axelor_attachment`<br>`list_axelor_templates`<br>`generate_axelor_report`<br>`get_axelor_bpm_state` | Gérer les pièces jointes, générer des rapports (PDF/Excel) et suivre les processus. |
+| Axelor | Explorer les modèles, écrans et données ; produire des exports et documents ; effectuer les actions autorisées. | Serveur MCP inclus dans ce dépôt. Session navigateur à synchroniser. |
+| Redmine | Consulter les tickets et préparer ou effectuer les opérations autorisées. | Connecteur externe à configurer dans l'environnement utilisé. |
+| Google Workspace | Consulter ou utiliser les services Google disponibles, selon les besoins et les droits. | Serveur MCP externe à configurer et autoriser. |
+| n8n | Consulter les workflows et les exécutions, et accompagner les opérations autorisées. | Outil externe à installer et configurer. |
 
----
+La présence d'une instruction ou d'un connecteur ne garantit ni l'accès à un service ni le droit d'y modifier des données. Les capacités réellement disponibles dépendent de la configuration et des permissions de chaque utilisateur.
 
-## 🔒 Sécurité & Bonnes Pratiques
+## Sécurité et contrôle
 
-> [!WARNING]
-> - **Permissions identiques** : L'agent hérite strictement de vos droits d'accès sur l'ERP.
-> - **Simulation recommandée** : Privilégiez les simulations de calculs et requêtes de lecture avant toute mise à jour en masse.
-> - **Environnement** : Préférez une instance de recette / staging avant tout usage en production.
-> - **Confidentialité** : Le fichier `.session.json` contient votre cookie temporaire et reste strictement local (exclu de Git).
+- Les actions dans Axelor utilisent la session et les droits de l'utilisateur connecté. Le fichier local `.session.json` contient des données de session sensibles et ne doit pas être partagé.
+- Les accès aux autres services dépendent de leurs propres configurations et permissions.
+- Les règles du projet demandent de vérifier les informations nécessaires avant une modification et de contrôler le résultat après l'action.
+- Les actions sensibles, destructives ou susceptibles de communiquer à l'extérieur nécessitent les autorisations et confirmations applicables.
+- Pour les essais à risque, privilégier un environnement de recette lorsque c'est possible.
 
----
+## Bien démarrer
 
-## 🚀 Guide d'Installation
+### 1. Ouvrir l'environnement de travail
 
-### Option A : Installation Guidée avec Goose (Recommandé)
+Ouvrez le dossier du projet dans votre assistant compatible. Le fichier [`AGENTS.md`](AGENTS.md) et les ressources du dossier [`.agents`](.agents/) orientent l'assistant vers les règles, connaissances et compétences adaptées à la demande.
 
-1. **Téléchargez et décompressez** le projet sur votre poste.
-2. **Ouvrez Goose** et sélectionnez le dossier décompressé (*Workspace*).
-3. **Dans le chat**, demandez simplement :
-   > **"Lance le setup du projet"** (ou `/setup-assistant`)
-4. L'agent configure l'environnement, compile et démarre le service Bridge local.
-5. Chargez l'extension Chrome (dossier `extension/`) et cliquez sur **Synchroniser la session** sur votre page Axelor.
+Les assistants ne prennent pas tous en charge les mêmes mécanismes de contexte, de compétences ou de délégation. Vérifiez la configuration de celui que vous utilisez.
 
----
+### 2. Connecter les outils utiles à votre activité
 
-### Option B : Installation Manuelle
+Configurez les connecteurs nécessaires dans votre assistant et vérifiez vos accès. Les connecteurs Redmine, Google Workspace et n8n sont externes au serveur MCP Axelor fourni par ce dépôt. Leur disponibilité dépend de votre poste, de votre client et de vos autorisations.
 
-1. **Compiler le projet** :
+Pour Axelor, suivez les étapes ci-dessous. L'installation du connecteur Axelor ne configure pas automatiquement les autres services.
+
+### 3. Installer le connecteur Axelor
+
+#### Installation guidée avec Goose
+
+1. Téléchargez et décompressez le projet, puis ouvrez son dossier dans Goose.
+2. Demandez dans le chat : « Lance le setup du projet » ou utilisez `/setup-assistant` si cette commande est disponible.
+3. Suivez les instructions de l'assistant pour préparer l'environnement et démarrer le Bridge local.
+4. Chargez l'extension Chrome depuis le dossier `extension/`, puis synchronisez votre session depuis la page Axelor.
+
+#### Installation manuelle
+
+1. Installez les dépendances et compilez le projet :
+
    ```bash
    npm install
    npm run build
    ```
 
-   Pour utiliser les outils navigateur expérimentaux, installer Chromium une fois avec `npm run browser:install`. Ce téléchargement est facultatif pour les outils Axelor existants. Les outils `axelor_browser_open`, `axelor_browser_observe`, `axelor_browser_act` et `axelor_browser_close` sont destinés aux cas nécessitant l'interface ; privilégier les outils Axelor habituels. Pour positionner Chromium sur un autre écran, définir `AXELOR_BROWSER_WINDOW_POSITION` au format `x,y` dans l'environnement du processus MCP avant son démarrage (par exemple `-1850,40`, à adapter à la disposition des écrans). Exécuter `npm run test:browser` pour les tests navigateur locaux.
+2. Déclarez le serveur MCP dans la configuration de votre client, en remplaçant le chemin par celui de votre projet :
 
-2. **Déclarer le serveur MCP** dans la configuration de votre client :
    ```json
    {
      "mcpServers": {
@@ -89,36 +112,25 @@ Transformez votre assistant IA en copilote ERP opérationnel :
    }
    ```
 
-3. **Démarrer le Bridge** :
-   - Windows : exécuter `start-bridge.bat`
-   - macOS / Linux : `npm run bridge`
+3. Démarrez le Bridge local :
+   - Windows : exécutez `start-bridge.bat`.
+   - macOS ou Linux : exécutez `npm run bridge`.
+4. Chargez l'extension Chrome non empaquetée depuis `extension/`. Depuis votre page Axelor, cliquez sur **Synchroniser la session**.
+5. L'extension permet d'activer, désactiver ou supprimer les sessions enregistrées. Une session active n'est pas nécessairement encore valide : resynchronisez-la si nécessaire.
 
-4. **Synchroniser la session** :
-   - Chargez l'extension Chrome non empaquetée depuis `extension/`.
-   - Cliquez sur **Synchroniser la session** depuis votre ERP Axelor.
-   - L'extension affiche les sessions enregistrées et permet de les activer, désactiver ou supprimer. Une session active n'est pas nécessairement encore valide ; resynchronisez-la si nécessaire.
-   - Les outils MCP Axelor, y compris les outils navigateur, acceptent `sessionId` : utilisez `list_axelor_sessions` pour obtenir les identifiants. Sans identifiant, l'unique session active est choisie ; aucune session active ou plusieurs sessions actives entraînent un refus. Chaque session possède son navigateur isolé ; après modification de son cookie, rouvrez ce navigateur.
+Les outils MCP Axelor acceptent un `sessionId`. Utilisez `list_axelor_sessions` pour obtenir les identifiants. Sans identifiant, l'unique session active est sélectionnée ; si aucune ou plusieurs sessions sont actives, la demande est refusée.
 
----
+### Navigateur expérimental
 
-## 🤖 Intégration Multi-Agents & Automatisation
+Pour les cas nécessitant l'interface graphique, les outils navigateur expérimentaux utilisent Chromium. Installez-le une fois avec `npm run browser:install`. Cette installation est facultative pour les autres outils Axelor. Privilégiez les outils Axelor habituels lorsqu'ils répondent au besoin.
 
-AgenticAxelor s'intègre naturellement avec d'autres connecteurs MCP dans des chaînes de traitement automatisées :
+Chaque session dispose d'un navigateur isolé. Après modification de son cookie, rouvrez ce navigateur. La position de la fenêtre peut être définie avant le démarrage du serveur MCP avec `AXELOR_BROWSER_WINDOW_POSITION`, au format `x,y`. Les tests navigateur locaux se lancent avec `npm run test:browser`.
 
-```mermaid
-graph TD
-    User["Utilisateur / Pipeline"] --> Orchestrator["Agent / Orchestrateur (Goose / Claude / LangGraph)"]
-    
-    Orchestrator -->|Données & Rapports ERP| MCP_Axelor["MCP AgenticAxelor\n(Devis, Factures, Stocks, GED)"]
-    Orchestrator -->|Tickets & Projets| MCP_Redmine["MCP Redmine"]
-    Orchestrator -->|Bureautique & Stockage| MCP_Google["MCP Google Workspace"]
-```
+## Pour aller plus loin
 
----
-
-## 📚 Documentation Technique
-
-- [Guide Développeur & CLI](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/.agents/docs/DEV_GUIDE.md)
-- [Architecture & Protocoles](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/.agents/docs/ARCHITECTURE.md)
-- [Arbres de Décision Opérateur](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/.agents/standard-index.md)
-- [Cheatsheet API REST Axelor](file:///c:/Users/Pablo/Documents/Alter-si/AgenticAxelor/.agents/docs/axelor-api-cheatsheet.md)
+- [Cartographie du contexte](context-graph.html) : représentation locale des ressources et de leurs liens.
+- [Index opérateur Axelor](.agents/standard-index.md) : choix des ressources et précautions pour les opérations ERP.
+- [Index développeur](.agents/dev-index.md) : repères pour maintenir et faire évoluer le projet.
+- [Architecture du connecteur Axelor](.agents/docs/ARCHITECTURE.md) : serveur MCP, Bridge et extension.
+- [Guide développeur et CLI](.agents/docs/DEV_GUIDE.md).
+- [Référence API REST Axelor](.agents/docs/axelor-api-cheatsheet.md).
