@@ -19,6 +19,7 @@ Read and follow only the guidance matching the task; load multiple references or
 - For every Axelor operation requiring a session, read and follow [Axelor session targeting](knowledge/axelor-sessions.md) before calling tools.
 - Axelor data migrations, reconciliation, or post-import verification: [data reconciliation](knowledge/axelor-data-reconciliation.md).
 - When a local spreadsheet or tabular file is the primary input or deliverable (such as `.xlsx`, `.xlsm`, `.xltx`, `.csv` or `.tsv`) and the request is to inspect, create, edit, clean or convert it, read and follow [the xlsx skill](skills/xlsx/SKILL.md). Do not load it for Google Sheets API tasks or when tabular data is merely incidental. This instruction-based route does not enable automatic model invocation or grant write permission.
+- When a local PowerPoint presentation is the primary input or deliverable and the request is to create, inspect, or modify it, read and follow [the PowerPoint skill](skills/powerpoint/SKILL.md). This instruction-based route does not enable automatic model invocation or grant write permission.
 - Classic CSV/XML import preparation or diagnosis: [classic XML import skill](skills/axelor-xml-data-import/SKILL.md).
 - Graphical advanced-import configuration or diagnosis: [advanced import](knowledge/axelor-advanced-import.md).
 - Axelor functional-test preparation or analysis: [functional testing](knowledge/axelor-functional-testing.md).

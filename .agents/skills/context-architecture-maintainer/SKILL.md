@@ -1,14 +1,35 @@
 ---
 disable-model-invocation: true
 name: context-architecture-maintainer
-description: "Use when auditing or refreshing AgenticAxelor contextual architecture, context freshness, documentation drift, or agent indexes after project changes. Compare a focused Git watchlist with the real runtime, update small documentation changes, and escalate cross-document work."
+description: "Review conversation learnings against the contextual architecture, propose durable knowledge and routing improvements, or audit the freshness of selected context documents against their sources."
 ---
 
 # Context Architecture Maintainer
 
-1. Read [the context register](../../docs/context-freshness.md); select only requested documents or rows implicated by the changed component. Operator context routes through `.agents/standard-index.md`, developer context through `.agents/dev-index.md`; the README describes setup. Source of truth is the current code: MCP over stdio, a separate local Bridge persisting the browser session, and an extension that synchronizes the session but does not display guidance. Guide routes remain Bridge state, without a browser consumer. Do not treat docs or Git dates as proof of runtime behavior.
-2. For each selected row, use its explicit watched paths **plus its document path** as Git pathspecs. If a reviewed SHA exists, verify it resolves and is an ancestor of `HEAD` (`git cat-file -e <sha>^{commit}`; `git merge-base --is-ancestor <sha> HEAD`), then collect committed changes with `git diff --name-status <sha> HEAD -- <paths>`. Collect *all* local staged/unstaged/deleted/renamed/untracked changes with `git status --porcelain=v1 --untracked-files=all -- <paths>`; inspect both paths of renames and nearby new entry points only if the changed manifest, script, or import points to them. Never infer cleanliness from `git log -1` or a timestamp.
-3. If the baseline is `-`/`unverified`, missing, or non-ancestor, **no fast clean result**: inspect the document's concrete claims against the listed sources and local changes for an initial evidence-based audit. Otherwise, if neither committed nor local watched paths changed, report `no relevant change` only for a previously validated `reviewed-clean` row. For changed paths, read just the relevant diff/implementation and neighboring contract; classify each affected claim as still true, false, or uncertain. Git signals what to review, not what to rewrite. New components found through changed imports/scripts must be added to affected watchlists after verification; until then, their scope is unknown, never clean.
-4. Check the affected document's relative Markdown links against its own directory, named tools/endpoints, process boundaries, and secret-handling claims. If claims remain true, do not rewrite them; report `pending local changes` rather than clean when watched paths are dirty. If a correction is clear and touches at most two tightly scoped documents, edit and validate only those documents; report `updated` with pending state if still dirty. Do not edit unrelated files or discard pre-existing edits.
-5. If three or more documents need changes, a cross-contract decision is needed, or evidence remains uncertain, **stop before editing context documents**: report affected paths, observed discrepancy, unanswered question, and `needs stepwise plan`; recommend `stepwise-planner`. Do not automatically run it. Exclude historical HUD docs, `.agents/HANDOFF.md`, secrets, generated output, and upstream sources from routine review.
-6. Record each affected row in the register only after the review and focused validation. Set `reviewed-clean` and advance `Last reviewed commit` only if the document **and every watched source** are committed, clean, and checked against a reachable `HEAD`; otherwise retain the old SHA and set `pending-local-changes` (include changed paths in the report), or `needs-plan` for unresolved work. Untracked paths cannot be clean. Never commit automatically. Finish with per-document `no relevant change`, `updated`, `pending local changes`, or `needs stepwise plan`, evidence and any remaining uncertainty; validate changed Markdown links and `git diff --check` before reporting completion.
+Use this skill on request to review knowledge gained during a conversation or to audit selected context documents. Reading or discussing context does not authorize edits. Respect the active read-only mode and applicable authorization boundaries.
+
+Write context documentation and map updates in English. Use semantic compression optimized for AI-agent token efficiency.
+
+## 1. Select the task and establish scope
+
+- For a conversation review, identify the relevant conversation, its goal, and the knowledge needed beyond the immediate case. If prior conversation is unavailable or compressed beyond useful detail, state the limitation; do not invent evidence.
+- For a freshness audit, identify the requested documents or affected subject and consult the relevant rows of [the context register](../../docs/context-freshness.md).
+- Discover the context structure through the applicable entry points: [agent router](../../rules/agents.md), [operator index](../../standard-index.md), and [developer index](../../dev-index.md). Consult [the context map](../../context-map.md) as a navigation aid, not as proof. Follow only relevant branches and inspect actual candidate files before deciding. An unlisted file is not evidence of absence.
+- Done when the task, evidence available, relevant branches, and scope limitations are explicit.
+
+## 2. Conversation review and knowledge placement
+
+1. Extract potentially reusable facts, verified procedures, corrections, unresolved questions, and information that would have helped earlier. Record their supporting conversation evidence and distinguish observation, inference, hypothesis, and decision.
+2. Filter for durable relevance. Preserve instance, version, customer, date, and other limits when material. Exclude secrets, unnecessary personal or confidential information, one-off details, and unsupported generalizations. It is valid to propose no addition.
+3. Compare candidates with the relevant indexes, skills, knowledge and references. Check whether the knowledge already exists, conflicts, is incomplete, or is present but hard to discover. Check the destination and its direct routing before recommending a change.
+4. For each retained candidate, recommend one of: no change, correct or extend an existing node, improve an index or route, create a distinct node and connect it, or defer pending verification. Explain why, cite evidence and target paths, describe the proposed content and navigation impact, and state uncertainty. Never create a node merely because a fact was learned.
+5. Present the proposed changes and apply only those specifically authorized and compatible with the active mode. After authorized changes, verify affected links and routes, revisit the context map if one exists, and report applied and outstanding work.
+- Done when each candidate has a reasoned disposition, evidence and scope, with changes verified or clearly left as proposals.
+
+## 3. Focused freshness audit
+
+1. Use the selected register rows to identify documents and sources to inspect. Compare each relevant concrete claim with current source evidence; classify it as supported, incorrect, or uncertain. A map, date, or register entry alone does not establish correctness.
+2. Check applicable relative links, tool or process references, and security claims. Identify missing evidence and newly relevant sources. Do not infer runtime behavior solely from documentation.
+3. Report affected paths, evidence, discrepancies, uncertainty and recommended corrections. Apply only specifically authorized, appropriately scoped changes; otherwise leave recommendations for review. Where applicable, update the register and any context map only after the corresponding claims have been checked, preserving uncertainty and recording pending work honestly.
+4. Verify authorized edits against their sources and check affected links. Escalate cross-document decisions or unresolved evidence rather than guessing.
+- Done when every selected claim has a supported, incorrect, or uncertain disposition and any authorized changes are verified.

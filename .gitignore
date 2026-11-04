@@ -1,5 +1,9 @@
 node_modules/
 dist/
+
+# Pi user/project configuration (keep skills under .agents/skills versioned)
+.pi/settings.json
+.pi/npm/
 .env
 *.log
 .DS_Store
