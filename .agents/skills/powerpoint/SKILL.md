@@ -10,7 +10,7 @@ CLI wrapper around [office-powerpoint-mcp-server](https://github.com/GongRzhe/Of
 
 ## Default design for new presentations
 
-For new presentations, read and follow [the Alter-si design system](alter-si/DESIGN.md) and its bundled template and assets by default. Use another design only when the user explicitly opts out or requests an alternative design or template. When editing an existing presentation, preserve its design unless the user requests a redesign. This route does not authorize overwriting the source template or other unrequested writes.
+For new presentations, read and follow [the Alter-si design system](alter-si/DESIGN.md) and its bundled template and assets by default. Reuse actual example slides and their existing objects and embedded assets, or verified matching layouts from the bundled template. When adding a logo, illustration or organic shape, use the relevant bundled asset rather than a generic or generated substitute; use the secondary illustrations in `alter-si/assets/icon assets/` sparingly, only when relevant. Starting from a blank slide and merely applying the palette, a generic theme or a logo is not an acceptable substitute. Verify the presentation visually against the source before claiming fidelity; if that is not possible, report the limitation. Use another design only when the user explicitly opts out or requests an alternative design or template. When editing an existing presentation, preserve its design unless the user requests a redesign. This route does not authorize overwriting the source template or other unrequested writes.
 
 ## Batch Mode (recommended)
 
