@@ -9,5 +9,14 @@
     "pendant.context.includeEditor": true,
     "pendant.context.includeSelection": false,
     "pendant.fontSize": 15,
-    "pendant.voice.language": "fr"
+    "pendant.voice.language": "fr",
+    "pendant.toolPreset": "custom",
+    "pendant.customTools": [
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "grep",
+        "codemode"
+    ]
 }

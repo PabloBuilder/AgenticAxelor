@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "google-workspace": {
+      "url": "https://google-mcp.alter-si.com/mcp"
+    },
+    "agentic-axelor": {
+      "command": "node",
+      "args": [
+        "g:/doc/Ecole/professional/Alter-si/AgenticAxelor/dist/index.js"
+      ],
+      "env": {
+        "BRIDGE_PORT": "3210",
+        "NODE_EXTRA_CA_CERTS": "g:/doc/Ecole/professional/Alter-si/AgenticAxelor/Work_data/5809/gandicert.pem"
+      }
+    }
+  }
+}

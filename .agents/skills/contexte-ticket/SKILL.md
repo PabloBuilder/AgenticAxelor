@@ -23,6 +23,10 @@ disable-model-invocation: true
 
 ## Document et réponse
 
+Faire court par défaut : viser une page, quelques phrases ou puces par section, sans répéter les mêmes faits. Mettre les actions concrètes de l'utilisateur en évidence ; garder seulement les détails et incertitudes utiles pour comprendre ou agir. Conserver les captures pertinentes et quelques questions courtes.
+
+Si l'utilisateur corrige ou précise sa compréhension, relire les tickets liés pertinents, confronter sa proposition aux preuves et mettre à jour directement le document existant, pas seulement la réponse dans le chat. Indiquer clairement les éventuelles différences entre sa compréhension et la demande constatée. Si l'utilisateur demande de raccourcir le document, le raccourcir aussi, sans perdre les faits ou réserves indispensables.
+
 Créer `Work_data/<numéro>/contexte-ticket-<numéro>.md` et y intégrer les captures pertinentes avec des liens Markdown relatifs vers les fichiers téléchargés. Ne pas écraser un document ou une image existants : choisir un nouveau nom si nécessaire. Vérifier que les liens pointent vers les fichiers effectivement présents. Si aucune capture n'est disponible ou accessible, le signaler plutôt que d'en inventer.
 
 Structurer le document de façon concise et adaptée au ticket :

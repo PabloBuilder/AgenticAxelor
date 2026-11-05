@@ -18,6 +18,7 @@ import { GuidanceService } from "./services/guidanceService.js";
 import { BridgeClient } from "./services/bridgeClient.js";
 import { SessionStore } from "./services/sessionStore.js";
 import { SessionRegistry } from "./services/sessionRegistry.js";
+import { addTlsGuidance } from "./services/tlsGuidance.js";
 
 dotenv.config();
 
@@ -103,11 +104,11 @@ const registerTargetedTool = ((name: string, description: string, schema: z.ZodR
       const current = sessionRegistry.resolve(session.id);
       return operationContext.run(createOperationServices(AxelorClient.forSession(current), current.id), () => handler(args, extra));
     };
-    if (!name.startsWith("axelor_browser_")) return invoke();
+    if (!name.startsWith("axelor_browser_")) return addTlsGuidance(await invoke());
     const previous = browserQueues.get(session.id) ?? Promise.resolve();
     const next = previous.catch(() => undefined).then(invoke);
     browserQueues.set(session.id, next);
-    try { return await next; }
+    try { return addTlsGuidance(await next); }
     finally { if (browserQueues.get(session.id) === next) browserQueues.delete(session.id); }
   });
 }) as typeof server.tool;

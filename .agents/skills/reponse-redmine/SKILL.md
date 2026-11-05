@@ -54,6 +54,11 @@ Cet exemple illustre le ton et la structure ; ses chiffres et faits ne doivent j
 ## Livraison et limites
 
 - Produire un brouillon uniquement. Ne pas publier dans Redmine, envoyer de message, joindre un fichier, modifier un statut ou clôturer un ticket sans autorisation spécifique.
+- Si l'utilisateur autorise ensuite explicitement la publication, suivre le routage Redmine et ses règles d'écriture. Identifier le ticket exact et relire son état avant toute modification.
+- Avant l'envoi, établir si la note doit être privée ou publique. En cas de doute, demander à l'utilisateur ; ne jamais supposer qu'une note est privée. Vérifier que le connecteur permet explicitement de définir la visibilité demandée ; sinon, arrêter et signaler le blocage, sans publier publiquement par défaut ni contourner les règles du connecteur.
+- Publier le texte approuvé dans un seul commentaire, à l'identique : mention, accents, sauts de ligne, paragraphes et puces compris. Vérifier préalablement que le mode de transmission prend en charge le texte multiligne et l'encodage ; ne pas aplatir le texte ni le découper en plusieurs commentaires. Si ce n'est pas garanti, arrêter et informer l'utilisateur.
+- Après publication, relire le ticket et vérifier le contenu intégral, la mise en forme, l'unicité du commentaire et sa visibilité effective. Si la visibilité ne peut pas être vérifiée, le signaler explicitement. Ne pas affirmer que l'envoi est conforme sur la seule base d'un code de succès.
+- En cas d'erreur, de résultat incertain ou de publication partielle, arrêter, relire l'état du ticket et avertir l'utilisateur. Ne pas réessayer à l'aveugle, publier une suite, modifier ou supprimer les commentaires sans autorisation spécifique.
 - La lecture d'un ticket n'est nécessaire que si les faits utiles manquent ; dans ce cas suivre le routage opérationnel Redmine du projet et les outils disponibles.
 - Si un élément essentiel manque, poser une question ciblée ou omettre le détail non établi plutôt que le deviner.
 - Si l'utilisateur demande une révision, conserver la concision et ne modifier que les éléments concernés.

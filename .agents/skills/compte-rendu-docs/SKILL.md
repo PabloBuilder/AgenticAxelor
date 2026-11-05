@@ -39,6 +39,8 @@ Fusionner les phases courtes ; omettre celles qui ne s'appliquent pas. Ne jamais
 
 ## Ancrage factuel obligatoire
 
+- Lorsque ce skill est appelé par `interconnexion-fin-de-tache`, refléter les résultats et les limites du contrôle préalable dans le compte rendu, sans transformer les points non vérifiés en validations.
+
 - Extraire les faits de la conversation, des fichiers désignés et des contrôles disponibles. Lire uniquement les éléments nécessaires ; ne pas relancer d'opérations métier pour rédiger un compte rendu.
 - Pour chaque scénario pertinent, préciser ce qui a été testé, les conditions importantes, le résultat observé et, si connu, ce qui a été validé, signalé ou reste à clarifier. Ne pas se limiter à une liste d'actions.
 - Distinguer les scénarios aux conditions différentes, sans généraliser un résultat à tous les cas. Distinguer ce qui est proposé, préparé, exécuté, déclaré par l'utilisateur et vérifié indépendamment ; ne pas inventer une validation ou une origine d'observation.
