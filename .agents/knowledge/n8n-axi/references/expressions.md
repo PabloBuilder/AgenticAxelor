@@ -79,6 +79,10 @@ makes `$env` throw. Do not design a workflow around `$env` without confirming wi
 user. Alternatives: an n8n credential, a Set node with the value entered once, or a
 webhook query parameter.
 
+### Loop branch isolation
+
+On the tested n8n instance, `$('Node').first()` could expose an earlier iteration's output when the current iteration skipped that branch. Never treat its availability as evidence it ran for the current document. Bind optional branch outputs to the current document ID and fail closed on ambiguity; see [recovery and idempotence](recovery-idempotence.md). A fictitious three-item test is not proof of the complete workflow.
+
 ### Prefer `$('Node').item.json` over deep `$json`
 
 `$json` means "whatever the previous node emitted" — it silently changes meaning the

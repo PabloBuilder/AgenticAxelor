@@ -24,7 +24,7 @@ const REDMINE_API_KEY = getEnvVar('REDMINE_API_KEY');
 
 if (!REDMINE_API_KEY) {
   console.error('[redmine-axi] Erreur : La variable d\'environnement REDMINE_API_KEY n\'est pas definie.');
-  console.error('Executez setup-redmine.cmd pour configurer votre cle API.');
+  console.error('Sous Windows, executez .agents/skills/setup-assistant/scripts/configurer-redmine.bat dans votre propre terminal.');
   process.exit(1);
 }
 

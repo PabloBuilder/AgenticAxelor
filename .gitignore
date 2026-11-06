@@ -5,6 +5,8 @@ dist/
 .pi/settings.json
 .pi/npm/
 .env
+# Local personal identity; never committed
+.agents/local/
 *.log
 .DS_Store
 .session.json

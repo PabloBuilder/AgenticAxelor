@@ -110,9 +110,11 @@ same id:**
     n8n-axi workflow push <id> --file wf.toon
 
 `push <id>` reads either format — the spec from `--as-spec` or the JSON from
-`--raw` — and replaces that workflow **in place**. The round trip is faithful:
-parameters, credentials, error handling, retries, notes and every connection
-survive it; only node ids and canvas positions are regenerated.
+`--raw` — and replaces that workflow **in place**. Read back and compare the
+actual parameters, credentials, error handling, connections and settings: the
+tested CLI 0.1.0 omitted `binaryMode` from a push dry-run payload, and a new
+workflow readback lacked it. See [publication diagnostics](references/publication-diagnostics.md).
+Node IDs and canvas positions may be regenerated.
 
 **`workflow build --push` CREATES A NEW workflow. It never edits one.** Reach
 for it only when you want a workflow that does not exist yet — if you use it to

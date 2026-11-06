@@ -5,7 +5,7 @@ description: Operations de lecture et recherche sur les tickets Redmine Alter-SI
 
 # Redmine CLI Operations
 
-CLI de consultation et gestion Redmine pour agents.
+CLI de consultation et gestion Redmine pour agents. Depuis la racine du dépôt, utiliser `node scripts/redmine-axi.cjs` : aucun lanceur Pi ni modification du PATH n'est nécessaire. La présence du skill ne prouve pas que la connexion est valide.
 
 ## Variables d'environnement
 - `REDMINE_URL` : Base URL Redmine (defaut: https://redmine.alter-si.fr)
@@ -14,19 +14,19 @@ CLI de consultation et gestion Redmine pour agents.
 ## Lecture de tickets
 ```bash
 # Voir un ticket complet avec son historique
-redmine-axi issue view <id> --notes
+node scripts/redmine-axi.cjs issue view <id> --notes
 
 # Voir le ticket au format JSON brut
-redmine-axi issue view <id> --json
+node scripts/redmine-axi.cjs issue view <id> --json
 
 # Lister les tickets recents
-redmine-axi issue list --limit 20
+node scripts/redmine-axi.cjs issue list --limit 20
 
 # Lister les tickets assignes a soi-meme
-redmine-axi issue list --assigned me
+node scripts/redmine-axi.cjs issue list --assigned me
 
 # Lister les projets
-redmine-axi project list
+node scripts/redmine-axi.cjs project list
 ```
 
 Pour les ecritures, consulter obligatoirement `references/writing.md`.

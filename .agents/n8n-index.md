@@ -11,7 +11,7 @@ Use the [lessons learned](docs/retour-experience-axelor-n8n-factures.md) selecti
 | OCR, PDF extraction or AI-produced invoice data | [Documents and OCR](knowledge/n8n-axi/references/documents-ocr.md); lessons §§8–12. |
 | Duplicate prevention, concurrency or partial failure | [Recovery and idempotence](knowledge/n8n-axi/references/recovery-idempotence.md); lessons §§16–17. Apply safeguards proportionately to actual side effects. |
 | Binary attachment or Drive handling | [Files and Drive](knowledge/n8n-axi/references/files-drive.md); lessons §§18–19. |
-| Resuming the supplier-invoice V3 | §§1–2 and 20–22 first, then the relevant topics above; use the existing common V3 and recheck current evidence. |
+| Resuming the supplier-invoice V3 | Current project handoff `.agents/HANDOFF-factures-V3.md` §0, then lessons §§1–2 and 20–22 and relevant topics above; recheck live evidence. The separate inactive batch is a bounded test, not a new supplier-specific V3. |
 
 For technical API contracts, also consult the [Axelor REST API Cheatsheet](docs/axelor-api-cheatsheet.md). Read only applicable topics; do not impose invoice-specific bindings or the V3 mutex on unrelated workflows.
 

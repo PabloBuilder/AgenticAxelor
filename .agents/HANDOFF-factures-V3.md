@@ -1,5 +1,17 @@
 # Session Handoff : V3 factures fournisseurs — prototype DEMO et robustification
 
+## 0. Current session update — 2026-11-06
+
+- **Current goal:** manual, inactive batch recipe of 12 copied PDFs in Gestion DEV only; goal remains blocked pending operator execution of the separately published batch workflow. IDs, versions, file mappings and expectations: `Work_data/lot2/lot12-reference.json`; the human-facing sheet currently says **Non testé**. No batch run or 12-document success has been reported.
+- **Observed Gestion DEV acceptance:** a new AXELOR supplier invoice completed autonomously as one draft; independent readback verified dates, lines, totals, downloaded PDF SHA-256, Drive classification and IDLE mutex with COMPLETE receipt. A same-file rerun returned `ALREADY_DONE` and independent readback showed one invoice and attachment. Evidence: `Work_data/lot2/gestion-dev-axelor-real-acceptance.json`. Partial-failure recovery was not tested in this DEV run.
+- **Concurrency:** DEV technical mutex created and tested: two concurrent saves of one version produced one winner and one rejection; IDLE restored. This protects participating workflows only. Binding and evidence: `Work_data/lot2/v3-gestion-dev-creation-gate.json`.
+- **Batch candidate:** existing V3 remains inactive and separate from the inactive 12-file recipe workflow. Published batch readback and source: `Work_data/lot2/workflow-v3-gestion-dev-lot12-readback.json` and `Work_data/lot2/build-v3-gestion-dev-lot12.mjs`. Compare with live state before any mutation. The workflow selects only the 12 sandbox copies, processes one at a time and stops on uncertain gate state. A fake branch test proved prior-iteration `.first()` data can remain visible; a second fake test rejected it using current-item identity. This is not full batch acceptance.
+- **Settings caveat:** CLI 0.1.0 strips `binaryMode` from push dry-run; the new batch readback lacks the V3's `binaryMode: separate`. A separate read-only PDF test succeeded in inline mode, verifying one file's signature and size only; full batch binary/attachment behavior remains unproven. Do not claim the settings match or infer production readiness.
+- **Next:** if the operator has run the batch, obtain only the sanitized `Resultat Lot` or failing stage; inspect actual workflow/execution, DEV mutex, per-document ERP/attachment and Drive state before any repeat. Never rerun blindly. If not yet run, operator can execute the inactive batch once after reconfirming current scope and state. The CSV/Sheet remains a human-readable test view, not a durable registry.
+- **Auth:** browser/MCP and n8n credentials are separate. The existing shared n8n credential was changed by the operator to Gestion DEV; old DEMO workflows still point to DEMO and must not be executed with that credential. No secrets or browser cookies should be copied or disclosed.
+
+The following sections are historical DEMO context. Their “next action” and inactivation statements do not override this update.
+
 ## 1. Goal
 
 - Passer d’un PDF Drive, natif ou scanné, à un **brouillon fournisseur unique et contrôlé dans Axelor**, avec PDF original joint, puis classement DONE seulement après vérifications.

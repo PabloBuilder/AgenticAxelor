@@ -179,10 +179,12 @@ registerTargetedTool(
 
 registerTargetedTool(
   "axelor_browser_observe",
-  "Return a compact accessibility snapshot of the current page. Open the browser first. The snapshot can be truncated.",
-  {},
-  async () => {
-    try { return { content: [{ type: "text", text: JSON.stringify(await browserService.observe()) }] }; }
+  "Return an accessibility snapshot of the current page or a uniquely identified region/dialog. The snapshot can be truncated.",
+  {
+    scope: z.object({ role: z.enum(["dialog", "alertdialog", "region", "group", "form", "listbox", "menu"]), name: z.string().optional() }).optional().describe("Unique visible region identified by role and optional exact accessible name"),
+  },
+  async ({ scope }) => {
+    try { return { content: [{ type: "text", text: JSON.stringify(await browserService.observe(scope)) }] }; }
     catch (error) { return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Browser observation failed" }] }; }
   }
 );
@@ -191,13 +193,16 @@ registerTargetedTool(
   "axelor_browser_act",
   "Perform one browser action. Use an exact accessible role and name, or click_text for an exact visible text when roles are unavailable; stop if ambiguous. Actions may modify Axelor data.",
   {
-    action: z.enum(["click", "click_text", "fill", "select", "check", "uncheck", "wait_visible", "navigate"]),
-    role: z.enum(["button", "link", "textbox", "combobox", "tab", "checkbox", "radio", "spinbutton", "option", "dialog"]).optional(),
-    name: z.string().optional().describe("Exact accessible name of the target"),
-    value: z.string().optional().describe("Text, native select label, or URL for navigation"),
+    action: z.enum(["click", "click_text", "fill", "select", "check", "uncheck", "wait_visible", "wait_hidden", "press", "navigate"]),
+    role: z.enum(["button", "link", "textbox", "combobox", "tab", "checkbox", "radio", "spinbutton", "option", "dialog", "alertdialog", "region", "group", "form", "listbox", "menu", "menuitem", "searchbox"]).optional(),
+    name: z.string().optional().describe("Exact accessible name, label, placeholder, title or visible text"),
+    value: z.string().optional().describe("Text, native select label, allowed keyboard key, or URL"),
+    by: z.enum(["role", "label", "placeholder", "title", "text"]).optional().describe("Targeting strategy, default role; click_text uses visible text"),
+    scope: z.object({ role: z.enum(["dialog", "alertdialog", "region", "group", "form", "listbox", "menu"]), name: z.string().optional() }).optional().describe("Unique visible region identified by role and optional exact accessible name"),
+    timeoutMs: z.number().int().min(100).max(30000).optional(),
   },
-  async ({ action, role, name, value }) => {
-    try { return { content: [{ type: "text", text: JSON.stringify(await browserService.act(action, role, name, value)) }] }; }
+  async ({ action, role, name, value, by, scope, timeoutMs }) => {
+    try { return { content: [{ type: "text", text: JSON.stringify(await browserService.act(action, role, name, value, { by, scope, timeoutMs })) }] }; }
     catch (error) { return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Browser action failed" }] }; }
   }
 );

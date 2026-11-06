@@ -6,12 +6,12 @@ A navigation aid for maintaining context, not an authoritative or guaranteed exh
 
 | Path | Role and candidate use | Relationships / limits |
 |---|---|---|
-| `.agents/rules/agents.md` | General rules, security, and primary intent routing. Use for a general rule or new entry point. | Routes to the indexes and mission below; avoid duplicating specialized procedures here. |
+| `.agents/rules/agents.md` | General rules, security, and primary intent routing. Use for a general rule or new entry point. | Routes to indexes and optionally `.agents/local/user-profile.json` (ignored local user data); avoid duplicating specialized procedures here. |
 | `.agents/standard-index.md` | Axelor operations index: tool selection, task routes, validation, and safety. | Points to Axelor knowledge and skills; consult before changing an operational route. |
 | `.agents/dev-index.md` | Developer index: architecture, technical owners, and engineering directives. | Points to technical documentation, the Axelor index, and context maintenance. |
 | `.agents/google-workspace-index.md` | Google Workspace access, reading, and write safeguards. | For Google operations, not local spreadsheets generally. |
 | `.agents/n8n-index.md` | Routing and safeguards for n8n workflows. | Points to `.agents/knowledge/n8n-axi/index.md` and topic-specific references. |
-| `.agents/redmine-index.md` | Redmine operations index and cross-domain links. | The primary Redmine read route is an externally installed skill identified in `.agents/rules/agents.md`; check availability. |
+| `.agents/redmine-index.md` | Redmine operations index and cross-domain links. | The primary Redmine read route is the repository skill identified in `.agents/rules/agents.md`; the CLI must also be available. |
 | `.agents/Axelor-index.md` | XML search guidance and Axelor Open Suite module matrix. | Developer reference; does not establish the state of a target instance. |
 | `.agents/missions/cdp-ticket-writer/SKILL.md` | Mission for turning workshop notes into a functional specification / ticket. | Dedicated route in `.agents/rules/agents.md`; resources live in its directory. |
 
