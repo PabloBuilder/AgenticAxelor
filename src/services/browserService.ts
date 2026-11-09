@@ -1,8 +1,9 @@
 import { chromium, type Browser, type BrowserContext, type Page, type Locator } from "playwright";
 
-type BrowserRole = "button" | "link" | "textbox" | "combobox" | "tab" | "checkbox" | "radio" | "spinbutton" | "option" | "dialog" | "alertdialog" | "region" | "group" | "form" | "listbox" | "menu" | "menuitem" | "searchbox";
-type BrowserScope = { role: BrowserRole; name?: string };
-type BrowserTarget = { by?: "role" | "label" | "placeholder" | "title" | "text"; scope?: BrowserScope; timeoutMs?: number };
+type BrowserRole = "button" | "link" | "textbox" | "combobox" | "tab" | "checkbox" | "radio" | "spinbutton" | "option" | "dialog" | "alertdialog" | "region" | "group" | "form" | "listbox" | "menu" | "menuitem" | "searchbox" | "heading";
+type BrowserMatch = { by: "role" | "label" | "placeholder" | "title" | "text"; name: string; role?: BrowserRole };
+type BrowserScope = { role: BrowserRole | "axelor_modal" | "axelor_field"; name?: string; contains?: BrowserMatch };
+type BrowserTarget = { by?: BrowserMatch["by"]; scope?: BrowserScope; timeoutMs?: number };
 import { createHash } from "node:crypto";
 import { SessionStore, type SessionData } from "./sessionStore.js";
 
@@ -62,14 +63,48 @@ export class BrowserService {
     return this.page;
   }
 
+  private matchLocator(container: Page | Locator, match: BrowserMatch): Locator {
+    const { by, name, role } = match;
+    if (by !== "role" && !name.trim()) throw new Error("Texte non vide requis pour cette méthode de ciblage.");
+    if (by === "text") return container.getByText(name, { exact: true });
+    if (by === "label") return container.getByLabel(name, { exact: true });
+    if (by === "placeholder") return container.getByPlaceholder(name, { exact: true });
+    if (by === "title") return container.getByTitle(name, { exact: true });
+    if (!role) throw new Error("Rôle exact requis pour le ciblage par rôle.");
+    return container.getByRole(role, { name, exact: true });
+  }
+
   private async scopeLocator(page: Page, scope?: BrowserScope): Promise<Page | Locator> {
     if (!scope) return page;
-    const container = scope.name === undefined
-      ? page.getByRole(scope.role)
-      : page.getByRole(scope.role, { name: scope.name, exact: true });
+    let container: Locator;
+    if (scope.role === "axelor_field") {
+      if (scope.contains !== undefined) throw new Error("contains interdit pour le scope axelor_field.");
+      if (!scope.name?.trim()) throw new Error("Le libellé exact du champ Axelor est requis.");
+      const escaped = scope.name.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      // Match the label itself (including nested spans), not outer layout containers.
+      const label = page.locator('[class*="_title_"] > label:visible').filter({ hasText: new RegExp(`^\\s*${escaped}\\s*$`) });
+      container = label.locator('xpath=../..').locator('xpath=self::*[contains(@class, "_container_") and *[contains(@class, "_content_")]]');
+    } else if (scope.role === "axelor_modal") {
+      if (!scope.name?.trim()) throw new Error("Le titre exact de la modale Axelor est requis.");
+      container = page.locator('[class*="_modal-content_"], .modal-content').filter({
+        has: page.getByRole("heading", { name: scope.name, exact: true }),
+      });
+    } else {
+      container = scope.name === undefined
+        ? page.getByRole(scope.role)
+        : page.getByRole(scope.role, { name: scope.name, exact: true });
+    }
+    if (scope.contains) container = container.filter({ has: this.matchLocator(page, scope.contains) });
+    container = container.locator("visible=true");
     if (await container.count() !== 1) throw new Error("Zone introuvable ou ambiguë : observez la page avant de poursuivre.");
     await container.waitFor({ state: "visible", timeout: 10000 });
+    if (scope.role === "axelor_field") await this.rejectNestedFields(container);
     return container;
+  }
+
+  private async rejectNestedFields(container: Locator): Promise<void> {
+    const nested = container.locator('xpath=.//*[contains(@class, "_container_") and *[contains(@class, "_title_") and label] and *[contains(@class, "_content_")]]');
+    if (await nested.count()) throw new Error("Champ Axelor imbriqué : scope parent refusé.");
   }
 
   async observe(scope?: BrowserScope): Promise<{ url: string; title: string; snapshot: string; truncated: boolean }> {
@@ -81,6 +116,7 @@ export class BrowserService {
   }
 
   async act(action: "click" | "click_text" | "fill" | "select" | "check" | "uncheck" | "wait_visible" | "wait_hidden" | "press" | "navigate", role?: BrowserRole, name?: string, value?: string, options: BrowserTarget = {}): Promise<{ url: string; warning: string }> {
+    if (action === "navigate" && options.scope?.role === "axelor_field") throw new Error("Navigation incompatible avec le scope axelor_field.");
     const page = this.activePage();
     const timeout = options.timeoutMs ?? 10000;
     if (!Number.isInteger(timeout) || timeout < 100 || timeout > 30000) throw new Error("Délai invalide : utiliser 100 à 30000 ms.");
@@ -101,16 +137,7 @@ export class BrowserService {
         if (name === undefined) throw new Error("Nom ou texte exact requis pour cibler un élément (nom vide explicite accepté pour un rôle non nommé).");
         const container = await this.scopeLocator(page, options.scope);
         const by = action === "click_text" ? "text" : options.by ?? "role";
-        let target: Locator;
-        if (by !== "role" && !name.trim()) throw new Error("Texte non vide requis pour cette méthode de ciblage.");
-        if (by === "text") target = container.getByText(name, { exact: true });
-        else if (by === "label") target = container.getByLabel(name, { exact: true });
-        else if (by === "placeholder") target = container.getByPlaceholder(name, { exact: true });
-        else if (by === "title") target = container.getByTitle(name, { exact: true });
-        else {
-          if (!role) throw new Error("Rôle exact requis pour le ciblage par rôle.");
-          target = container.getByRole(role, { name, exact: true });
-        }
+        const target = this.matchLocator(container, { by, name, role });
         if (action === "wait_hidden") {
           if (await target.count() > 1) throw new Error("Élément ambigu : précisez la zone.");
           await target.waitFor({ state: "hidden", timeout });
@@ -123,13 +150,22 @@ export class BrowserService {
           if (action !== "wait_visible") {
             if ((action === "fill" || action === "select") && value === undefined) throw new Error("Valeur requise pour cette action.");
             if (action === "press" && (!value || !["Escape", "Enter", "Tab", "ArrowDown", "ArrowUp", "Home", "End"].includes(value))) throw new Error("Touche non prise en charge.");
-            attempted = true;
-            if (action === "click" || action === "click_text") await visible.click({ timeout });
-            else if (action === "check") await visible.check({ timeout });
-            else if (action === "uncheck") await visible.uncheck({ timeout });
-            else if (action === "fill") await visible.fill(value!, { timeout });
-            else if (action === "select") await visible.selectOption({ label: value! }, { timeout });
-            else if (action === "press") await visible.press(value!, { timeout });
+            // A fixed handle cannot silently resolve to a replacement node during Playwright retries.
+            const handle = options.scope?.role === "axelor_field" ? await visible.elementHandle() : null;
+            try {
+              if (options.scope?.role === "axelor_field") {
+                await this.rejectNestedFields(container as Locator);
+                if (!handle || await visible.count() !== 1 || !await visible.evaluate((el, original) => el === original, handle)) throw new Error("Cible modifiée ou ambiguë : observez à nouveau.");
+              }
+              attempted = true;
+              const control = handle ?? visible;
+              if (action === "click" || action === "click_text") await control.click({ timeout });
+              else if (action === "check") await control.check({ timeout });
+              else if (action === "uncheck") await control.uncheck({ timeout });
+              else if (action === "fill") await control.fill(value!, { timeout });
+              else if (action === "select") await control.selectOption({ label: value! }, { timeout });
+              else if (action === "press") await control.press(value!, { timeout });
+            } finally { await handle?.dispose(); }
           }
         }
       }

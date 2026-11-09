@@ -29,7 +29,7 @@ test('MCP routes each call to its resolved active session', async () => {
     const save = () => fs.writeFileSync(path.join(dir, '.sessions.json'), JSON.stringify({ version: 1, sessions }));
     save();
     client = new Client({ name: 'routing-test', version: '1.0.0' });
-    await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.join(dir, 'dist/index.js')], cwd: dir, stderr: 'pipe' }));
+    await client.connect(new StdioClientTransport({ command: process.execPath, args: [path.join(dir, 'dist/index.js')], cwd: dir, env: { ...process.env, AXELOR_ENABLE_EXPERIMENTAL_BROWSER: '1' }, stderr: 'pipe' }));
     const tools = await client.listTools();
     const sessionParameter = tools.tools.find(t => t.name === 'query_axelor_data').inputSchema.properties.sessionId;
     assert.match(sessionParameter.description, /list_axelor_sessions/);

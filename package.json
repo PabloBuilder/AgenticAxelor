@@ -18,7 +18,7 @@
     "test:mutation": "tsx src/cli/test/testMutation.ts",
     "test:stdio": "tsx src/cli/test/testStdio.ts",
     "test:browser-session": "tsx src/cli/test/testBrowserSession.ts",
-    "test:browser": "npm run build && node --test tests/browserService.test.mjs tests/browserMcpInteractions.test.mjs tests/browserMultiSession.test.mjs tests/mcpSessionRouting.test.mjs"
+    "test:browser": "npm run build && node --test tests/browserAvailability.test.mjs tests/browserService.test.mjs tests/browserMcpInteractions.test.mjs tests/browserMultiSession.test.mjs tests/mcpSessionRouting.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.6.1",

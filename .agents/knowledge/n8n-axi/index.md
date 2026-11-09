@@ -223,6 +223,7 @@ document and it is the older number.
 
 Read only applicable references; these complement CLI guides and preserve evidence limits:
 
+- [Axelor dedicated nodes](references/axelor-nodes.md)
 - [Publication and diagnostics](references/publication-diagnostics.md)
 - [Recovery and idempotence](references/recovery-idempotence.md)
 - [Documents and OCR](references/documents-ocr.md)

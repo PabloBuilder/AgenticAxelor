@@ -37,8 +37,9 @@ Choose a shape and size appropriate to the task; there is no target node count. 
 ### B. Webhook Node Contract (`n8n-axi workflow validate`)
 - Every `n8n-nodes-base.webhook` node pushed via API must define a stable `webhookId` parameter alongside `path`, `httpMethod`, and `responseMode: 'responseNode'`. Omitting `webhookId` triggers `MISSING_WEBHOOK_ID` validation warnings and can prevent production webhook registration.
 
-### C. HTTP Request Node Discipline (`neverError: true`)
-- Configure `options: { response: { response: { fullResponse: true, neverError: true, responseFormat: 'text' } } }` on Axelor and LLM `HTTP Request` nodes so the downstream `Code` node can deterministically inspect `statusCode` and parse JSON or surface structured `[STAGE:...] HTTP_<status>` errors.
+### C. Axelor Node Discipline & HTTP Fallback
+- **Dedicated Axelor Node (`n8n-nodes-axelor-connect.axelor`)**: Use for flat record operations and DMS. Trap errors by enabling `Settings > On Error > Continue (Using Error Output)` (`main:1`) to cleanly route Axelor business errors (`status: -1`) to the central 4-node collector.
+- **HTTP Request Fallback (`neverError: true`)**: When handling composite `OneToMany` trees (invoices, orders) or calling arbitrary LLM endpoints via `n8n-nodes-base.httpRequest`, configure `options: { response: { response: { fullResponse: true, neverError: true, responseFormat: 'text' } } }` so downstream `Code` nodes can deterministically inspect `statusCode` and parse payloads without silent aborts.
 
 ---
 

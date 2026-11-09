@@ -26,7 +26,7 @@ These files are candidates for extending existing subjects; verify their actual 
 | `.agents/knowledge/axelor-advanced-import.md` | Advanced graphical import configuration and diagnosis. |
 | `.agents/knowledge/axelor-functional-testing.md` | Preparation and analysis of Axelor functional tests. |
 | `.agents/knowledge/axelor-permissions-audit.md` | Read-only Axelor permissions audits. |
-| `.agents/knowledge/n8n-axi/index.md` | Entry point for n8n CLI knowledge; its references cover workflows, diagnostics, invoices, documents, recovery, and files. |
+| `.agents/knowledge/n8n-axi/index.md` | Entry point for n8n CLI knowledge; its references cover dedicated Axelor nodes, workflows, diagnostics, invoices, documents, recovery, and files. |
 | `.agents/knowledge/drive-projets-index.md` | Index and routing for Drive project folders. |
 | `.agents/knowledge/redmine-mentions.md` | Knowledge concerning Redmine mentions; verify its scope and links before modifying it. |
 

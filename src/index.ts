@@ -81,6 +81,9 @@ const dataService = scopedService("dataService");
 const guidanceService = scopedService("guidanceService");
 const browserService = scopedService("browserService");
 const bridgeClient = new BridgeClient(bridgePort);
+const browserRoleSchema = z.enum(["button", "link", "textbox", "combobox", "tab", "checkbox", "radio", "spinbutton", "option", "dialog", "alertdialog", "region", "group", "form", "listbox", "menu", "menuitem", "searchbox", "heading"]);
+const browserMatchSchema = z.object({ by: z.enum(["role", "label", "placeholder", "title", "text"]), name: z.string(), role: browserRoleSchema.optional() });
+const browserScopeSchema = z.object({ role: z.union([browserRoleSchema, z.literal("axelor_modal"), z.literal("axelor_field")]), name: z.string().optional(), contains: browserMatchSchema.optional() });
 
 const server = new McpServer({
   name: "agentic-axelor-mcp",
@@ -167,6 +170,8 @@ registerTargetedTool(
   }
 );
 
+// Developer-only opt-in: browser tools are absent from MCP discovery by default.
+if (process.env.AXELOR_ENABLE_EXPERIMENTAL_BROWSER === "1") {
 registerTargetedTool(
   "axelor_browser_open",
   "Open a visible browser using the synchronized session. Prefer existing Axelor tools; use browser only when the rendered interface is needed.",
@@ -181,7 +186,7 @@ registerTargetedTool(
   "axelor_browser_observe",
   "Return an accessibility snapshot of the current page or a uniquely identified region/dialog. The snapshot can be truncated.",
   {
-    scope: z.object({ role: z.enum(["dialog", "alertdialog", "region", "group", "form", "listbox", "menu"]), name: z.string().optional() }).optional().describe("Unique visible region identified by role and optional exact accessible name"),
+    scope: browserScopeSchema.optional().describe("Unique region; axelor_modal requires an exact heading, axelor_field an exact visible label"),
   },
   async ({ scope }) => {
     try { return { content: [{ type: "text", text: JSON.stringify(await browserService.observe(scope)) }] }; }
@@ -194,11 +199,11 @@ registerTargetedTool(
   "Perform one browser action. Use an exact accessible role and name, or click_text for an exact visible text when roles are unavailable; stop if ambiguous. Actions may modify Axelor data.",
   {
     action: z.enum(["click", "click_text", "fill", "select", "check", "uncheck", "wait_visible", "wait_hidden", "press", "navigate"]),
-    role: z.enum(["button", "link", "textbox", "combobox", "tab", "checkbox", "radio", "spinbutton", "option", "dialog", "alertdialog", "region", "group", "form", "listbox", "menu", "menuitem", "searchbox"]).optional(),
+    role: browserRoleSchema.optional(),
     name: z.string().optional().describe("Exact accessible name, label, placeholder, title or visible text"),
     value: z.string().optional().describe("Text, native select label, allowed keyboard key, or URL"),
     by: z.enum(["role", "label", "placeholder", "title", "text"]).optional().describe("Targeting strategy, default role; click_text uses visible text"),
-    scope: z.object({ role: z.enum(["dialog", "alertdialog", "region", "group", "form", "listbox", "menu"]), name: z.string().optional() }).optional().describe("Unique visible region identified by role and optional exact accessible name"),
+    scope: browserScopeSchema.optional().describe("Unique region; axelor_modal requires an exact heading, axelor_field an exact visible label"),
     timeoutMs: z.number().int().min(100).max(30000).optional(),
   },
   async ({ action, role, name, value, by, scope, timeoutMs }) => {
@@ -216,6 +221,7 @@ registerTargetedTool(
     catch (error) { return { isError: true, content: [{ type: "text", text: error instanceof Error ? error.message : "Browser close failed" }] }; }
   }
 );
+}
 
 registerTargetedTool(
   "inspect_axelor_view",

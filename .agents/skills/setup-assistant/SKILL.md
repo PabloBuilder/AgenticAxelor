@@ -12,7 +12,7 @@ Prepare the environment in one guided run, targeting Goose by default; adapt to 
 
 - Follow the [router](../../rules/agents.md), [operator index](../../standard-index.md), and relevant connector indexes. Setup does not authorize business writes, workflow execution, sharing or sending messages.
 - Never request or display secrets in chat, command arguments, logs, generated config snippets or tool output. Never inspect credential stores, `.env`, registry values or session files. Do not query Bridge ports to retrieve sessions.
-- Ask before overwriting client configuration, changing PATH or persistent credential storage, or running an external installer (except the project-provided Chromium install below). Explain its source, effects and storage security first. Do not silently replace existing connections. Do not run the n8n no-argument installer implicitly.
+- Ask before overwriting client configuration, changing PATH or persistent credential storage, or running an external installer. Explain its source, effects and storage security first. Do not silently replace existing connections. Do not run the n8n no-argument installer implicitly.
 - For missing keys, use a verified connector-supported masked interactive setup in a user-controlled terminal whose input and output are not captured by the agent. The user enters secrets there, never in chat. If such a mechanism or storage security cannot be established, stop that branch and explain the blocker; do not improvise secret handling. For browser authorization, use only a verified client/provider flow; never invent an OAuth endpoint.
 - Use the available long-running terminal facility for the Bridge. If `rtk` is required but absent, report that prerequisite and follow the host's installation instructions; do not assume it exists. Commands below use `rtk`.
 
@@ -27,8 +27,7 @@ Prepare the environment in one guided run, targeting Goose by default; adapt to 
 
 1. Identify OS, project absolute path and the active MCP client; detect its supported configuration and reload procedure without reading secrets. Verify Node and npm with `rtk node -v` and `rtk npm -v`; Node 20+ is recommended. If missing, direct the user to https://nodejs.org/.
 2. Run `rtk npm install` and `rtk npm run build`; confirm the build succeeds and `dist/index.js` exists. The lockfile includes an `n8n-axi` package requiring `N8N_MCP_URL` and `N8N_MCP_TOKEN`; it is not interchangeable with the externally supported API CLI using `N8N_BASE_URL` and `N8N_API_KEY`. Installing it does not configure either connection.
-3. After dependencies, run `rtk npm run browser:install` without an extra prompt to install Playwright's Chromium. Report failure without blocking unrelated connectors. If Linux system libraries or elevated permissions are needed, explain and request approval before installing OS packages; never invoke `--with-deps` silently.
-4. If a prerequisite or build fails, report the failure and continue other independent branches where possible.
+3. If a prerequisite or build fails, report the failure and continue other independent branches where possible.
 
 ## 2. Axelor MCP and Bridge
 
