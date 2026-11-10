@@ -13,6 +13,7 @@ dist/
 .sessions.json
 .sessions.json.lock
 ..sessions.json.*.tmp
+# User operational workspace and episodic task memory (strictly local to each machine)
 Work_data/*
 !Work_data/.gitkeep
 !Work_data/Task History/

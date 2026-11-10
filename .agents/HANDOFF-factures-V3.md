@@ -1,11 +1,19 @@
 # Session Handoff : V3 factures fournisseurs — prototype DEMO et robustification
 
-## 0. Current session update — 2026-11-06
+## 0. Actualisation — 2026-11-09
 
-- **Current goal:** manual, inactive batch recipe of 12 copied PDFs in Gestion DEV only; goal remains blocked pending operator execution of the separately published batch workflow. IDs, versions, file mappings and expectations: `Work_data/lot2/lot12-reference.json`; the human-facing sheet currently says **Non testé**. No batch run or 12-document success has been reported.
-- **Observed Gestion DEV acceptance:** a new AXELOR supplier invoice completed autonomously as one draft; independent readback verified dates, lines, totals, downloaded PDF SHA-256, Drive classification and IDLE mutex with COMPLETE receipt. A same-file rerun returned `ALREADY_DONE` and independent readback showed one invoice and attachment. Evidence: `Work_data/lot2/gestion-dev-axelor-real-acceptance.json`. Partial-failure recovery was not tested in this DEV run.
-- **Concurrency:** DEV technical mutex created and tested: two concurrent saves of one version produced one winner and one rejection; IDLE restored. This protects participating workflows only. Binding and evidence: `Work_data/lot2/v3-gestion-dev-creation-gate.json`.
-- **Batch candidate:** existing V3 remains inactive and separate from the inactive 12-file recipe workflow. Published batch readback and source: `Work_data/lot2/workflow-v3-gestion-dev-lot12-readback.json` and `Work_data/lot2/build-v3-gestion-dev-lot12.mjs`. Compare with live state before any mutation. The workflow selects only the 12 sandbox copies, processes one at a time and stops on uncertain gate state. A fake branch test proved prior-iteration `.first()` data can remain visible; a second fake test rejected it using current-item identity. This is not full batch acceptance.
+- La V3 Gestion DEV `VlJlnojP4vxT3aAs` a été relue inactive, version `ede55780-cc0e-4f96-86e0-42a340b7637e`, 59 nœuds, `binaryMode: separate`. Confirmer l'état réel avant toute action ; la lecture souple et l'écriture Sheet sont raccordées, pas validées ensemble de bout en bout.
+- Deux brouillons AXELOR DEV ont été vérifiés : 2604 et 2605. La copie du document 109 reste en revue après `LINE_ROWS_UNPARSED` ; ne pas déplacer ni effacer son état pour forcer le traitement. La reprise automatique après interruption est mise de côté.
+- Dernière anomalie observée : la Sheet DEV a reçu une proposition pour `AXFI261000023` avec `SYSTEM_ERROR` et sans identifiant Drive ; la copie demeure en source et l'état du fichier n'est pas enregistré sous son ID. Ne pas relancer avant diagnostic. L'exécution manuelle n'a pas été conservée ; ne pas déduire sa cause sans preuve.
+- Les fichiers de travail ont été regroupés dans `Work_data/Task History/Historique-workflow-factures/` ; le dossier `lot2/reprise-automatique-a-reprendre/` y est conservé. Les dépendances Node temporaires des bancs de test ont été supprimées, leurs manifests et verrous sont conservés pour réinstallation. Les PDF source des autres dossiers n'ont pas été déplacés.
+- Les points ci-dessous sont historiques et peuvent être dépassés, notamment ceux sur l'exécution du lot de 12, les réglages ou le nombre de nœuds. Les anciens workflows DEMO ne doivent pas être exécutés avec les credentials réaffectés à Gestion DEV.
+
+## 0 bis. Session historique — 2026-11-06
+
+- **Current goal:** manual, inactive batch recipe of 12 copied PDFs in Gestion DEV only; goal remains blocked pending operator execution of the separately published batch workflow. IDs, versions, file mappings and expectations: `Work_data/Task History/Historique-workflow-factures/lot2/lot12-reference.json`; the human-facing sheet currently says **Non testé**. No batch run or 12-document success has been reported.
+- **Observed Gestion DEV acceptance:** a new AXELOR supplier invoice completed autonomously as one draft; independent readback verified dates, lines, totals, downloaded PDF SHA-256, Drive classification and IDLE mutex with COMPLETE receipt. A same-file rerun returned `ALREADY_DONE` and independent readback showed one invoice and attachment. Evidence: `Work_data/Task History/Historique-workflow-factures/lot2/gestion-dev-axelor-real-acceptance.json`. Partial-failure recovery was not tested in this DEV run.
+- **Concurrency:** DEV technical mutex created and tested: two concurrent saves of one version produced one winner and one rejection; IDLE restored. This protects participating workflows only. Binding and evidence: `Work_data/Task History/Historique-workflow-factures/lot2/v3-gestion-dev-creation-gate.json`.
+- **Batch candidate:** existing V3 remains inactive and separate from the inactive 12-file recipe workflow. Published batch readback and source: `Work_data/Task History/Historique-workflow-factures/lot2/workflow-v3-gestion-dev-lot12-readback.json` and `Work_data/Task History/Historique-workflow-factures/lot2/build-v3-gestion-dev-lot12.mjs`. Compare with live state before any mutation. The workflow selects only the 12 sandbox copies, processes one at a time and stops on uncertain gate state. A fake branch test proved prior-iteration `.first()` data can remain visible; a second fake test rejected it using current-item identity. This is not full batch acceptance.
 - **Settings caveat:** CLI 0.1.0 strips `binaryMode` from push dry-run; the new batch readback lacks the V3's `binaryMode: separate`. A separate read-only PDF test succeeded in inline mode, verifying one file's signature and size only; full batch binary/attachment behavior remains unproven. Do not claim the settings match or infer production readiness.
 - **Next:** if the operator has run the batch, obtain only the sanitized `Resultat Lot` or failing stage; inspect actual workflow/execution, DEV mutex, per-document ERP/attachment and Drive state before any repeat. Never rerun blindly. If not yet run, operator can execute the inactive batch once after reconfirming current scope and state. The CSV/Sheet remains a human-readable test view, not a durable registry.
 - **Auth:** browser/MCP and n8n credentials are separate. The existing shared n8n credential was changed by the operator to Gestion DEV; old DEMO workflows still point to DEMO and must not be executed with that credential. No secrets or browser cookies should be copied or disclosed.
@@ -22,7 +30,7 @@ The following sections are historical DEMO context. Their “next action” and 
 ## 2. Key Decisions & Architecture
 
 - **Un seul V3 existant**, pas de workflow par fournisseur. Anciennes recettes conservées comme bancs historiques ; ne pas les republier/rejouer par défaut.
-- Dernier état publié connu : **inactif, 51 nœuds**. Identifiants/versions/bindings dans les manifests `Work_data/lot2/`, à relire avant toute mutation ; pas de valeurs opérationnelles à reconstruire depuis ce handoff.
+- Dernier état publié connu : **inactif, 51 nœuds**. Identifiants/versions/bindings dans les manifests `Work_data/Task History/Historique-workflow-factures/lot2/`, à relire avant toute mutation ; pas de valeurs opérationnelles à reconstruire depuis ce handoff.
 - Chaîne : sélection Drive contrôlée → PDF/SHA → texte natif ou transcription PDF par le même modèle/relais que la recette → preuves documentaires/politique comptable → authentification ERP → mutex → recherche fraîche des doublons → création ou réutilisation stricte → calcul ERP → relecture en-tête/lignes/taxes → pièce jointe téléchargée et hachée → reçu/libération du mutex → Drive DONE et journal.
 - OCR : transport PDF réel du modèle vérifié sur un scan HUBIN. **Pas de worker OCR à déployer.** Ne pas relancer l’ancienne piste RapidOCR/serveur privé.
 - Avis de loyer : grammaire mono-page fermée, loyer + provision, dates/période explicites. Source `RENT_DUE_NOTICE`, HT/TVA source inconnus ; projection INVOICE avec traitement ERP explicitement configuré, jamais présentée comme exonération imprimée. Pas de second appel LLM inutile pour cette grammaire.
@@ -34,19 +42,19 @@ The following sections are historical DEMO context. Their “next action” and 
 ## 3. Important Files
 
 - `.agents/docs/retour-experience-axelor-n8n-factures.md` : **lecture prioritaire avant correction** ; 22 sections de constats, pièges, procédures, limites et preuves. Référencé dans `.agents/n8n-index.md`.
-- `Work_data/lot2/build-v3-integrated.mjs` : générateur V3, routage OCR, mutex, création/réutilisation, vérifications et échéancier explicite (`withExplicitDueDateTerm`).
-- `Work_data/lot2/workflow-v3-integrated.expanded.json` : candidat généré ; ne pas présumer qu’une régénération remplace correctement les normalisations UI distantes.
-- `Work_data/lot2/test-v3-integrated.mjs`, `Work_data/lot2/v3-integration-test-results.json` : dernière suite ciblée, **24 contrôles locaux PASS** ; simulation ERP ≠ acceptation réelle.
-- `Work_data/lot2/rent-notice-adapter.mjs` : collecte source et projection comptable d’avis de loyer.
-- `Work_data/lot2/accounting-policy.mjs` : résolution catégories/taxes, remises, recherches et réutilisation stricte ; garde générale de création distincte du raccordement V3.
-- `Work_data/lot2/accounting-choices.reference.json` : choix métier/provenance, non exécutable en production.
-- `Work_data/lot2/accounting-policy.demo.json` : bindings DEMO effectivement approuvés ; couverture des autres familles incomplète.
-- `Work_data/lot2/document-guards.mjs`, `Work_data/lot2/native-evidence-adapter.mjs`, `Work_data/lot2/supplier-identity-guards.mjs`, `Work_data/lot2/due-date-guards.mjs` : preuves source, inventaire des lignes, rôles émetteur/destinataire et échéance explicite.
-- `Work_data/lot2/v3-hubin-autosaisie.json` : état final HUBIN, écritures autorisées, correction échéancier, publication, réconciliation et acceptation ; phase `REAL_HUBIN_REUSE_PDF_VERIFIED_DONE`.
-- `Work_data/lot2/v3-hubin-term-fix-readback.json` : dernier readback de publication connu du V3.
-- `Work_data/lot2/v3-creation-gate.json` : configuration du mutex et preuve réelle de concurrence optimiste sur l’objet technique.
-- `Work_data/lot2/real-recipes/` : preuves d’exécution et PDF ERP téléchargés indépendamment ; fichiers sensibles, pas des fixtures publiques.
-- `Work_data/lot2/Bilan-integration-V3.md` : résultats détaillés ; **son sommet est actuel, les consignes de ses sections historiques sont dépassées**. Ne pas relancer un ancien test parce qu’un paragraphe ancien dit « à faire ».
+- `Work_data/Task History/Historique-workflow-factures/lot2/build-v3-integrated.mjs` : générateur V3, routage OCR, mutex, création/réutilisation, vérifications et échéancier explicite (`withExplicitDueDateTerm`).
+- `Work_data/Task History/Historique-workflow-factures/lot2/workflow-v3-integrated.expanded.json` : candidat généré ; ne pas présumer qu’une régénération remplace correctement les normalisations UI distantes.
+- `Work_data/Task History/Historique-workflow-factures/lot2/test-v3-integrated.mjs`, `Work_data/Task History/Historique-workflow-factures/lot2/v3-integration-test-results.json` : dernière suite ciblée, **24 contrôles locaux PASS** ; simulation ERP ≠ acceptation réelle.
+- `Work_data/Task History/Historique-workflow-factures/lot2/rent-notice-adapter.mjs` : collecte source et projection comptable d’avis de loyer.
+- `Work_data/Task History/Historique-workflow-factures/lot2/accounting-policy.mjs` : résolution catégories/taxes, remises, recherches et réutilisation stricte ; garde générale de création distincte du raccordement V3.
+- `Work_data/Task History/Historique-workflow-factures/lot2/accounting-choices.reference.json` : choix métier/provenance, non exécutable en production.
+- `Work_data/Task History/Historique-workflow-factures/lot2/accounting-policy.demo.json` : bindings DEMO effectivement approuvés ; couverture des autres familles incomplète.
+- `Work_data/Task History/Historique-workflow-factures/lot2/document-guards.mjs`, `Work_data/Task History/Historique-workflow-factures/lot2/native-evidence-adapter.mjs`, `Work_data/Task History/Historique-workflow-factures/lot2/supplier-identity-guards.mjs`, `Work_data/Task History/Historique-workflow-factures/lot2/due-date-guards.mjs` : preuves source, inventaire des lignes, rôles émetteur/destinataire et échéance explicite.
+- `Work_data/Task History/Historique-workflow-factures/lot2/v3-hubin-autosaisie.json` : état final HUBIN, écritures autorisées, correction échéancier, publication, réconciliation et acceptation ; phase `REAL_HUBIN_REUSE_PDF_VERIFIED_DONE`.
+- `Work_data/Task History/Historique-workflow-factures/lot2/v3-hubin-term-fix-readback.json` : dernier readback de publication connu du V3.
+- `Work_data/Task History/Historique-workflow-factures/lot2/v3-creation-gate.json` : configuration du mutex et preuve réelle de concurrence optimiste sur l’objet technique.
+- `Work_data/Task History/Historique-workflow-factures/lot2/real-recipes/` : preuves d’exécution et PDF ERP téléchargés indépendamment ; fichiers sensibles, pas des fixtures publiques.
+- `Work_data/Task History/Historique-workflow-factures/lot2/Bilan-integration-V3.md` : résultats détaillés ; **son sommet est actuel, les consignes de ses sections historiques sont dépassées**. Ne pas relancer un ancien test parce qu’un paragraphe ancien dit « à faire ».
 
 ## 4. Verified Facts & Completed Work
 

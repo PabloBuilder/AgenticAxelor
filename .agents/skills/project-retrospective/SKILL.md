@@ -66,12 +66,41 @@ Transformer chaque geste manuel en candidat d'automatisation, en precisant ses e
 
 Critere : backlog ordonne, testable, avec inconnues et validations humaines explicites.
 
-## 6. Verifier et rendre compte
+## 6. Extract and Register the Task Memory Atom (`memory.md`)
 
-Verifier l'existence des deux documents, la resolution de leurs liens locaux, la correspondance entre inventaire et pieces archivees et la coherence des noms, volumes et environnements. Verifier les comptages par un lecteur structure quand disponible ; sinon marquer les volumes comme rapportes. Aucun controle local ne prouve un resultat en ERP.
+Transform the retrospective into a low-token memory heuristic for the second brain, adhering to [.agents/knowledge/task-memory-contract.md](../../knowledge/task-memory-contract.md).
+
+1. **Generate `memory.md` in destination**:
+   - Use [the task memory model](./assets/03_task_memory.md).
+   - Write entirely in English with high semantic density.
+   - Enforce the token budget: strictly under 250 tokens total (no narrative fluff or repetition).
+   - Populate YAML frontmatter:
+     - `id`: task or ticket number (or date slug if no ticket).
+     - `date`: `YYYY-MM-DD`.
+     - `domain`: array of technical/business domains (e.g. `[axelor, sale]`).
+     - `entities`: targeted models, objects, interfaces, or systems (e.g. `[SaleOrder, Project]`).
+     - `trigger_keywords`: key symptoms, errors, or search tokens.
+     - `trap`: one dense sentence describing the root pitfall or silent error.
+     - `solution_type`: pattern category (`workaround`, `data_fix`, `api_mutation`, `workflow_rule`, `configuration`).
+   - Populate the 3 mandatory sections:
+     - `### Context & Trigger`: starting state and operational trigger.
+     - `### Critical Trap & Root Cause`: precise failure mode or ERP quirk.
+     - `### Validated Resolution Pattern`: numbered deterministic steps and verification.
+
+2. **Register into `Work_data/Task History/memory-index.json`**:
+   - Read `Work_data/Task History/memory-index.json` (if the file does not exist yet on a fresh clone, initialize it as `[]`).
+   - Prepare a single-line entry containing: `id`, `date`, `domain`, `entities`, `trigger_keywords`, `trap`, `solution_type`, and relative `path` (e.g. `<destination-folder-name>/memory.md`).
+   - If the `id` already exists in the registry, replace its entry with the updated line; otherwise append it to the array.
+   - Write back to `Work_data/Task History/memory-index.json` keeping entries compact and valid JSON.
+
+Critere : `memory.md` exists, conforms to the data contract, under 250 tokens, and registered in `memory-index.json`.
+
+## 7. Verifier et rendre compte
+
+Verifier l'existence des trois documents (`01_process_historique.md`, `02_roadmap_automatisation.md`, `memory.md`), la mise a jour de `memory-index.json`, la resolution de leurs liens locaux, la correspondance entre inventaire et pieces archivees et la coherence des noms, volumes et environnements. Verifier les comptages par un lecteur structure quand disponible ; sinon marquer les volumes comme rapportes. Aucun controle local ne prouve un resultat en ERP.
 
 Comparer le recit aux sources disponibles. Signaler toute contradiction sans reecrire une decision historique comme si elle avait ete differente. Ne pas relancer le projet pour combler un manque.
 
-Terminer par un compte rendu court : liens vers les deux documents, destination, pieces archivees, principaux manques et prochaine action d'automatisation. Ne declarer complete que la capitalisation effectivement produite.
+Terminer par un compte rendu court : liens vers les trois documents, destination, entree enregistree dans `memory-index.json`, pieces archivees, principaux manques et prochaine action d'automatisation. Ne declarer complete que la capitalisation effectivement produite.
 
 Critere : archive lisible et verifiee localement, limites explicitement communiquees.

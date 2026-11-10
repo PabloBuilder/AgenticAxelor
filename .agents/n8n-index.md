@@ -26,6 +26,7 @@ For technical API contracts, also consult the [Axelor REST API Cheatsheet](docs/
 
 ## 2. Read & Diagnose
 
+- Prior resolution retrieval: Before redesigning a workflow or diagnosing persistent execution failures, check `Work_data/Task History/memory-index.json` for matching `n8n` or domain tags. If matched, inspect only its `memory.md` to leverage validated patterns.
 - Verified help families include `workflow list`, `workflow search`, `workflow view <id>`, `execution list`, `execution view <id>`, and `execution last <workflow>`. Consult command-specific `--help` for exact flags; do not invent syntax. Help may require configured credentials.
 - Resolve exact workflow/execution IDs. Read current workflow state and relevant failing nodes before diagnosing or editing; listing metadata alone is not full workflow inspection.
 - Filter and paginate where supported. Prefer supported output to local `Work_data/` files for large payloads; do not dump raw executions, credentials, or sensitive node data into chat.

@@ -6,12 +6,12 @@ Routing map for maintaining the MCP server, separate Bridge, and session-sync ex
 
 ## 1. Technical Documentation & Specs
 - **Setup and supported workflow**: [README](../README.md) (Bridge startup, browser session sync, MCP configuration).
-- **Architecture and Bridge contract**: Read [Architecture](docs/ARCHITECTURE.md) or [Bridge protocol](docs/bridge-protocol.md) only when the touched behavior depends on them (separate processes, session persistence, retained guide endpoints).
+- **Architecture and Bridge contract**: Read [Architecture](docs/ARCHITECTURE.md) or [Bridge protocol](docs/bridge-protocol.md) only when the touched behavior depends on them (separate processes, session persistence, registry endpoints).
 - **Developer commands and CLI**: [Developer guide](docs/DEV_GUIDE.md).
 - **Axelor Open Suite XML matrix**: [Axelor index](Axelor-index.md).
 - **Context refresh**: When architecture or agent docs may have drifted, use the [on-demand refresh skill](skills/context-architecture-maintainer/SKILL.md) with its [dependency register](docs/context-freshness.md); do not run it on every task.
 
-The [HUD specification](docs/extension-hud.md) is historical only; the shipped extension does not display guide routes. The session handoff is not an evergreen architecture reference.
+The session handoff is not an evergreen architecture reference.
 
 ---
 

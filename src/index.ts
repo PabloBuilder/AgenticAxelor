@@ -14,8 +14,6 @@ import { ReportService } from "./services/reportService.js";
 import { BpmService } from "./services/bpmService.js";
 import { AuditService } from "./services/auditService.js";
 import { DataService } from "./services/dataService.js";
-import { GuidanceService } from "./services/guidanceService.js";
-import { BridgeClient } from "./services/bridgeClient.js";
 import { SessionStore } from "./services/sessionStore.js";
 import { SessionRegistry } from "./services/sessionRegistry.js";
 import { addTlsGuidance } from "./services/tlsGuidance.js";
@@ -54,7 +52,6 @@ function createOperationServices(client: AxelorClient, sessionId: string) {
     schemaService: new SchemaService(client), dmsService: new DmsService(client),
     reportService: new ReportService(client), bpmService: new BpmService(client),
     auditService: new AuditService(client), dataService: new DataService(client),
-    guidanceService: new GuidanceService(menuService, viewService),
     browserService: browserForSession(sessionId),
   };
 }
@@ -78,9 +75,7 @@ const reportService = scopedService("reportService");
 const bpmService = scopedService("bpmService");
 const auditService = scopedService("auditService");
 const dataService = scopedService("dataService");
-const guidanceService = scopedService("guidanceService");
 const browserService = scopedService("browserService");
-const bridgeClient = new BridgeClient(bridgePort);
 const browserRoleSchema = z.enum(["button", "link", "textbox", "combobox", "tab", "checkbox", "radio", "spinbutton", "option", "dialog", "alertdialog", "region", "group", "form", "listbox", "menu", "menuitem", "searchbox", "heading"]);
 const browserMatchSchema = z.object({ by: z.enum(["role", "label", "placeholder", "title", "text"]), name: z.string(), role: browserRoleSchema.optional() });
 const browserScopeSchema = z.object({ role: z.union([browserRoleSchema, z.literal("axelor_modal"), z.literal("axelor_field")]), name: z.string().optional(), contains: browserMatchSchema.optional() });
@@ -1212,92 +1207,6 @@ server.tool(
           {
             type: "text",
             text: "Could not read the saved Axelor browser session. Sign in to Axelor in your browser, then sync with the extension and try again. Do not paste a cookie into chat or .env.",
-          },
-        ],
-      };
-    }
-  }
-);
-
-registerTargetedTool(
-  "guide_axelor_path",
-  "Calculate a navigation route (menu breadcrumbs, new button, target fields) and store it in the local Bridge. The current extension does not display guides in the browser.",
-  {
-    targetMenu: z.string().optional().describe("Menu keyword or section title to navigate to (e.g. 'Commandes clients', 'Sequences')"),
-    targetModel: z.string().optional().describe("Axelor technical model name (e.g. 'com.axelor.apps.sale.db.SaleOrder')"),
-    targetField: z.string().optional().describe("Target field name on the form for the route (e.g. 'clientPartner', 'currency')"),
-    description: z.string().optional().describe("User intent or summary of the guided action"),
-  },
-  async ({ targetMenu, targetModel, targetField, description }) => {
-    try {
-      const route = await guidanceService.resolveRoute({
-        targetMenu,
-        targetModel,
-        targetField,
-        description,
-      });
-
-      // Push roadmap to the local bridge for the browser extension spotlight
-      await bridgeClient.pushRoute(route);
-
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(
-              {
-                success: true,
-                message: `Guidance route "${route.title}" stored in the local Bridge (127.0.0.1:${bridgePort}). The current extension does not display guides.`,
-                totalSteps: route.totalSteps,
-                steps: route.steps.map((s, idx) => ({
-                  step: idx + 1,
-                  type: s.type,
-                  label: s.label,
-                  hint: s.hint,
-                })),
-              },
-              null,
-              2
-            ),
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: `Error resolving guidance route: ${error.message || String(error)}`,
-          },
-        ],
-      };
-    }
-  }
-);
-
-server.tool(
-  "clear_axelor_guide",
-  "Clear the guidance route stored in the local Bridge. The current extension does not display guides in the browser.",
-  {},
-  async () => {
-    try {
-      await bridgeClient.clearRoute();
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ success: true, message: "Guidance route cleared from the local Bridge; the current extension has no guide display." }, null, 2),
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        isError: true,
-        content: [
-          {
-            type: "text",
-            text: `Error clearing guidance: ${error.message || String(error)}`,
           },
         ],
       };

@@ -1,0 +1,4 @@
+- apres fournisseur add , delecher ttes events declenches lors de son ajout,
+- sur chaque ligne : add produit , puis on delelche les actions apres onchange
+- add quantity et add prix uitaire hors taxes puis declenchement actions qui sont derriere
+- 

@@ -18,19 +18,15 @@ flowchart LR
 
 | Component | Entry point | Responsibility |
 | :--- | :--- | :--- |
-| MCP server | [src/index.ts](../../src/index.ts) | Exposes menu, view, data, action, session-status, and guidance tools over stdio. |
-| Bridge | [src/bridge.ts](../../src/bridge.ts), [bridgeServer.ts](../../src/services/bridgeServer.ts) | Listens on `127.0.0.1:3210`; accepts session sync and retains guide state and SSE endpoints. |
+| MCP server | [src/index.ts](../../src/index.ts) | Exposes menu, view, data, action, and session-status tools over stdio. |
+| Bridge | [src/bridge.ts](../../src/bridge.ts), [bridgeServer.ts](../../src/services/bridgeServer.ts) | Listens on `127.0.0.1:3210`; accepts session sync and manages multi-session registry. |
 | Session store | [sessionStore.ts](../../src/services/sessionStore.ts) | Persists browser URL, cookie, and sync time in `.session.json`; the MCP's Axelor client reloads the session for requests. |
 | Chrome extension | [manifest.json](../../extension/manifest.json), [popup.js](../../extension/popup.js), [background.js](../../extension/background.js) | Requests cookie access for the active site on user action and sends its `JSESSIONID`, base URL and optional `CSRF-TOKEN` cookie to the Bridge. No content script is registered. |
 
 The Bridge writes the session to disk; the MCP server reads that file from the same project checkout rather than receiving cookies over stdio. The optional `CSRF-TOKEN` is used by the Playwright browser to support Axelor UI requests. The session sync endpoint checks input and persistence, not whether Axelor accepts the session. Treat `.session.json` as a secret.
 
-## Guidance Status
-
-The MCP tools `guide_axelor_path` and `clear_axelor_guide`, [GuidanceService](../../src/services/guidanceService.ts), the [guidance contract](../../src/types/guidance.ts), and the Bridge's `/api/guide/*` endpoints still exist. They can create, store, and clear routes, but the shipped extension has no consumer for those routes. A successful guide push does not display instructions in the browser. The [former HUD specification](extension-hud.md) is historical, not an active component specification.
-
 ## References
 
-- [Bridge protocol](bridge-protocol.md): HTTP session and retained guidance endpoints.
+- [Bridge protocol](bridge-protocol.md): HTTP session and registry endpoints.
 - [Axelor REST API](axelor-api-cheatsheet.md): ERP API reference.
 - [Developer guide](DEV_GUIDE.md): commands and development workflow.

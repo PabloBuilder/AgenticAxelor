@@ -9,7 +9,6 @@ Conditional task guidance for Axelor ERP operations. Discover available tools an
 - **User Documentation & Safety**: [README](../README.md)
 - **Axelor REST API Cheatsheet**: [Axelor REST API Cheatsheet](docs/axelor-api-cheatsheet.md)
 - **Architectural Analysis & Critique**: [Read-Only Consultant Skill](skills/read-only-consultant/SKILL.md)
-- **Optional Guidance Authoring**: [Axelor Guidance Builder Skill](skills/axelor-guidance-builder/SKILL.md)
 
 ---
 
@@ -17,6 +16,7 @@ Conditional task guidance for Axelor ERP operations. Discover available tools an
 
 Read and follow only the guidance matching the task; load multiple references or skills only when their scopes overlap. These routes do not authorize writes:
 - For every Axelor operation requiring a session, read and follow [Axelor session targeting](knowledge/axelor-sessions.md) before calling tools.
+- Prior resolution retrieval: Before diagnosing an anomaly, planning complex imports, or executing mutations on a specific model, check `Work_data/Task History/memory-index.json` for matching domain/entity tags (`axelor`, model name). If matched, selectively inspect only its `memory.md` to avoid repeating documented pitfalls.
 - Axelor data migrations, reconciliation, or post-import verification: [data reconciliation](knowledge/axelor-data-reconciliation.md).
 - When a local spreadsheet or tabular file is the primary input or deliverable (such as `.xlsx`, `.xlsm`, `.xltx`, `.csv` or `.tsv`) and the request is to inspect, create, edit, clean or convert it, read and follow [the xlsx skill](skills/xlsx/SKILL.md). Do not load it for Google Sheets API tasks or when tabular data is merely incidental. This instruction-based route does not enable automatic model invocation or grant write permission.
 - When a local PowerPoint presentation is the primary input or deliverable and the request is to create, inspect, or modify it, read and follow [the PowerPoint skill](skills/powerpoint/SKILL.md). This instruction-based route does not enable automatic model invocation or grant write permission.
@@ -33,7 +33,7 @@ Read and follow only the guidance matching the task; load multiple references or
 | Menu or form | `search_axelor_menu`, `inspect_axelor_view` when UI/action evidence is needed |
 | Authorized mutation | `save_axelor_record`, `batch_axelor_operations`, `delete_axelor_record`, or `execute_axelor_action`, subject to safeguards below |
 | Documents or workflow | Attachments: list/upload/download tools; reports: `list_axelor_templates` when template unknown, then `generate_axelor_report`; BPM: `get_axelor_bpm_state` |
-| Session or guidance | `sync_axelor_session` when synchronization is needed; `guide_axelor_path` / `clear_axelor_guide` store/clear Bridge routes, not browser overlays |
+| Session | `sync_axelor_session` when synchronization is needed |
 
 ## 3. Validation & Verification
 

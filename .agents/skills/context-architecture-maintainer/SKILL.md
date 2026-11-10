@@ -22,9 +22,23 @@ Write context documentation and map updates in English. Use semantic compression
 1. Extract potentially reusable facts, verified procedures, corrections, unresolved questions, and information that would have helped earlier. Record their supporting conversation evidence and distinguish observation, inference, hypothesis, and decision.
 2. Filter for durable relevance. Preserve instance, version, customer, date, and other limits when material. Exclude secrets, unnecessary personal or confidential information, one-off details, and unsupported generalizations. It is valid to propose no addition.
 3. Compare candidates with the relevant indexes, skills, knowledge and references. Check whether the knowledge already exists, conflicts, is incomplete, or is present but hard to discover. Check the destination and its direct routing before recommending a change.
-4. For each retained candidate, recommend one of: no change, correct or extend an existing node, improve an index or route, create a distinct node and connect it, or defer pending verification. Explain why, cite evidence and target paths, describe the proposed content and navigation impact, and state uncertainty. Never create a node merely because a fact was learned.
+4. For each retained candidate, recommend one of: no change, correct or extend an existing node, improve an index or route, create a distinct node and connect it, or defer pending verification. Enforce the **Architectural Topology Rules** below before proposing routing changes. Never create a node merely because a fact was learned.
 5. Present the proposed changes and apply only those specifically authorized and compatible with the active mode. After authorized changes, verify affected links and routes, revisit the context map if one exists, and report applied and outstanding work.
 - Done when each candidate has a reasoned disposition, evidence and scope, with changes verified or clearly left as proposals.
+
+## 4. Contextual Topology & Anti-Bloat Principles
+
+When proposing or auditing navigation routes and context structures, strictly enforce these three invariant rules:
+
+1. **Layer 0 Invariance (Sanctuary of the Root Router)**:
+   - The primary router (`agents.md`) must remain strictly an intent dispatcher. It must NEVER enumerate leaf tools, operational commands, or individual catalog entries.
+   - Every mode in Layer 0 must route symmetrically to a **Layer 1 Domain Index** (`*-index.md`), never directly to an execution leaf (`SKILL.md` or script).
+2. **Structural Symmetry Across Domains**:
+   - New capabilities, domains, or playbooks (e.g. Missions) must adopt the exact same 3-tier hierarchy as established domains: `Router (L0) -> Domain Index (L1) -> Leaf Skills / Assets (L2)`.
+   - Never bypass Layer 1 to "save a tool call". Micro-optimizing latency at the cost of topological symmetry creates immediate architectural debt.
+3. **The 50-Item Stress Test (Monotonic Growth Defense)**:
+   - Stress-test any proposed route: *"If this category expands to 50 items over the next two years, does Layer 0 suffer bloat?"*
+   - If scaling requires modifying Layer 0, the proposal is rejected. Adding leaves must only touch Layer 1 indexes or registries.
 
 ## 3. Focused freshness audit
 

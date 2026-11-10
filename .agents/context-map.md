@@ -13,7 +13,7 @@ A navigation aid for maintaining context, not an authoritative or guaranteed exh
 | `.agents/n8n-index.md` | Routing and safeguards for n8n workflows. | Points to `.agents/knowledge/n8n-axi/index.md` and topic-specific references. |
 | `.agents/redmine-index.md` | Redmine operations index and cross-domain links. | The primary Redmine read route is the repository skill identified in `.agents/rules/agents.md`; the CLI must also be available. |
 | `.agents/Axelor-index.md` | XML search guidance and Axelor Open Suite module matrix. | Developer reference; does not establish the state of a target instance. |
-| `.agents/missions/cdp-ticket-writer/SKILL.md` | Mission for turning workshop notes into a functional specification / ticket. | Dedicated route in `.agents/rules/agents.md`; resources live in its directory. |
+| `.agents/missions-index.md` | Business missions and playbooks index: multi-system end-to-end delivery orchestrations. | Routed under Mode 6 in .agents/rules/agents.md; points to task-specific playbooks in .agents/missions/. |
 
 ## Operational Knowledge
 
@@ -29,6 +29,7 @@ These files are candidates for extending existing subjects; verify their actual 
 | `.agents/knowledge/n8n-axi/index.md` | Entry point for n8n CLI knowledge; its references cover dedicated Axelor nodes, workflows, diagnostics, invoices, documents, recovery, and files. |
 | `.agents/knowledge/drive-projets-index.md` | Index and routing for Drive project folders. |
 | `.agents/knowledge/redmine-mentions.md` | Knowledge concerning Redmine mentions; verify its scope and links before modifying it. |
+| `.agents/knowledge/task-memory-contract.md` | Task memory data contract and schema specification for low-token episodic retrospectives. |
 
 ## Skills
 
@@ -41,7 +42,6 @@ Paths below are relative to `.agents/skills/` and end in `/SKILL.md`. The map de
 | `read-only-consultant` | Critical architectural analysis in read-only mode, without edits. |
 | `stepwise-planner` | Code-grounded implementation planning in steps. |
 | `setup-assistant` | Local installation, MCP configuration, Bridge, and extension setup. |
-| `axelor-guidance-builder` | Author Axelor guidance routes for the Bridge. |
 | `axelor-xml-data-import` | Prepare and validate XML binding files for Axelor CSV imports. |
 | `xlsx` | Read, create, or modify local spreadsheet files. |
 | `powerpoint` | Create and modify PowerPoint presentations. |
@@ -63,7 +63,6 @@ Paths below are relative to `.agents/skills/` and end in `/SKILL.md`. The map de
 | `.agents/docs/n8n-axelor-engineering.md` | n8n / Axelor engineering guide. |
 | `.agents/docs/retour-experience-axelor-n8n-factures.md` | Lessons learned for n8n / Axelor invoices; do not generalize historical observations. |
 | `.agents/docs/context-freshness.md` | Register of context documents and watched sources; its status alone does not establish freshness. |
-| `.agents/docs/extension-hud.md` | Historical specification, not a reference for current behavior according to the developer index. |
 | `README.md` | Project overview and setup. |
 | `context-graph.html` | Visual snapshot of nodes and relationships; its presence does not guarantee completeness or freshness. |
 

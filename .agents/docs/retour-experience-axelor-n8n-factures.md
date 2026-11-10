@@ -38,7 +38,7 @@ Les nombres de tests historiques ne s’additionnent pas pour certifier la versi
 - Une mise en revue justifiée est un résultat sûr, pas une saisie automatique réussie.
 - Aucun pourcentage de couverture n’est établi. Il faut un corpus représentatif et compter séparément succès sans intervention, revues justifiées et erreurs.
 
-Preuves courantes : `Work_data/lot2/Bilan-integration-V3.md`, `Work_data/lot2/v3-hubin-autosaisie.json`, `Work_data/lot2/v3-upcoop-test-selection.json`, `Work_data/lot2/v3-ocr-scan-test.json`. Les versions, identifiants et emplacements opérationnels restent dans `Work_data/`, pas dans ce document générique. S’ils sont absents ou anciens, les résoudre à nouveau par lecture ; ne pas les inventer de mémoire.
+Preuves courantes : `Work_data/Task History/Historique-workflow-factures/lot2/Bilan-integration-V3.md`, `Work_data/Task History/Historique-workflow-factures/lot2/v3-hubin-autosaisie.json`, `Work_data/Task History/Historique-workflow-factures/lot2/v3-upcoop-test-selection.json`, `Work_data/Task History/Historique-workflow-factures/lot2/v3-ocr-scan-test.json`. Les versions, identifiants et emplacements opérationnels restent dans `Work_data/`, pas dans ce document générique. S’ils sont absents ou anciens, les résoudre à nouveau par lecture ; ne pas les inventer de mémoire.
 
 ## 3. Connecteurs : trois canaux, trois authentifications distinctes
 
@@ -164,8 +164,8 @@ Mais :
 
 Deux couches ont donc été séparées :
 
-- `Work_data/lot2/accounting-choices.reference.json` : choix métier et provenance, pas une configuration exécutable production ;
-- `Work_data/lot2/accounting-policy.demo.json` : bindings DEMO effectivement retrouvés/créés et approuvés dans le périmètre autorisé.
+- `Work_data/Task History/Historique-workflow-factures/lot2/accounting-choices.reference.json` : choix métier et provenance, pas une configuration exécutable production ;
+- `Work_data/Task History/Historique-workflow-factures/lot2/accounting-policy.demo.json` : bindings DEMO effectivement retrouvés/créés et approuvés dans le périmètre autorisé.
 
 Un futur passage en production n’est **pas** un remplacement d’URL ou une copie des IDs DEMO.
 
@@ -366,7 +366,7 @@ Deux exécutions peuvent toutes deux constater « absent », puis créer deux do
 
 Deux sauvegardes concurrentes sur la **même version** du record technique : une réussissait, l’autre était refusée. Cela prouve le verrouillage optimiste de cet objet avec le client testé, pas à lui seul toutes les races possibles d’une facture.
 
-La création du record technique a aussi nécessité un MetaJsonModel valable : une création de record sans `jsonModel` et une première définition de modèle trop ambitieuse ont échoué. Les requêtes de contrôle ont confirmé l’absence avant une nouvelle tentative minimale. Les contrats actuellement utiles sont documentés par `Work_data/lot2/v3-creation-gate.json` et le générateur, pas par une supposition sur MetaJsonRecord.
+La création du record technique a aussi nécessité un MetaJsonModel valable : une création de record sans `jsonModel` et une première définition de modèle trop ambitieuse ont échoué. Les requêtes de contrôle ont confirmé l’absence avant une nouvelle tentative minimale. Les contrats actuellement utiles sont documentés par `Work_data/Task History/Historique-workflow-factures/lot2/v3-creation-gate.json` et le générateur, pas par une supposition sur MetaJsonRecord.
 
 ### Invariants du mutex V3
 
@@ -489,22 +489,22 @@ Selon le mode de stockage, `binary.data` peut être une référence filesystem p
 
 | Sujet | Référence ciblée |
 |---|---|
-| État réel et limites V3 | `Work_data/lot2/Bilan-integration-V3.md` |
-| Génération commune V3, mutex, branches OCR, échéancier | `Work_data/lot2/build-v3-integrated.mjs` — `buildV3`, `applyDemoCreation`, `creationGateRow`, `planDemoCreationClaim`, `heldDemoCreation`, `permitDemoCreation`, `demoExpectedPiece`, `planDemoCreationRelease`, `withExplicitDueDateTerm`, `selectControlledPilot`, `readModelTranscription` |
-| Derniers contrôles ciblés | `Work_data/lot2/test-v3-integrated.mjs`, `Work_data/lot2/v3-integration-test-results.json` |
-| Source d’avis vs projection ERP | `Work_data/lot2/rent-notice-adapter.mjs` — `collectRentNotice`, `projectRentNotice` |
-| Politique comptable, prix/remises, recherches et réutilisation | `Work_data/lot2/accounting-policy.mjs` — `discountedLine`, `resolveAccountingLines`, `buildAccountingDraft`, `buildAccountingSearchBodies`, `verifyReusableInvoice`, `decideAccounting` |
-| Source documentaire et valeurs | `Work_data/lot2/document-guards.mjs` — `prepareDocumentEvidence`, `validateInvoiceEvidence` |
-| Inventaire natif | `Work_data/lot2/native-evidence-adapter.mjs` — `buildNativeEvidence` |
-| Rôles fournisseur/client | `Work_data/lot2/supplier-identity-guards.mjs` — `collectSupplierIdentity`, `validateSupplierIdentity` |
-| Échéance source explicite | `Work_data/lot2/due-date-guards.mjs` — `collectExplicitDueDate`, `validateExplicitDueDate` |
-| Corpus et corrections documentaires | `Work_data/lot2/reference-cases.json`, `Work_data/lot2/Cas-reference-lot2.md`, `Work_data/lot2/hubin-reference-correction.json` |
-| Métier conservé / IDs DEMO | `Work_data/lot2/accounting-choices.reference.json`, `Work_data/lot2/accounting-policy.demo.json`, `Work_data/lot2/Bilan-raccordement-demo.md` |
-| OCR réel et copie choisie | `Work_data/lot2/v3-ocr-scan-test.json`, `Work_data/lot2/v3-hubin-autosaisie.json` |
-| Création du verrou et preuve CAS | `Work_data/lot2/v3-creation-gate.json` |
-| Correction régime TVA du compte | `Work_data/lot2/v3-demo-vat-account-correction.json` |
-| Dernière publication de correction d’échéancier | `Work_data/lot2/v3-hubin-term-fix-readback.json`, `Work_data/lot2/v3-hubin-autosaisie.json` |
-| PDF ERP indépendamment téléchargés | `Work_data/lot2/real-recipes/` — ne pas les confondre avec un binaire simulé de test |
+| État réel et limites V3 | `Work_data/Task History/Historique-workflow-factures/lot2/Bilan-integration-V3.md` |
+| Génération commune V3, mutex, branches OCR, échéancier | `Work_data/Task History/Historique-workflow-factures/lot2/build-v3-integrated.mjs` — `buildV3`, `applyDemoCreation`, `creationGateRow`, `planDemoCreationClaim`, `heldDemoCreation`, `permitDemoCreation`, `demoExpectedPiece`, `planDemoCreationRelease`, `withExplicitDueDateTerm`, `selectControlledPilot`, `readModelTranscription` |
+| Derniers contrôles ciblés | `Work_data/Task History/Historique-workflow-factures/lot2/test-v3-integrated.mjs`, `Work_data/Task History/Historique-workflow-factures/lot2/v3-integration-test-results.json` |
+| Source d’avis vs projection ERP | `Work_data/Task History/Historique-workflow-factures/lot2/rent-notice-adapter.mjs` — `collectRentNotice`, `projectRentNotice` |
+| Politique comptable, prix/remises, recherches et réutilisation | `Work_data/Task History/Historique-workflow-factures/lot2/accounting-policy.mjs` — `discountedLine`, `resolveAccountingLines`, `buildAccountingDraft`, `buildAccountingSearchBodies`, `verifyReusableInvoice`, `decideAccounting` |
+| Source documentaire et valeurs | `Work_data/Task History/Historique-workflow-factures/lot2/document-guards.mjs` — `prepareDocumentEvidence`, `validateInvoiceEvidence` |
+| Inventaire natif | `Work_data/Task History/Historique-workflow-factures/lot2/native-evidence-adapter.mjs` — `buildNativeEvidence` |
+| Rôles fournisseur/client | `Work_data/Task History/Historique-workflow-factures/lot2/supplier-identity-guards.mjs` — `collectSupplierIdentity`, `validateSupplierIdentity` |
+| Échéance source explicite | `Work_data/Task History/Historique-workflow-factures/lot2/due-date-guards.mjs` — `collectExplicitDueDate`, `validateExplicitDueDate` |
+| Corpus et corrections documentaires | `Work_data/Task History/Historique-workflow-factures/lot2/reference-cases.json`, `Work_data/Task History/Historique-workflow-factures/lot2/Cas-reference-lot2.md`, `Work_data/Task History/Historique-workflow-factures/lot2/hubin-reference-correction.json` |
+| Métier conservé / IDs DEMO | `Work_data/Task History/Historique-workflow-factures/lot2/accounting-choices.reference.json`, `Work_data/Task History/Historique-workflow-factures/lot2/accounting-policy.demo.json`, `Work_data/Task History/Historique-workflow-factures/lot2/Bilan-raccordement-demo.md` |
+| OCR réel et copie choisie | `Work_data/Task History/Historique-workflow-factures/lot2/v3-ocr-scan-test.json`, `Work_data/Task History/Historique-workflow-factures/lot2/v3-hubin-autosaisie.json` |
+| Création du verrou et preuve CAS | `Work_data/Task History/Historique-workflow-factures/lot2/v3-creation-gate.json` |
+| Correction régime TVA du compte | `Work_data/Task History/Historique-workflow-factures/lot2/v3-demo-vat-account-correction.json` |
+| Dernière publication de correction d’échéancier | `Work_data/Task History/Historique-workflow-factures/lot2/v3-hubin-term-fix-readback.json`, `Work_data/Task History/Historique-workflow-factures/lot2/v3-hubin-autosaisie.json` |
+| PDF ERP indépendamment téléchargés | `Work_data/Task History/Historique-workflow-factures/lot2/real-recipes/` — ne pas les confondre avec un binaire simulé de test |
 | Contrat du client HTTP Axelor | `src/services/axelorClient.ts` — `save`, `downloadFile` |
 | Service de données et actions | `src/services/dataService.ts` — `saveRecord`, `runAction` |
 
