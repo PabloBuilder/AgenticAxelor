@@ -7,7 +7,7 @@ Repository organization, development workflow, CLI tools, and agent skills regis
 ## 1. Architecture Topology
 
 ```text
-AgenticAxelor/
+altersi-agent-workspace/
 ├── src/index.ts              # MCP server (stdio), launched by an MCP client
 ├── src/bridge.ts             # Separate HTTP Bridge on 127.0.0.1:3210
 ├── src/services/             # Axelor client, Bridge, session store, registry

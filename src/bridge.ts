@@ -14,9 +14,9 @@ const bridgeServer = new BridgeServer((session) => {
 }, configuredPort);
 
 bridgeServer.start().then(() => {
-  console.log(`AgenticAxelor Bridge listening on http://127.0.0.1:${configuredPort}`);
+  console.log(`altersi-agent-workspace Bridge listening on http://127.0.0.1:${configuredPort}`);
 }).catch((error: unknown) => {
-  console.error("Failed to start AgenticAxelor Bridge:", error);
+  console.error("Failed to start altersi-agent-workspace Bridge:", error);
   process.exitCode = 1;
 });
 

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AgenticAxelor Session Sync",
+  "name": "Altersi Workspace Session Sync",
   "version": "1.0.0",
-  "description": "Synchronise la session Axelor active avec le serveur AgenticAxelor local.",
+  "description": "Synchronise la session Axelor active avec le serveur altersi-agent-workspace local.",
   "permissions": [
     "activeTab",
     "cookies",

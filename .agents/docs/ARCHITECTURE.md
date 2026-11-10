@@ -1,4 +1,4 @@
-# AgenticAxelor Architecture
+# altersi-agent-workspace Architecture
 
 The MCP server and the local Bridge are separate processes. The shipped Chrome extension synchronizes the active browser session; it does not render a HUD in Axelor. See the [README](../../README.md) for setup.
 

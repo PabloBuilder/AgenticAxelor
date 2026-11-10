@@ -81,7 +81,7 @@ const browserMatchSchema = z.object({ by: z.enum(["role", "label", "placeholder"
 const browserScopeSchema = z.object({ role: z.union([browserRoleSchema, z.literal("axelor_modal"), z.literal("axelor_field")]), name: z.string().optional(), contains: browserMatchSchema.optional() });
 
 const server = new McpServer({
-  name: "agentic-axelor-mcp",
+  name: "altersi-agent-workspace",
   version: "0.1.0",
 });
 
@@ -1220,7 +1220,7 @@ async function start() {
 }
 
 start().catch((error) => {
-  console.error("Fatal error starting AgenticAxelor MCP server:", error);
+  console.error("Fatal error starting altersi-agent-workspace MCP server:", error);
   process.exit(1);
 });
 

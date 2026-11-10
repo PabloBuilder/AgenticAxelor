@@ -1,6 +1,6 @@
 ---
 name: setup-assistant
-description: Prepare and verify AgenticAxelor and its Google Workspace, Redmine and n8n connections, guiding the user through required authorization.
+description: Prepare and verify altersi-agent-workspace and its Google Workspace, Redmine and n8n connections, guiding the user through required authorization.
 disable-model-invocation: true
 ---
 

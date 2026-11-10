@@ -1,7 +1,7 @@
 {
-  "name": "agentic-axelor-mcp",
+  "name": "altersi-agent-workspace",
   "version": "0.1.0",
-  "description": "MCP server to query Axelor ERP metadata and menus",
+  "description": "Altersi Agent Workspace - MCP server and environment",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

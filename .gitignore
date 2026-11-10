@@ -7,6 +7,10 @@ dist/
 .env
 # Local personal identity; never committed
 .agents/local/
+# Ephemeral session handoffs; never committed
+.agents/HANDOFF.md
+.agents/HANDOFF-*.md
+HANDOFF.md
 *.log
 .DS_Store
 .session.json

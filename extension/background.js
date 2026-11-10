@@ -94,7 +94,7 @@ async function synchronizeActiveTab(request) {
     return {
       success: false,
       code: "bridge_offline",
-      message: "Serveur AgenticAxelor inaccessible. Vérifiez qu’il est démarré sur le port 3210.",
+      message: "Serveur altersi-agent-workspace inaccessible. Vérifiez qu’il est démarré sur le port 3210.",
     };
   }
 }

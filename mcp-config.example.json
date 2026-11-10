@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "agentic-axelor": {
+    "altersi-agent-workspace": {
       "command": "node",
       "args": [
         "<ABSOLUTE_PATH_TO_PROJECT>/dist/index.js"
@@ -12,7 +12,7 @@
         "BRIDGE_PORT": "3210"
       }
     },
-    "agentic-axelor-dev": {
+    "altersi-agent-workspace-dev": {
       "command": "npx",
       "args": [
         "-y",

@@ -1,18 +1,18 @@
-![Capture du graphe contextuel d'AgenticAxelor](.agents/docs/2026-11-06%2013_51_20-.png)
+![Capture du graphe contextuel](.agents/docs/2026-11-06%2013_51_20-.png)
 
-# AgenticAxelor
+# altersi-agent-workspace
 
 **Le second cerveau d'Alter-si : un environnement de travail augmenté pour les assistants IA.**
 
-AgenticAxelor transforme votre assistant IA compatible (Claude, Goose, Cursor, Pi) en un collaborateur numérique opérationnel. Il réunit le contexte métier de notre entreprise, des méthodes de travail éprouvées et des connexions directes vers nos logiciels quotidiens (ERP, gestion de tickets, automatisation, bureautique).
+altersi-agent-workspace transforme votre assistant IA compatible (Claude, Goose, Cursor, Pi) en un collaborateur numérique opérationnel. Il réunit le contexte métier de notre entreprise, des méthodes de travail éprouvées et des connexions directes vers nos logiciels quotidiens (ERP, gestion de tickets, automatisation, bureautique).
 
-Ce projet ne se résume pas à un ensemble de skills et de connecteurs. Les skills et les connecteurs fournissent uniquement des outils et des actions ; AgenticAxelor apporte le cadre d'analyse, les règles de sécurité, le contexte métier et la mémoire d'apprentissage nécessaires pour comprendre une demande complexe, fiabiliser les interventions et accomplir vos missions sans réinventer la roue ni inventer de règles.
+Ce projet ne se résume pas à un ensemble de skills et de connecteurs. Les skills et les connecteurs fournissent uniquement des outils et des actions ; altersi-agent-workspace apporte le cadre d'analyse, les règles de sécurité, le contexte métier et la mémoire d'apprentissage nécessaires pour comprendre une demande complexe, fiabiliser les interventions et accomplir vos missions sans réinventer la roue ni inventer de règles.
 
 ---
 
 ## Un second cerveau personnalisé qui apprend avec vous
 
-Contrairement aux assistants génériques qui oublient tout à chaque nouvelle session, AgenticAxelor a été conçu pour grandir et se spécialiser au fil de vos tâches réelles.
+Contrairement aux assistants génériques qui oublient tout à chaque nouvelle session, altersi-agent-workspace a été conçu pour grandir et se spécialiser au fil de vos tâches réelles.
 
 Imaginez un collègue qui vous assiste au quotidien :
 - Au départ, il dispose du socle commun d'Alter-si : il connaît nos outils, nos conventions et nos méthodes officielles.
